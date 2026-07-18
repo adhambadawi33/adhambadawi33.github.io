@@ -68,6 +68,7 @@ export function normalizeAccount(a, report) {
     creditLimit: Math.max(0, num(a.creditLimit, 0)),
     color: /^#[0-9A-Fa-f]{6}$/.test(str(a.color)) ? a.color : "#1F4E5F",
     archived: bool(a.archived),
+    sortOrder: num(a.sortOrder, NaN),
   };
 }
 
@@ -239,6 +240,9 @@ export function normalizeData(raw) {
   out.accounts = (Array.isArray(src.accounts) ? src.accounts : [])
     .map((a) => normalizeAccount(a, report))
     .filter(Boolean);
+  out.accounts.forEach((a, i) => { if (!Number.isFinite(a.sortOrder)) a.sortOrder = i; });
+  out.accounts.sort((x, y) => x.sortOrder - y.sortOrder);
+  out.accounts.forEach((a, i) => { a.sortOrder = i; });
   const ids = new Set(out.accounts.map((a) => a.id));
   out.transactions = (Array.isArray(src.transactions) ? src.transactions : [])
     .map((t) => normalizeTransaction(t, report, ids, out.settings.rates))
