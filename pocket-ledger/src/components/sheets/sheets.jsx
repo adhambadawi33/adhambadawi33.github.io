@@ -633,10 +633,11 @@ export function InboxSheet({ open, onClose, pending, accounts, onPasteImport, on
 
 /* ── Settings: draft-validated rates, backup/restore, typed reset ── */
 export function SettingsSheet({
-  open, onClose, settings, counts, onBase, onSaveRates, onExportCsv, onExportBackup, onImportBackup, onResetRequest, backendName,
+  open, onClose, settings, counts, onBase, onSaveRates, onFetchRates, onExportCsv, onExportBackup, onImportBackup, onResetRequest, backendName,
 }) {
   const [drafts, setDrafts] = useState({});
   const [err, setErr] = useState("");
+  const [fx, setFx] = useState("");
   const fileRef = useRef(null);
   const init = React.useCallback(() => {
     setDrafts(Object.fromEntries(CURRENCIES.map((c) => [c, String(settings.rates[c])])));
@@ -663,6 +664,27 @@ export function SettingsSheet({
       </Field>
 
       <Field label="Exchange rates · units per 1 USD">
+        <div className="flex items-center gap-2.5 rounded-xl px-3.5 py-3 mb-3" style={{ background: T.greenBg }}>
+          <span className="h-2 w-2 rounded-full shrink-0" style={{ background: T.green }} aria-hidden="true" />
+          <span className="ui text-[12px] flex-1" style={{ color: T.text }}>
+            Rates refresh automatically once a day.{settings.ratesUpdatedAt ? ` Last updated ${settings.ratesUpdatedAt}.` : ""}
+          </span>
+          <button
+            onClick={() => {
+              if (!onFetchRates || fx === "loading") return;
+              setFx("loading");
+              onFetchRates()
+                .then((r) => { setDrafts(Object.fromEntries(CURRENCIES.map((c) => [c, String(r[c])]))); setFx("ok"); })
+                .catch(() => setFx("err"));
+            }}
+            className="tap ui text-[12px] font-semibold rounded-lg px-3 py-1.5 shrink-0"
+            style={{ background: T.ink, color: "#fff", opacity: fx === "loading" ? 0.6 : 1 }}
+          >
+            {fx === "loading" ? "Updating…" : "↻ Update now"}
+          </button>
+        </div>
+        {fx === "ok" && <p role="status" className="ui text-[11px] mb-2" style={{ color: T.green }}>Rates updated ✓</p>}
+        {fx === "err" && <p role="alert" className="ui text-[11px] mb-2" style={{ color: T.rose }}>Couldn't reach the rates service — using the last saved rates.</p>}
         {CURRENCIES.map((c) => (
           <div key={c} className="flex items-center gap-3 mb-2">
             <span className="mono text-sm w-10" style={{ color: T.text }}>{c}</span>
@@ -682,9 +704,7 @@ export function SettingsSheet({
           <button onClick={() => { setDrafts(Object.fromEntries(CURRENCIES.map((c) => [c, String(DEFAULT_RATES[c])]))); setErr(""); }} className="tap ui text-sm rounded-xl px-4 py-2.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>Reset defaults</button>
         </div>
         <p className="ui text-[11px] mt-2" style={{ color: T.faint }}>
-          AED & SAR are pegged — mainly keep EGP fresh.
-          {settings.ratesUpdatedAt ? ` Last updated ${settings.ratesUpdatedAt}.` : " Not updated yet."}
-          {" "}Past entries keep their original rates.
+          Manual editing is a fallback for when you're offline. Past entries always keep their original rates.
         </p>
       </Field>
 

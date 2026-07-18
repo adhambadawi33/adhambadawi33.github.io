@@ -12,6 +12,7 @@ import { blankData, normalizeData } from "../lib/validation/schema.js";
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
 import { debtTotals } from "../lib/finance/netWorth.js";
 import { snapshotRates, convert } from "../lib/finance/currency.js";
+import { fetchLiveRates } from "../lib/finance/fxLive.js";
 import { parseSmsBatch } from "../lib/voice/sms.js";
 import { todayISO, addCycle, thisMonthKey } from "../lib/dates/localDate.js";
 import { daysUntilFromToday } from "../lib/dates/ui.js";
@@ -98,6 +99,26 @@ export default function App({ storage }) {
   }, [persist]);
 
   const settings = data?.settings || blankData().settings;
+
+  /* Auto-refresh FX once per day (batch 3) — silent; snapshots keep history
+     correct, so no confirm. Offline/failed fetch just keeps last rates. */
+  const fxTried = useRef(false);
+  useEffect(() => {
+    if (!data || fxTried.current) return;
+    if (import.meta.env.MODE === "test") return;
+    if (data.settings.ratesUpdatedAt === todayISO()) return;
+    fxTried.current = true;
+    fetchLiveRates()
+      .then((rates) => commit({ ...data, settings: { ...data.settings, rates, ratesUpdatedAt: todayISO() } }, true))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  const fetchRatesNow = useCallback(async () => {
+    const rates = await fetchLiveRates();
+    commit({ ...data, settings: { ...data.settings, rates, ratesUpdatedAt: todayISO() } }, true);
+    return rates;
+  }, [data, commit]);
   const base = settings.base;
   const t = useMemo(() => makeT(settings.language), [settings.language]);
   useEffect(() => applyDir(settings.language), [settings.language]);
@@ -448,7 +469,7 @@ export default function App({ storage }) {
         <SettingsSheet
           open={sheet === "settings"} onClose={() => setSheet(null)} settings={settings}
           counts={{ tx: data.transactions.length, accounts: data.accounts.length, recurrs: data.recurrs.length, debts: data.debts.length }}
-          onBase={setBase} onSaveRates={saveRates} onExportCsv={exportCsv} onExportBackup={exportBackup}
+          onBase={setBase} onSaveRates={saveRates} onFetchRates={fetchRatesNow} onExportCsv={exportCsv} onExportBackup={exportBackup}
           onImportBackup={importBackup} onResetRequest={() => setResetOpen(true)} backendName={storage.backendName}
         />
       </div>
