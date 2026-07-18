@@ -446,12 +446,14 @@ export default function App({ storage }) {
               <span className="disp text-lg" style={{ color: "#fff" }}>Pocket Ledger</span>
             </div>
             <div className="flex items-center gap-2">
-              {data.pending.length > 0 && (
-                <button onClick={() => setSheet("inbox")} className="tap relative h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: T.gold }} aria-label={`Approval inbox: ${data.pending.length} waiting`}>
-                  <Inbox size={16} />
+              {/* Always visible — it's also the only door to "Paste bank SMS",
+                  so hiding it when empty left no way in (Adham got stuck). */}
+              <button onClick={() => setSheet("inbox")} className="tap relative h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? `Approval inbox: ${data.pending.length} waiting` : "Approval inbox"}>
+                <Inbox size={16} />
+                {data.pending.length > 0 && (
                   <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
-                </button>
-              )}
+                )}
+              </button>
               <button onClick={() => setHide(!hide)} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? "Show amounts" : "Hide amounts"} aria-pressed={hide}>
                 {hide ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
