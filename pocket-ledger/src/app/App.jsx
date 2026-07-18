@@ -331,11 +331,15 @@ export default function App({ storage }) {
     const res = parseBackup(text);
     if (res.error) { window.alert(res.error); return; }
     const { summary } = res;
-    const replace = window.confirm(
-      `Backup contains ${summary.accounts} accounts, ${summary.transactions} transactions, ${summary.recurring} recurring, ${summary.debts} loans.\n\nOK = REPLACE everything with the backup.\nCancel = MERGE it into current data.`
-    );
+    /* Safe-by-default import: OK adds (merge, nothing lost); replacing
+       everything needs a second, explicit confirmation. */
+    const counts = `${summary.accounts} accounts, ${summary.transactions} transactions, ${summary.recurring} recurring, ${summary.debts} loans`;
+    const merge = window.confirm(`This file contains ${counts}.\n\nOK = ADD it to your current data (safe — nothing is deleted).\nCancel = more options.`);
+    let next = null;
+    if (merge) next = mergeData(data, res.data);
+    else if (window.confirm("REPLACE everything with this file instead?\n\nOK = wipe current data and use the file.\nCancel = do nothing.")) next = res.data;
+    if (!next) return;
     await storage.set(`${STORAGE_KEY}:pre-import`, JSON.stringify(data));
-    const next = replace ? res.data : mergeData(data, res.data);
     commit(next, true);
     setSheet(null);
   };

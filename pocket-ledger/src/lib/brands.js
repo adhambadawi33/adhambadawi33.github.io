@@ -22,6 +22,7 @@ const BANKS = [
   { m: ["nbe", "الاهلي المصري", "national bank of egypt"], label: "NBE", color: "#0B6B3A", accent: "#0B6B3A", domain: "nbe.com.eg" },
   { m: ["banque misr", "بنك مصر"], label: "BM", color: "#7A1F1F", accent: "#C8102E", domain: "banquemisr.com" },
   { m: ["mashreq"], label: "Mashreq", color: "#FF5E00", accent: "#FF5E00", domain: "mashreqbank.com" },
+  { m: ["arab bank", "البنك العربي", "العربي"], label: "AB", color: "#0E7A3E", accent: "#0E7A3E", domain: "arabbank.com.eg" },
 ];
 
 export const bankFor = (name) => {
