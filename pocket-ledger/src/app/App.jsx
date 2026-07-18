@@ -7,6 +7,7 @@ import ActivityScreen from "../components/screens/ActivityScreen.jsx";
 import PlannedScreen from "../components/screens/PlannedScreen.jsx";
 import PeopleScreen from "../components/screens/PeopleScreen.jsx";
 import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet } from "../components/sheets/sheets.jsx";
+import VoiceSheet from "../components/sheets/VoiceSheet.jsx";
 import { STORAGE_KEY, LEGACY_KEYS } from "../lib/storage/adapter.js";
 import { blankData, normalizeData } from "../lib/validation/schema.js";
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
@@ -41,6 +42,7 @@ export default function App({ storage }) {
   const [debtDraft, setDebtDraft] = useState(null);
   const hashConsumed = useRef(false);
   const importSmsRef = useRef(null);
+  const fabPress = useRef({ timer: null, fired: false });
   const saveTimer = useRef(null);
   const undoTimer = useRef(null);
 
@@ -501,11 +503,19 @@ export default function App({ storage }) {
             {TABS.slice(0, 2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
             <div className="w-16" aria-hidden="true" />
             {TABS.slice(2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
+            {/* Tap = keyboard entry. LONG-press = big-mic voice entry (batch 8). */}
             <button
-              onClick={() => setSheet("add")}
-              aria-label="Add transaction"
+              onPointerDown={() => {
+                fabPress.current.fired = false;
+                fabPress.current.timer = setTimeout(() => { fabPress.current.fired = true; setSheet("voice"); }, 420);
+              }}
+              onPointerUp={() => clearTimeout(fabPress.current.timer)}
+              onPointerLeave={() => clearTimeout(fabPress.current.timer)}
+              onContextMenu={(e) => e.preventDefault()}
+              onClick={() => { if (!fabPress.current.fired) setSheet("add"); }}
+              aria-label="Add transaction — hold to speak"
               className="tap absolute left-1/2 -translate-x-1/2 -top-6 h-14 w-14 rounded-full flex items-center justify-center"
-              style={{ background: `linear-gradient(145deg, ${T.gold}, ${T.goldDeep})`, color: T.ink, boxShadow: "0 6px 18px rgba(169,133,63,0.45)" }}
+              style={{ background: `linear-gradient(145deg, ${T.gold}, ${T.goldDeep})`, color: T.ink, boxShadow: "0 6px 18px rgba(169,133,63,0.45)", WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "manipulation" }}
             >
               <Plus size={26} strokeWidth={2.5} />
             </button>
@@ -528,6 +538,12 @@ export default function App({ storage }) {
           open={sheet === "add"} onClose={() => { setSheet(null); setVoiceText(null); }} accounts={activeAccounts} settings={settings}
           onSave={addTx} goAccounts={() => setSheet("accounts")} initialText={voiceText}
           onDebtDraft={(p) => { setDebtDraft(p); setVoiceText(null); setSheet("debt"); }}
+        />
+        <VoiceSheet
+          open={sheet === "voice"} onClose={() => setSheet(null)} accounts={activeAccounts} settings={settings}
+          onSave={addTx}
+          onDebtDraft={(p) => { setDebtDraft(p); setSheet("debt"); }}
+          onTypeInstead={(text) => { setVoiceText(text || null); setSheet("add"); }}
         />
         <AccountsSheet open={sheet === "accounts"} onClose={() => setSheet(null)} accounts={sortedAccounts} balances={balances} hide={hide} onMove={moveAccount} onNew={() => { setEditAcc(null); setSheet("account-form"); }} onEdit={(a) => { setEditAcc(a); setSheet("account-form"); }} onArchive={archiveAccount} onAdjust={adjustAccount} />
         <AccountFormSheet open={sheet === "account-form"} onClose={() => setSheet("accounts")} initial={editAcc} onSave={saveAccount} currentBalance={editAcc ? balances[editAcc.id] : 0} />

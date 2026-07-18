@@ -37,7 +37,7 @@ describe("Pocket Ledger UI", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...seedV2, schemaVersion: 3 }));
     render(<App storage={createStorage()} />);
     await screen.findByText("ADCB Current");
-    fireEvent.click(screen.getByLabelText("Add transaction"));
+    fireEvent.click(screen.getByLabelText("Add transaction — hold to speak"));
     fireEvent.click(await screen.findByRole("button", { name: "4" }));
     fireEvent.click(screen.getByRole("button", { name: "5" }));
     fireEvent.click(screen.getByRole("button", { name: /Save expense/i }));
@@ -54,7 +54,7 @@ describe("Pocket Ledger UI", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...seedV2, schemaVersion: 3 }));
     render(<App storage={createStorage()} />);
     await screen.findByText("ADCB Current");
-    fireEvent.click(screen.getByLabelText("Add transaction"));
+    fireEvent.click(screen.getByLabelText("Add transaction — hold to speak"));
     const field = await screen.findByLabelText("Quick add by voice or text");
     fireEvent.change(field, { target: { value: "غدا ١٢٠ درهم" } });
     fireEvent.click(screen.getByLabelText("Understand and fill the form"));

@@ -203,6 +203,11 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
               <Sparkles size={12} aria-hidden="true" /> {parsedHint} — review below, then Save
             </p>
           )}
+          {!parsedHint && !debtDraft && (
+            <p className="ui text-[10.5px] mt-1.5" style={{ color: T.faint }}>
+              💡 اختصار: دوس مطوّلًا على زرار <b>+</b> الدهبي وقول جملتك على طول
+            </p>
+          )}
           {debtDraft && (
             <div className="rounded-xl px-3.5 py-3 mt-2 flex items-center gap-3" style={{ background: T.goldBg || T.paper, border: `1px solid ${T.gold}` }} aria-live="polite">
               <HandCoins size={18} style={{ color: T.goldDeep }} aria-hidden="true" />
