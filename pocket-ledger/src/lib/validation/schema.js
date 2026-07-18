@@ -29,7 +29,7 @@ export function blankData(now = todayISO()) {
     budgets: {},
     pending: [],
     settings: {
-      base: "AED",
+      base: "EGP",
       rates: { ...DEFAULT_RATES },
       ratesUpdatedAt: null,
       lastAccount: null,

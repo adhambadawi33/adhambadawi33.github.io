@@ -10,8 +10,8 @@ import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, Se
 import { STORAGE_KEY, LEGACY_KEYS } from "../lib/storage/adapter.js";
 import { blankData, normalizeData } from "../lib/validation/schema.js";
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
-import { netWorth, debtTotals } from "../lib/finance/netWorth.js";
-import { snapshotRates } from "../lib/finance/currency.js";
+import { debtTotals } from "../lib/finance/netWorth.js";
+import { snapshotRates, convert } from "../lib/finance/currency.js";
 import { parseSmsBatch } from "../lib/voice/sms.js";
 import { todayISO, addCycle, thisMonthKey } from "../lib/dates/localDate.js";
 import { daysUntilFromToday } from "../lib/dates/ui.js";
@@ -109,7 +109,18 @@ export default function App({ storage }) {
   );
   const activeAccounts = useMemo(() => sortedAccounts.filter((a) => !a.archived), [sortedAccounts]);
   const balances = useMemo(() => (data ? computeBalances(data.accounts, data.transactions) : {}), [data]);
-  const worth = useMemo(() => (data ? netWorth(data.accounts, balances, base, settings.rates) : 0), [data, balances, base, settings.rates]);
+  /* Hero = money you actually have (banks + debit + cash); credit cards shown
+     separately as an obligation (design decision with Adham — no daily budget). */
+  const moneyGroups = useMemo(() => {
+    const g = { banks: 0, cash: 0, cardOwed: 0 };
+    for (const a of activeAccounts) {
+      const v = convert(balances[a.id] || 0, a.currency, base, settings.rates);
+      if (a.type === "credit") g.cardOwed += Math.max(0, -v);
+      else if (a.type === "cash") g.cash += v;
+      else g.banks += v;
+    }
+    return { ...g, liquid: g.banks + g.cash };
+  }, [activeAccounts, balances, base, settings.rates]);
   const debts = useMemo(() => (data ? debtTotals(data.debts, base, settings.rates) : { owedToMe: 0, iOwe: 0 }), [data, base, settings.rates]);
   const month = thisMonthKey();
   const monthly = useMemo(() => (data ? monthlyTotals(data.transactions, month, base) : { income: 0, expense: 0, byCategory: {} }), [data, month, base]);
@@ -358,14 +369,12 @@ export default function App({ storage }) {
               </button>
             </div>
           </div>
-          <div className="ui text-[11px] uppercase tracking-widest mb-1" style={{ color: "#7E90A6" }}>{t("header.net")}</div>
-          <div className="mono text-[32px] leading-none" style={{ color: "#fff" }}>{fmtNet(worth, base, hide)}</div>
-          <div className="flex flex-wrap gap-2 mt-3">
-            <span className="ui text-[11px] rounded-full px-2.5 py-1" style={{ background: "rgba(79,209,165,0.15)", color: "#7FE0BC" }}>↑ {fmtNet(monthly.income, base, hide)} {t("header.in")}</span>
-            <span className="ui text-[11px] rounded-full px-2.5 py-1" style={{ background: "rgba(242,150,155,0.15)", color: "#F5A9AE" }}>↓ {fmtNet(monthly.expense, base, hide)} {t("header.out")}</span>
-            {debts.owedToMe > 0 && (
-              <span className="ui text-[11px] rounded-full px-2.5 py-1" style={{ background: "rgba(201,169,106,0.18)", color: "#E3C98F" }}>{fmtNet(debts.owedToMe, base, hide)} {t("header.owed")}</span>
-            )}
+          <div className="ui text-[11px] uppercase tracking-widest mb-1" style={{ color: "#93A08D" }}>{t("header.total")}</div>
+          <div className="mono text-[36px] leading-none" style={{ color: "#fff" }}>{fmtNet(Math.round(moneyGroups.liquid), base, hide)}</div>
+          <div className="flex gap-2 mt-3.5">
+            <HeadStat label={t("header.banks")} v={hide ? "•••••" : Math.round(moneyGroups.banks).toLocaleString("en-US")} />
+            <HeadStat label={t("header.cash")} v={hide ? "•••••" : Math.round(moneyGroups.cash).toLocaleString("en-US")} />
+            {moneyGroups.cardOwed > 0.005 && <HeadStat owe label={t("header.owedCards")} v={hide ? "•••••" : Math.round(moneyGroups.cardOwed).toLocaleString("en-US")} />}
           </div>
         </header>
 
@@ -375,6 +384,8 @@ export default function App({ storage }) {
             <HomeScreen
               accounts={activeAccounts} balances={balances} upcoming={upcoming} topCats={topCats}
               monthExpense={monthly.expense} recent={recent} hide={hide} accName={accName} base={base} dueTone={dueTone}
+              rates={settings.rates}
+              groupLabels={{ banks: t("groups.banks"), cards: t("groups.cards"), cash: t("groups.cash") }}
               onManageAccounts={() => setSheet("accounts")}
               onOpenPlanned={() => setTab("planned")}
               onOpenActivity={() => setTab("activity")}
@@ -439,6 +450,15 @@ export default function App({ storage }) {
           onImportBackup={importBackup} onResetRequest={() => setResetOpen(true)} backendName={storage.backendName}
         />
       </div>
+    </div>
+  );
+}
+
+function HeadStat({ label, v, owe }) {
+  return (
+    <div className="flex-1 min-w-0 rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)" }}>
+      <div className="ui text-[10px] mb-0.5 truncate" style={{ color: "#93A08D" }}>{label}</div>
+      <div className="mono text-[13px] truncate" style={{ color: owe ? "#E9B7A0" : "#EEF1E8" }}>{v}</div>
     </div>
   );
 }

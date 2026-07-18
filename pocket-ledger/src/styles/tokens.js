@@ -4,12 +4,14 @@ import {
   Landmark, Banknote, CreditCard, SlidersHorizontal,
 } from "lucide-react";
 
+/* "C+" calm palette: warm paper ground, deep forest header, single clay accent.
+   Chosen with Adham for low visual noise (ADHD-friendly). */
 export const T = {
-  ink: "#0F1B2D", inkSoft: "#1B2A41", paper: "#F2F4F7", surface: "#FFFFFF",
-  line: "#E4E8EF", text: "#14202E", sub: "#5C6B7A", faint: "#93A0AE",
-  gold: "#C9A96A", goldDeep: "#A9853F",
-  green: "#0F8A63", greenBg: "#E7F5EF", rose: "#C6455C", roseBg: "#FAECEF",
-  amber: "#B7791F", amberBg: "#FBF3E4",
+  ink: "#2C3A2F", inkSoft: "#3A4A3E", paper: "#F1EEE7", surface: "#FBFAF6",
+  line: "#E7E2D6", text: "#232A24", sub: "#6E7268", faint: "#A2A498",
+  gold: "#B08D57", goldDeep: "#8A6A3B",
+  green: "#3F8F6B", greenBg: "#E6F1EA", rose: "#A65C48", roseBg: "#F7EBE1",
+  amber: "#A9853F", amberBg: "#F5EEDB",
 };
 
 export const ACCOUNT_TYPE_DEFS = [
@@ -18,7 +20,7 @@ export const ACCOUNT_TYPE_DEFS = [
   { id: "debit", label: "Debit card", icon: CreditCard },
   { id: "credit", label: "Credit card", icon: CreditCard },
 ];
-export const ACCOUNT_COLORS = ["#1F4E5F", "#4A3F6B", "#3D5A45", "#7A4B2E", "#3E5C76", "#8C6A3F", "#6E4555", "#54606C"];
+export const ACCOUNT_COLORS = ["#4C6350", "#5E7189", "#B08D57", "#9E6E6E", "#5E7D67", "#8A6A3B", "#6E4555", "#54606C"];
 
 export const EXP_CATS = [
   { n: "Food & Dining", I: Utensils, c: "#B4744B" },

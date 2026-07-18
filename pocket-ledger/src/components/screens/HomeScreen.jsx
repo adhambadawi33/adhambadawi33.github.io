@@ -1,13 +1,23 @@
 import React from "react";
 import { Landmark, CalendarClock, Repeat, Layers, ChevronRight } from "lucide-react";
 import { T, ACCOUNT_TYPE_DEFS, catDef, fmtMoney } from "../../styles/tokens.js";
+import { convert } from "../../lib/finance/currency.js";
 import { Section, CardBox, EmptyHint, Money, Bar } from "../common/primitives.jsx";
 import { TxRow } from "../common/rows.jsx";
 import { humanDay } from "../../lib/dates/ui.js";
 
+/* Accounts are shown grouped by kind (design decision with Adham): banks
+   together, credit cards together, cash alone — each with its own subtotal. */
+const ACCOUNT_GROUPS = [
+  { key: "banks", types: ["bank", "debit"], dot: "#4C6350" },
+  { key: "cards", types: ["credit"], dot: "#B08D57" },
+  { key: "cash", types: ["cash"], dot: "#9E6E6E" },
+];
+
 export default function HomeScreen({
   accounts, balances, upcoming, topCats, monthExpense, recent,
-  hide, accName, base, dueTone, onManageAccounts, onOpenPlanned, onOpenActivity, onDelTx, onPaid, onAccountTap,
+  hide, accName, base, dueTone, rates, groupLabels,
+  onManageAccounts, onOpenPlanned, onOpenActivity, onDelTx, onPaid, onAccountTap,
 }) {
   return (
     <>
@@ -25,21 +35,53 @@ export default function HomeScreen({
           title="Accounts"
           right={<button onClick={onManageAccounts} className="tap ui text-xs flex items-center gap-0.5" style={{ color: T.sub }}>Manage <ChevronRight size={13} /></button>}
         >
-          <div className="flex gap-3 overflow-x-auto no-scroll -mx-4 px-4 pb-1">
-            {accounts.map((a) => {
+          {ACCOUNT_GROUPS.map((g) => {
+            const list = accounts.filter((a) => g.types.includes(a.type));
+            if (!list.length) return null;
+            const subtotal = list.reduce((s, a) => {
               const bal = balances[a.id] || 0;
-              const Ico = (ACCOUNT_TYPE_DEFS.find((t) => t.id === a.type) || ACCOUNT_TYPE_DEFS[0]).icon;
-              const owed = a.type === "credit" && bal < 0;
-              return (
-                <button key={a.id} onClick={() => onAccountTap(a)} className="tap shrink-0 w-40 rounded-2xl p-3.5 text-left" style={{ background: a.color, color: "#fff" }}>
-                  <div className="flex items-center justify-between mb-4 opacity-90"><Ico size={16} aria-hidden="true" /><span className="ui text-[10px] uppercase tracking-wider">{a.type}</span></div>
-                  <div className="ui text-[12px] truncate opacity-90">{a.name}</div>
-                  <div className="mono text-[17px] mt-0.5">{fmtMoney(owed ? -bal : bal, a.currency, hide)}</div>
-                  {owed && <div className="ui text-[10px] opacity-80 mt-0.5">owed{a.creditLimit ? ` · limit ${fmtMoney(a.creditLimit, a.currency, hide)}` : ""}</div>}
-                </button>
-              );
-            })}
-          </div>
+              const v = g.key === "cards" ? Math.max(0, -bal) : bal;
+              return s + convert(v, a.currency, base, rates);
+            }, 0);
+            return (
+              <div key={g.key} className="mb-3">
+                <div className="flex items-baseline justify-between mb-1.5 px-0.5">
+                  <span className="ui text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1.5" style={{ color: T.sub }}>
+                    <span className="inline-block h-1.5 w-1.5 rounded-sm" style={{ background: g.dot }} aria-hidden="true" />
+                    {groupLabels?.[g.key] || g.key}
+                  </span>
+                  <Money n={Math.round(subtotal)} cur={base} hide={hide} className="text-[12px]" color={g.key === "cards" && subtotal > 0.005 ? T.rose : T.text} />
+                </div>
+                <div className="flex gap-3 overflow-x-auto no-scroll -mx-4 px-4 pb-1">
+                  {list.map((a) => {
+                    const bal = balances[a.id] || 0;
+                    const Ico = (ACCOUNT_TYPE_DEFS.find((t) => t.id === a.type) || ACCOUNT_TYPE_DEFS[0]).icon;
+                    const isCredit = a.type === "credit";
+                    const owed = isCredit ? Math.max(0, -bal) : 0;
+                    const avail = isCredit && a.creditLimit ? a.creditLimit + bal : null;
+                    const main = isCredit ? (avail != null ? avail : Math.abs(bal)) : bal;
+                    return (
+                      <button
+                        key={a.id} onClick={() => onAccountTap(a)}
+                        className="tap shrink-0 w-40 rounded-2xl p-3 text-left"
+                        style={{ background: T.surface, border: `1px solid ${T.line}`, borderInlineStart: `4px solid ${a.color}` }}
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="h-6 w-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${a.color}22`, color: a.color }} aria-hidden="true"><Ico size={13} /></span>
+                          <span className="ui text-[9px] uppercase tracking-wider" style={{ color: T.faint }}>{isCredit && avail != null ? "available" : a.type}</span>
+                        </div>
+                        <div className="ui text-[12px] truncate" style={{ color: T.sub }}>{a.name}</div>
+                        <div className="mono text-[15px] mt-0.5" style={{ color: T.text }}>{fmtMoney(main, a.currency, hide)}</div>
+                        {isCredit && (owed > 0
+                          ? <div className="ui text-[10px] mt-0.5" style={{ color: T.rose }}>owed {fmtMoney(owed, a.currency, hide)}</div>
+                          : <div className="ui text-[10px] mt-0.5" style={{ color: T.green }}>nothing owed ✓</div>)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </Section>
       )}
 
