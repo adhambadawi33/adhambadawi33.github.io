@@ -103,7 +103,11 @@ export default function App({ storage }) {
   useEffect(() => applyDir(settings.language), [settings.language]);
 
   /* ── derived ── */
-  const activeAccounts = useMemo(() => (data ? data.accounts.filter((a) => !a.archived) : []), [data]);
+  const sortedAccounts = useMemo(
+    () => (data ? [...data.accounts].sort((x, y) => (x.sortOrder ?? 0) - (y.sortOrder ?? 0)) : []),
+    [data]
+  );
+  const activeAccounts = useMemo(() => sortedAccounts.filter((a) => !a.archived), [sortedAccounts]);
   const balances = useMemo(() => (data ? computeBalances(data.accounts, data.transactions) : {}), [data]);
   const worth = useMemo(() => (data ? netWorth(data.accounts, balances, base, settings.rates) : 0), [data, balances, base, settings.rates]);
   const debts = useMemo(() => (data ? debtTotals(data.debts, base, settings.rates) : { owedToMe: 0, iOwe: 0 }), [data, base, settings.rates]);
@@ -175,6 +179,15 @@ export default function App({ storage }) {
     scheduleUndo(acc.archived ? `Shown: ${acc.name}` : `Hidden: ${acc.name}`, () =>
       commit({ ...data }, true)
     );
+  };
+  const moveAccount = (acc, dir) => {
+    const list = [...sortedAccounts];
+    const i = list.findIndex((x) => x.id === acc.id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    const order = new Map(list.map((x, idx) => [x.id, idx]));
+    commit({ ...data, accounts: data.accounts.map((x) => ({ ...x, sortOrder: order.get(x.id) })) }, true);
   };
   const adjustAccount = (acc, diff) => {
     const tx = {
@@ -414,7 +427,7 @@ export default function App({ storage }) {
 
         {/* sheets */}
         <AddTxSheet open={sheet === "add"} onClose={() => { setSheet(null); setVoiceText(null); }} accounts={activeAccounts} settings={settings} onSave={addTx} goAccounts={() => setSheet("accounts")} initialText={voiceText} />
-        <AccountsSheet open={sheet === "accounts"} onClose={() => setSheet(null)} accounts={data.accounts} balances={balances} hide={hide} onNew={() => { setEditAcc(null); setSheet("account-form"); }} onEdit={(a) => { setEditAcc(a); setSheet("account-form"); }} onArchive={archiveAccount} onAdjust={adjustAccount} />
+        <AccountsSheet open={sheet === "accounts"} onClose={() => setSheet(null)} accounts={sortedAccounts} balances={balances} hide={hide} onMove={moveAccount} onNew={() => { setEditAcc(null); setSheet("account-form"); }} onEdit={(a) => { setEditAcc(a); setSheet("account-form"); }} onArchive={archiveAccount} onAdjust={adjustAccount} />
         <AccountFormSheet open={sheet === "account-form"} onClose={() => setSheet("accounts")} initial={editAcc} onSave={saveAccount} currentBalance={editAcc ? balances[editAcc.id] : 0} />
         <RecurrSheet open={sheet === "recurr"} onClose={() => setSheet(null)} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} />
         <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} onPasteImport={pasteSms} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
