@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeftRight, Trash2, Repeat, Layers, SlidersHorizontal, Ban } from "lucide-react";
+import { ArrowLeftRight, Trash2, Repeat, Layers, SlidersHorizontal, Ban, MoreHorizontal } from "lucide-react";
 import { SubLogo } from "./brand.jsx";
 import { T, catDef, ownerDef, fmtMoney, inputStyle } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
@@ -52,6 +52,9 @@ export function TxRow({ t, i, hide, accName, onDel, compact }) {
 }
 
 export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel, dueTone, accName }) {
+  /* Ban/Delete live behind a per-row "…" toggle so the name and due date
+     keep their width on narrow phones. */
+  const [moreId, setMoreId] = useState(null);
   const list = recurrs.filter((r) => r.kind === kind);
   if (list.length === 0)
     return (
@@ -71,14 +74,14 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
         const tone = dueTone(daysUntilFromToday(r.nextDue));
         return (
           <div key={r.id} className="px-4 py-3" style={{ borderTop: i ? `1px solid ${T.paper}` : "none", opacity: done ? 0.55 : 1 }}>
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <SubLogo name={r.name} size={34} tintBg={tone.bg} tintColor={tone.c} />
               <div className="min-w-0 flex-1">
                 <div className="ui text-sm truncate flex items-center gap-1.5" style={{ color: T.text }}>
                   <span className="truncate">{r.name}</span>
                   <OwnerPill id={r.owner} />
                 </div>
-                <div className="ui text-[11px]" style={{ color: done ? T.green : tone.c }}>
+                <div className="ui text-[11px] truncate" style={{ color: done ? T.green : tone.c }}>
                   {done ? "Completed ✓" : `${tone.t} · ${humanDay(r.nextDue)}`}
                   {!done && r.kind === "subscription" ? ` · ${r.cycle}` : ""}
                 </div>
@@ -86,21 +89,36 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
                   <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.faint }}>from {accName(r.accountId)}</div>
                 )}
               </div>
-              <Money n={r.amount} cur={r.currency} hide={hide} className="text-sm" />
-              {!done && (
-                <button onClick={() => onPaid(r)} className="tap ui text-[11px] font-medium rounded-lg px-3 py-2" style={{ background: T.ink, color: "#fff" }}>
-                  Paid
-                </button>
-              )}
-              {kind === "subscription" && onToggleCancel && !done && (
-                <button onClick={() => onToggleCancel(r)} className="tap p-2 opacity-50" style={{ color: T.rose }} aria-label={`Mark ${r.name} as needs cancelling`} title="Needs cancelling">
-                  <Ban size={14} />
-                </button>
-              )}
-              <button onClick={() => onDel(r)} className="tap p-2 opacity-40" style={{ color: T.rose }} aria-label={`Delete ${r.name}`}>
-                <Trash2 size={14} />
-              </button>
+              <div className="shrink-0 flex flex-col items-end gap-1.5">
+                <Money n={r.amount} cur={r.currency} hide={hide} className="text-sm" />
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setMoreId(moreId === r.id ? null : r.id)}
+                    className="tap p-2 opacity-50" style={{ color: T.sub }}
+                    aria-label={`More actions for ${r.name}`} aria-expanded={moreId === r.id}
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+                  {!done && (
+                    <button onClick={() => onPaid(r)} className="tap ui text-[11px] font-medium rounded-lg px-3 py-2" style={{ background: T.ink, color: "#fff" }}>
+                      Paid
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
+            {moreId === r.id && (
+              <div className="flex items-center justify-end gap-2 mt-1.5" style={{ paddingInlineStart: 46 }}>
+                {kind === "subscription" && onToggleCancel && !done && (
+                  <button onClick={() => { onToggleCancel(r); setMoreId(null); }} className="tap ui text-[11.5px] rounded-lg px-3 py-2 flex items-center gap-1.5" style={{ background: T.roseBg, color: T.rose }}>
+                    <Ban size={12} aria-hidden="true" /> Needs cancelling
+                  </button>
+                )}
+                <button onClick={() => { onDel(r); setMoreId(null); }} className="tap ui text-[11.5px] rounded-lg px-3 py-2 flex items-center gap-1.5" style={{ background: T.roseBg, color: T.rose }} aria-label={`Delete ${r.name}`}>
+                  <Trash2 size={12} aria-hidden="true" /> Delete
+                </button>
+              </div>
+            )}
             {r.kind === "installment" && (
               <div className="mt-2">
                 <Bar pct={(r.monthsPaid / r.monthsTotal) * 100} color={done ? T.green : T.gold} />
