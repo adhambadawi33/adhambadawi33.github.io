@@ -102,3 +102,44 @@ describe("voice parser — owner tagging (batch 5)", () => {
     expect(parseVoice("غدا ١٢٠ درهم", accounts, settings).owner).toBeNull();
   });
 });
+
+describe("voice parser — debt phrases (batch 6)", () => {
+  it('parses "سلفت احمد ٥٠٠ جنيه" as a lent debt', () => {
+    const p = parseVoice("سلفت احمد ٥٠٠ جنيه", accounts, settings);
+    expect(p.type).toBe("debt");
+    expect(p.direction).toBe("lent");
+    expect(p.person).toBe("احمد");
+    expect(p.amount).toBe(500);
+    expect(p.currency).toBe("EGP");
+  });
+  it('parses "استلفت من احمد ٥٠٠ دولار" as borrowed — استلفت is not سلفت', () => {
+    const p = parseVoice("استلفت من احمد ٥٠٠ دولار", accounts, settings);
+    expect(p.type).toBe("debt");
+    expect(p.direction).toBe("borrowed");
+    expect(p.person).toBe("احمد");
+    expect(p.currency).toBe("USD");
+  });
+  it('parses "lent ahmed 300 aed"', () => {
+    const p = parseVoice("lent Ahmed 300 aed", accounts, settings);
+    expect(p.type).toBe("debt");
+    expect(p.direction).toBe("lent");
+    expect(p.person).toBe("ahmed");
+    expect(p.amount).toBe(300);
+    expect(p.currency).toBe("AED");
+  });
+  it('parses "borrowed 200 from sara"', () => {
+    const p = parseVoice("borrowed 200 from Sara", accounts, settings);
+    expect(p.type).toBe("debt");
+    expect(p.direction).toBe("borrowed");
+    expect(p.person).toBe("sara");
+  });
+  it("falls back to the base currency when none is spoken", () => {
+    const p = parseVoice("سلفت منى ١٠٠٠", accounts, { ...settings, base: "EGP" });
+    expect(p.type).toBe("debt");
+    expect(p.currency).toBe("EGP");
+  });
+  it("ordinary expenses never become debts", () => {
+    expect(parseVoice("غدا ١٢٠ درهم", accounts, settings).type).toBe("expense");
+    expect(parseVoice("كارفور 300", accounts, settings).type).toBe("expense");
+  });
+});

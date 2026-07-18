@@ -37,6 +37,7 @@ export default function App({ storage }) {
   const [undo, setUndo] = useState(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [voiceText, setVoiceText] = useState(null);
+  const [debtDraft, setDebtDraft] = useState(null);
   const hashConsumed = useRef(false);
   const importSmsRef = useRef(null);
   const saveTimer = useRef(null);
@@ -154,6 +155,20 @@ export default function App({ storage }) {
     () => Object.entries(monthly.byCategory).map(([n, v]) => ({ n, v })).sort((a, b) => b.v - a.v).slice(0, 5),
     [monthly]
   );
+  /* Plain-language month summary (batch 6): compares to last month at the
+     SAME day-of-month, so mid-month it's a fair "at this point" comparison. */
+  const insight = useMemo(() => {
+    if (!data) return null;
+    const day = Number(todayISO().slice(8, 10));
+    const [y, m] = month.split("-").map(Number);
+    const lastKey = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
+    const lastToDate = monthlyTotals(
+      data.transactions.filter((t) => Number((t.date || "").slice(8, 10)) <= day),
+      lastKey, base
+    ).expense;
+    const hadLast = data.transactions.some((t) => (t.date || "").startsWith(lastKey) && t.type === "expense");
+    return { spent: monthly.expense, top: topCats[0] || null, second: topCats[1] || null, lastToDate, hadLast };
+  }, [data, month, base, monthly, topCats]);
   const upcoming = useMemo(() => {
     if (!data) return [];
     return data.recurrs
@@ -308,7 +323,7 @@ export default function App({ storage }) {
     scheduleUndo(`${t("deleted")}: ${p.merchant || "SMS item"}`, () => commit({ ...prev }, true));
   };
 
-  const saveDebt = (d) => { commit({ ...data, debts: [...data.debts, d] }, true); setSheet(null); };
+  const saveDebt = (d) => { commit({ ...data, debts: [...data.debts, d] }, true); setSheet(null); setDebtDraft(null); showFlash(); };
   const payDebt = (id, amt) =>
     commit({ ...data, debts: data.debts.map((x) => (x.id === id ? { ...x, repaid: Math.max(0, Math.min(x.amount, x.repaid + amt)) } : x)) }, true);
   const delDebt = (d) => {
@@ -425,7 +440,7 @@ export default function App({ storage }) {
             />
           )}
           {tab === "activity" && (
-            <ActivityScreen txByDay={txByDay} filter={actFilter} setFilter={setActFilter} accounts={activeAccounts} hide={hide} accName={accName} onDelTx={delTx} onExport={exportCsv} />
+            <ActivityScreen txByDay={txByDay} filter={actFilter} setFilter={setActFilter} accounts={activeAccounts} hide={hide} accName={accName} onDelTx={delTx} onExport={exportCsv} insight={insight} base={base} />
           )}
           {tab === "planned" && (
             <PlannedScreen
@@ -468,12 +483,16 @@ export default function App({ storage }) {
         <TypedConfirm open={resetOpen} word={t("resetConfirmWord")} onCancel={() => setResetOpen(false)} onConfirm={resetAll} />
 
         {/* sheets */}
-        <AddTxSheet open={sheet === "add"} onClose={() => { setSheet(null); setVoiceText(null); }} accounts={activeAccounts} settings={settings} onSave={addTx} goAccounts={() => setSheet("accounts")} initialText={voiceText} />
+        <AddTxSheet
+          open={sheet === "add"} onClose={() => { setSheet(null); setVoiceText(null); }} accounts={activeAccounts} settings={settings}
+          onSave={addTx} goAccounts={() => setSheet("accounts")} initialText={voiceText}
+          onDebtDraft={(p) => { setDebtDraft(p); setVoiceText(null); setSheet("debt"); }}
+        />
         <AccountsSheet open={sheet === "accounts"} onClose={() => setSheet(null)} accounts={sortedAccounts} balances={balances} hide={hide} onMove={moveAccount} onNew={() => { setEditAcc(null); setSheet("account-form"); }} onEdit={(a) => { setEditAcc(a); setSheet("account-form"); }} onArchive={archiveAccount} onAdjust={adjustAccount} />
         <AccountFormSheet open={sheet === "account-form"} onClose={() => setSheet("accounts")} initial={editAcc} onSave={saveAccount} currentBalance={editAcc ? balances[editAcc.id] : 0} />
         <RecurrSheet open={sheet === "recurr"} onClose={() => setSheet(null)} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} />
         <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} onPasteImport={pasteSms} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
-        <DebtSheet open={sheet === "debt"} onClose={() => setSheet(null)} onSave={saveDebt} />
+        <DebtSheet open={sheet === "debt"} onClose={() => { setSheet(null); setDebtDraft(null); }} onSave={saveDebt} initial={debtDraft} />
         <CardsSheet open={sheet === "cards"} onClose={() => setSheet(null)} cards={activeAccounts.filter((a) => a.type === "credit")} balances={balances} hide={hide} base={base} rates={settings.rates} />
         <SettingsSheet
           open={sheet === "settings"} onClose={() => setSheet(null)} settings={settings}

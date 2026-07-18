@@ -1,13 +1,40 @@
 import React from "react";
-import { Search, Download, Receipt } from "lucide-react";
-import { T } from "../../styles/tokens.js";
+import { Search, Download, Receipt, Sparkles } from "lucide-react";
+import { T, fmtMoney } from "../../styles/tokens.js";
 import { CardBox, EmptyHint, ChipRow } from "../common/primitives.jsx";
 import { TxRow } from "../common/rows.jsx";
 import { humanDay } from "../../lib/dates/ui.js";
 
-export default function ActivityScreen({ txByDay, filter, setFilter, accounts, hide, accName, onDelTx, onExport }) {
+/* Plain-language month summary — sentences, not charts (Adham's ask). */
+function InsightCard({ insight, base, hide }) {
+  if (!insight || insight.spent <= 0) return null;
+  const money = (n) => fmtMoney(Math.round(n), base, hide);
+  const diff = insight.spent - insight.lastToDate;
+  const same = Math.abs(diff) < Math.max(50, insight.lastToDate * 0.02);
+  return (
+    <CardBox className="px-4 py-3.5 mb-4">
+      <div className="ui text-[11px] uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: T.faint }}>
+        <Sparkles size={12} style={{ color: T.goldDeep }} aria-hidden="true" /> This month, in plain words
+      </div>
+      <p className="ui text-[13px] leading-relaxed" style={{ color: T.text }}>
+        You&apos;ve spent <span className="mono font-semibold">{money(insight.spent)}</span> so far
+        {insight.top && <> — most of it on {insight.top.n} ({money(insight.top.v)}{insight.second ? `), then ${insight.second.n} (${money(insight.second.v)}` : ""})</>}.
+      </p>
+      {insight.hadLast && (
+        <p className="ui text-[12px] mt-1" style={{ color: same ? T.faint : diff > 0 ? T.rose : T.green }}>
+          {same
+            ? "About the same as last month at this point."
+            : `That's ${money(Math.abs(diff))} ${diff > 0 ? "more" : "less"} than last month at this point.`}
+        </p>
+      )}
+    </CardBox>
+  );
+}
+
+export default function ActivityScreen({ txByDay, filter, setFilter, accounts, hide, accName, onDelTx, onExport, insight, base }) {
   return (
     <>
+      <InsightCard insight={insight} base={base} hide={hide} />
       <div className="flex gap-2 mb-3">
         <div className="flex-1 flex items-center gap-2 rounded-xl px-3" style={{ background: T.surface, border: `1px solid ${T.line}` }}>
           <Search size={15} style={{ color: T.faint }} aria-hidden="true" />

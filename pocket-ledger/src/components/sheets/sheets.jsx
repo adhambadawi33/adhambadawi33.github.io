@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Plus, Landmark, Check, Pencil, Eye, EyeOff, Download, Upload, Trash2, Sparkles, ChevronDown,
-  ClipboardPaste, Wand2, ChevronUp, Mic,
+  ClipboardPaste, Wand2, ChevronUp, Mic, HandCoins,
 } from "lucide-react";
 import {
   T, ACCOUNT_TYPE_DEFS, ACCOUNT_COLORS, EXP_CATS, INC_CATS, OWNERS, fmtMoney, inputCls, inputStyle,
@@ -25,7 +25,7 @@ function useOpenTransition(open, init) {
 }
 
 /* ── Add transaction ─────────────────────────────────────────── */
-export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccounts, initialText }) {
+export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccounts, initialText, onDebtDraft }) {
   const [type, setType] = useState("expense");
   const [amount, setAmount] = useState("");
   const [cur, setCur] = useState("AED");
@@ -38,6 +38,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
   const [more, setMore] = useState(false);
   const [quick, setQuick] = useState("");
   const [parsedHint, setParsedHint] = useState("");
+  const [debtDraft, setDebtDraft] = useState(null);
   const [listening, setListening] = useState(false);
   const recRef = useRef(null);
 
@@ -45,6 +46,10 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
   const applyParse = React.useCallback((text) => {
     const p = parseVoice(text, accounts, settings);
     if (!p) return;
+    /* Loan phrases ("سلّفت أحمد ٥٠٠") offer a jump to the debt form instead
+       of prefilling a transaction — still review-then-save, never auto. */
+    if (p.type === "debt") { setDebtDraft(p); setParsedHint(""); return; }
+    setDebtDraft(null);
     setType(p.type);
     if (p.amount != null) setAmount(String(p.amount));
     if (p.type !== "transfer" && p.category) setCat(p.category);
@@ -68,7 +73,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
 
   const init = React.useCallback(() => {
     setAmount(""); setNote(""); setDate(todayISO()); setType("expense"); setCat(EXP_CATS[0].n); setOwner("me"); setMore(false);
-    setQuick(initialText || ""); setParsedHint("");
+    setQuick(initialText || ""); setParsedHint(""); setDebtDraft(null);
     const last = accounts.find((a) => a.id === settings.lastAccount) || accounts[0];
     setAccId(last?.id || null);
     setCur(last?.currency || "AED");
@@ -183,6 +188,18 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
             <p className="ui text-[11px] mt-1.5 flex items-center gap-1" style={{ color: T.goldDeep }} aria-live="polite">
               <Sparkles size={12} aria-hidden="true" /> {parsedHint} — review below, then Save
             </p>
+          )}
+          {debtDraft && (
+            <div className="rounded-xl px-3.5 py-3 mt-2 flex items-center gap-3" style={{ background: T.goldBg || T.paper, border: `1px solid ${T.gold}` }} aria-live="polite">
+              <HandCoins size={18} style={{ color: T.goldDeep }} aria-hidden="true" />
+              <div className="ui text-[12px] flex-1 min-w-0" style={{ color: T.text }}>
+                Sounds like a loan — {debtDraft.direction === "lent" ? "you lent" : "you borrowed"}
+                {debtDraft.person ? ` ${debtDraft.person}` : ""}{debtDraft.amount != null ? ` · ${debtDraft.amount} ${debtDraft.currency || ""}`.trimEnd() : ""}
+              </div>
+              <button onClick={() => onDebtDraft?.(debtDraft)} className="tap ui text-[12px] font-semibold rounded-lg px-3 py-2 shrink-0" style={{ background: T.gold, color: T.ink }}>
+                Open loan form
+              </button>
+            </div>
           )}
         </div>
 
@@ -568,11 +585,19 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave }) {
 }
 
 /* ── Debt ── */
-export function DebtSheet({ open, onClose, onSave }) {
+export function DebtSheet({ open, onClose, onSave, initial }) {
   const [f, setF] = useState(null);
+  /* `initial` = prefill from a spoken loan phrase — user still reviews and Saves. */
   const init = React.useCallback(() => {
-    setF({ person: "", direction: "lent", amount: "", currency: "AED", note: "", date: todayISO() });
-  }, []);
+    setF({
+      person: initial?.person || "",
+      direction: initial?.direction === "borrowed" ? "borrowed" : "lent",
+      amount: initial?.amount != null ? String(initial.amount) : "",
+      currency: initial?.currency || "AED",
+      note: initial?.note || "",
+      date: todayISO(),
+    });
+  }, [initial]);
   useOpenTransition(open, init);
   if (!open || !f) return null;
   const ok = f.person.trim() && +f.amount > 0;

@@ -4,7 +4,8 @@ import { SubLogo } from "./brand.jsx";
 import { T, catDef, ownerDef, fmtMoney, inputStyle } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
 import { Money, Bar, CardBox, EmptyHint } from "./primitives.jsx";
-import { daysUntilFromToday, humanDay } from "../../lib/dates/ui.js";
+import { daysUntilFromToday, humanDay, monthYear } from "../../lib/dates/ui.js";
+import { addMonthsClamped } from "../../lib/dates/localDate.js";
 
 /* Owner tag — shown only for Abeer/kids to keep "mine" rows quiet (ADHD). */
 export function OwnerPill({ id, size = "text-[9.5px]" }) {
@@ -105,6 +106,7 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
                 <Bar pct={(r.monthsPaid / r.monthsTotal) * 100} color={done ? T.green : T.gold} />
                 <div className="mono text-[10px] mt-1" style={{ color: T.faint }}>
                   {r.monthsPaid}/{r.monthsTotal} months · {fmtMoney(Math.max(0, (r.monthsTotal - r.monthsPaid) * r.amount), r.currency, hide)} left
+                  {!done && ` · ends ${monthYear(addMonthsClamped(r.nextDue, r.monthsTotal - r.monthsPaid - 1))}`}
                 </div>
               </div>
             )}

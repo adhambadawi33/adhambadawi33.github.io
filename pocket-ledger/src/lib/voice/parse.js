@@ -62,6 +62,22 @@ export function findOwner(norm) {
 }
 const TRANSFER_WORDS = ["حولت", "حول", "تحويل", "نقلت", "transfer", "transferred", "moved", "sent"];
 
+/* Debt phrases (batch 6): "سلفت احمد ٥٠٠" → I lent Ahmed 500,
+   "استلفت من احمد ٥٠٠" → I borrowed 500 from Ahmed.
+   Borrowed verbs are checked first — "استلفت" contains "سلفت". */
+const BORROW_AR = /(?:^|\s)(?:استلفت|اتسلفت|اقترضت|اتداينت)(?:\s+من\s+([^\s\d]+))?/;
+const BORROW_EN = /(?:^|\s)borrowed\b(?:.*?\bfrom\s+([a-z]+))?/;
+const LENT_AR = /(?:^|\s)(?:سلفت|داينت)\s+([^\s\d]+)/;
+const LENT_EN = /(?:^|\s)lent\s+(?!to\b)([a-z]+)/;
+
+export function findDebt(norm) {
+  let m = BORROW_AR.exec(norm) || BORROW_EN.exec(norm);
+  if (m) return { direction: "borrowed", person: m[1] || "" };
+  m = LENT_AR.exec(norm) || LENT_EN.exec(norm);
+  if (m) return { direction: "lent", person: m[1] || "" };
+  return null;
+}
+
 /* keyword -> category. Order matters: specific before generic. */
 export const CAT_KEYWORDS = [
   ["Groceries", ["كارفور", "لولو", "بقاله", "سوبرماركت", "سوبر ماركت", "خضار", "تموين", "carrefour", "lulu", "spinneys", "grocer", "supermarket", "grocery"]],
@@ -134,6 +150,16 @@ export function parseVoice(text, accounts = [], settings = {}) {
 
   const amount = findAmount(norm);
   let currency = findCurrency(norm);
+
+  /* Loans/IOUs route to the debt form, never the transaction form. */
+  const debt = findDebt(norm);
+  if (debt) {
+    return {
+      type: "debt", direction: debt.direction, person: debt.person,
+      amount, currency: currency || settings.base || null,
+      accountId: null, toAccountId: null, category: null, note: raw, owner: null,
+    };
+  }
 
   /* transfer: keyword AND a clear "from X to Y" shape.
      Arabic "to" can be a spaced word (الى/الي) or an attached lam prefix (لـ / للـ). */

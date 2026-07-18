@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { todayISO, parseISO, isValidISO, diffDays, addDays, addMonthsClamped, addCycle, daysInMonth } from "../lib/dates/localDate.js";
+import { monthYear } from "../lib/dates/ui.js";
 
 describe("local dates (handoff §4.3)", () => {
   it("todayISO uses the LOCAL calendar, never UTC", () => {
@@ -38,5 +39,8 @@ describe("local dates (handoff §4.3)", () => {
     expect(daysInMonth(2026, 2)).toBe(28);
     expect(daysInMonth(2024, 2)).toBe(29);
     expect(daysInMonth(2026, 7)).toBe(31);
+  });
+  it("monthYear formats an installment finish month", () => {
+    expect(monthYear("2027-01-15")).toBe("Jan 2027");
   });
 });
