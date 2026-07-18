@@ -78,7 +78,6 @@ export default function HomeScreen({
                     const Ico = (ACCOUNT_TYPE_DEFS.find((t) => t.id === a.type) || ACCOUNT_TYPE_DEFS[0]).icon;
                     const isCredit = a.type === "credit";
                     const owed = isCredit ? Math.max(0, -bal) : 0;
-                    const avail = isCredit && a.creditLimit ? a.creditLimit + bal : null;
                     return (
                       <button
                         key={a.id} onClick={() => onAccountTap(a)}
@@ -91,9 +90,13 @@ export default function HomeScreen({
                         </div>
                         <div className="ui text-[12px] truncate" style={{ color: T.sub }}>{a.name}</div>
                         <div className="mono text-[15px] mt-0.5" style={{ color: isCredit && bal < 0 ? T.rose : T.text }}>{fmtSigned(bal, a.currency)}</div>
-                        {isCredit && (avail != null
-                          ? <div className="ui text-[10px] mt-0.5" style={{ color: owed > 0 ? T.sub : T.green }}>{owed > 0 ? `available ${fmtMoney(avail, a.currency, hide)}` : "nothing owed ✓"}</div>
-                          : owed <= 0 && <div className="ui text-[10px] mt-0.5" style={{ color: T.green }}>nothing owed ✓</div>)}
+                        {/* No "available" here — credit headroom reads like money
+                            you own (Adham). Owed state only; details live in Cards. */}
+                        {isCredit && (
+                          owed > 0
+                            ? <div className="ui text-[10px] mt-0.5" style={{ color: T.rose }}>you owe this ↑</div>
+                            : <div className="ui text-[10px] mt-0.5" style={{ color: T.green }}>nothing owed ✓</div>
+                        )}
                       </button>
                     );
                   })}

@@ -486,14 +486,18 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
     <Sheet open onClose={onClose} title="Cards" tall>
       <div className="flex gap-2 mb-4">
         <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.paper }}>
-          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>Available across cards</div>
-          <div className="mono text-[17px]" style={{ color: T.text }}>{hide ? "•••••" : `${Math.round(totAvail).toLocaleString("en-US")} ${base}`}</div>
+          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>Limit left · borrowing room</div>
+          <div className="mono text-[17px]" style={{ color: T.sub }}>{hide ? "•••••" : `${Math.round(totAvail).toLocaleString("en-US")} ${base}`}</div>
         </div>
         <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.roseBg }}>
           <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>Total owed</div>
           <div className="mono text-[17px]" style={{ color: totOwed > 0.005 ? T.rose : T.green }}>{hide ? "•••••" : `${totOwed > 0.005 ? "−" : ""}${Math.round(totOwed).toLocaleString("en-US")} ${base}`}</div>
         </div>
       </div>
+
+      <p className="ui text-[11px] mb-4" style={{ color: T.faint }}>
+        "Limit left" is how much the bank still lets you borrow — it is not money you own, and it never counts in your totals.
+      </p>
 
       {rows.length === 0 && <p className="ui text-sm text-center py-8" style={{ color: T.sub }}>No credit cards yet — add one from Accounts.</p>}
 
@@ -518,8 +522,8 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
             </div>
             <div className="flex gap-2.5 mb-3">
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
-                <div className="ui text-[9.5px] mb-0.5" style={{ color: T.faint }}>Available</div>
-                <div className="mono text-[16px]" style={{ color: T.text }}>{avail != null ? fmtMoney(avail, a.currency, hide) : "—"}</div>
+                <div className="ui text-[9.5px] mb-0.5" style={{ color: T.faint }}>Limit left</div>
+                <div className="mono text-[16px]" style={{ color: T.sub }}>{avail != null ? fmtMoney(avail, a.currency, hide) : "—"}</div>
               </div>
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
                 <div className="ui text-[9.5px] mb-0.5" style={{ color: T.faint }}>Owed</div>
