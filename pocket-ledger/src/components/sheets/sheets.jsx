@@ -650,18 +650,55 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
 }
 
 /* ── SMS approval inbox (nothing posts without explicit approval) ── */
-export function InboxSheet({ open, onClose, pending, accounts, onPasteImport, onApprove, onDismiss, onApproveAll }) {
+export function InboxSheet({ open, onClose, pending, accounts, onPasteImport, onManualImport, onApprove, onDismiss, onApproveAll }) {
   const [sel, setSel] = useState({});
-  const init = React.useCallback(() => setSel({}), []);
+  /* iOS PWAs often refuse programmatic clipboard reads — fall back to a
+     plain text box, where the native long-press Paste always works. */
+  const [manual, setManual] = useState(false);
+  const [manualTxt, setManualTxt] = useState("");
+  const init = React.useCallback(() => { setSel({}); setManual(false); setManualTxt(""); }, []);
   useOpenTransition(open, init);
   if (!open) return null;
   const accFor = (p) => sel[p.id] ?? p.accountId ?? "";
   const ready = pending.filter((p) => accFor(p));
+  const importManual = (t) => {
+    const text = (t ?? manualTxt).trim();
+    if (!text) return;
+    onManualImport(text);
+    setManualTxt("");
+    setManual(false);
+  };
   return (
     <Sheet open={open} onClose={onClose} title="Approval inbox" tall>
-      <button onClick={onPasteImport} className="tap ui w-full rounded-xl py-3 text-sm font-medium mb-2 flex items-center justify-center gap-1.5" style={{ background: T.ink, color: "#fff" }}>
+      <button
+        onClick={async () => { const ok = await onPasteImport(); if (!ok) setManual(true); }}
+        className="tap ui w-full rounded-xl py-3 text-sm font-medium mb-2 flex items-center justify-center gap-1.5"
+        style={{ background: T.ink, color: "#fff" }}
+      >
         <ClipboardPaste size={16} aria-hidden="true" />الصق رسائل البنك · Paste bank SMS
       </button>
+      {manual && (
+        <div className="rounded-xl px-3.5 py-3 mb-2" style={{ background: T.paper, border: `1px solid ${T.gold}` }}>
+          <p className="ui text-[12px] mb-2" style={{ color: T.sub }}>
+            iOS منع القراءة التلقائية — <b>دوس مطوّلًا جوه الصندوق واختار Paste</b> وهتتستورد لوحدها:
+          </p>
+          <textarea
+            value={manualTxt}
+            onChange={(e) => setManualTxt(e.target.value)}
+            onPaste={(e) => { const t = e.clipboardData?.getData("text"); if (t) { e.preventDefault(); importManual(t); } }}
+            rows={3}
+            placeholder="الصق رسالة البنك هنا…"
+            className="ui w-full rounded-lg px-3 py-2.5 text-[13px] outline-none"
+            style={{ background: "#fff", border: `1px solid ${T.line}`, color: T.text }}
+            aria-label="Paste bank SMS text manually"
+          />
+          {manualTxt.trim() && (
+            <button onClick={() => importManual()} className="tap ui w-full rounded-lg py-2.5 text-[13px] font-medium mt-2" style={{ background: T.ink, color: "#fff" }}>
+              استورد اللي فوق ✓
+            </button>
+          )}
+        </div>
+      )}
       <p className="ui text-[11px] mb-4" style={{ color: T.faint }}>
         Withdrawals wait here and post <b>only after you approve them</b>. The source account is matched from the card last-4 digits — confirm or change it per item.
       </p>

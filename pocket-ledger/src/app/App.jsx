@@ -332,12 +332,16 @@ export default function App({ storage }) {
     showFlash();
   };
   importSmsRef.current = importSmsText;
+  /* Returns false when the clipboard can't be read (iOS PWA) — the Inbox
+     then shows a manual paste box instead of a dead-end alert. */
   const pasteSms = async () => {
     try {
       const t = await navigator.clipboard.readText();
-      if (t) importSmsText(t);
+      if (!t?.trim()) return false;
+      importSmsText(t);
+      return true;
     } catch {
-      window.alert("Clipboard access was blocked — allow it or paste inside the Add sheet field.");
+      return false;
     }
   };
   const approvePending = (p, accountId, batchData) => {
@@ -554,7 +558,7 @@ export default function App({ storage }) {
         <AccountsSheet open={sheet === "accounts"} onClose={() => setSheet(null)} accounts={sortedAccounts} balances={balances} hide={hide} onMove={moveAccount} onNew={() => { setEditAcc(null); setSheet("account-form"); }} onEdit={(a) => { setEditAcc(a); setSheet("account-form"); }} onArchive={archiveAccount} onAdjust={adjustAccount} />
         <AccountFormSheet open={sheet === "account-form"} onClose={() => setSheet("accounts")} initial={editAcc} onSave={saveAccount} currentBalance={editAcc ? balances[editAcc.id] : 0} />
         <RecurrSheet open={sheet === "recurr"} onClose={() => setSheet(null)} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} />
-        <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} onPasteImport={pasteSms} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
+        <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} onPasteImport={pasteSms} onManualImport={importSmsText} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
         <DebtSheet open={sheet === "debt"} onClose={() => { setSheet(null); setDebtDraft(null); }} onSave={saveDebt} initial={debtDraft} />
         <CardsSheet open={sheet === "cards"} onClose={() => setSheet(null)} cards={activeAccounts.filter((a) => a.type === "credit")} balances={balances} hide={hide} base={base} rates={settings.rates} />
         <SettingsSheet
