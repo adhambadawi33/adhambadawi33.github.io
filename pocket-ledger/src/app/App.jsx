@@ -46,19 +46,23 @@ export default function App({ storage }) {
   const saveTimer = useRef(null);
   const undoTimer = useRef(null);
 
-  /* Siri / Shortcuts intake: pocket-ledger.app/#add=<dictated text>
-     Runs once, after data has loaded, then cleans the URL. */
+  /* Siri / Shortcuts intake: pocket-ledger.app/#add=<text> or #sms=<text>.
+     Consumed on load AND on every later hash change — iOS reuses the open
+     app when a Shortcut opens the link, so a one-shot read would miss it. */
   useEffect(() => {
-    if (!data || hashConsumed.current) return;
+    if (!data) return;
     const dec = (v) => { try { return decodeURIComponent(v.replace(/\+/g, "%20")); } catch { return v; } };
-    const add = /[#&]add=([^&]+)/.exec(window.location.hash || "");
-    const sms = /[#&]sms=([^&]+)/.exec(window.location.hash || "");
-    if (add || sms) {
-      hashConsumed.current = true;
+    const consume = () => {
+      const add = /[#&]add=([^&]+)/.exec(window.location.hash || "");
+      const sms = /[#&]sms=([^&]+)/.exec(window.location.hash || "");
+      if (!add && !sms) return;
       if (sms) { importSmsRef.current?.(dec(sms[1])); }
       else { setVoiceText(dec(add[1])); setSheet("add"); }
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    }
+    };
+    if (!hashConsumed.current) { hashConsumed.current = true; consume(); }
+    window.addEventListener("hashchange", consume);
+    return () => window.removeEventListener("hashchange", consume);
   }, [data]);
 
   /* ── load: v3 key -> backup -> legacy keys -> blank ── */
