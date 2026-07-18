@@ -1,0 +1,3 @@
+[build]
+  command = "cd pocket-ledger && npm install && npm run build"
+  publish = "pocket-ledger/dist"
