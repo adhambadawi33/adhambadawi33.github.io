@@ -33,7 +33,9 @@ const CUR_SUBSTR = [
 const CUR_TOKENS = [
   ["AED", ["aed", "dhs", "dh"]],
   ["SAR", ["sar", "sr"]],
-  ["EGP", ["egp", "le"]],
+  /* "جم" = Egyptian bank shorthand for جنيه مصري (whole-token only, so
+     words like جمعه/جميل can never match). */
+  ["EGP", ["egp", "le", "جم"]],
   ["USD", ["usd", "$"]],
 ];
 

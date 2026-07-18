@@ -15,7 +15,7 @@ const EXPENSE_HINTS = /(خصم|شراء|سحب|دفع|عمليه|pos|purchase|de
 function findAmount(norm) {
   const cleaned = norm.replace(/,(?=\d{3}(\D|$))/g, "");
   let m = /(?:aed|sar|egp|usd|dhs)\s*([0-9]+(?:\.[0-9]+)?)/.exec(cleaned);
-  if (!m) m = /([0-9]+(?:\.[0-9]+)?)\s*(?:درهم|ريال|جنيه|دولار|aed|sar|egp|usd|dhs|le\b)/.exec(cleaned);
+  if (!m) m = /([0-9]+(?:\.[0-9]+)?)\s*(?:درهم|ريال|جنيه|جم(?![؀-ۿ])|دولار|aed|sar|egp|usd|dhs|le\b)/.exec(cleaned);
   if (!m) m = /(?:بمبلغ|مبلغ|قيمه|amount of|of)\s*([0-9]+(?:\.[0-9]+)?)/.exec(cleaned);
   if (!m) return null;
   const v = parseFloat(m[1]);

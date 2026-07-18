@@ -80,3 +80,20 @@ describe("SMS batch parsing", () => {
     expect(items[1].category).toBe("Transport");
   });
 });
+
+describe('Egyptian "جم" shorthand (Adham\'s banks)', () => {
+  const egAccounts = [...accounts, { id: "a5", name: "CIB", type: "debit", currency: "EGP", cardDigits: ["9972"] }];
+  it('parses "خصم مبلغ 250.50 جم" as EGP expense and matches the card', () => {
+    const p = parseBankSms("تم خصم مبلغ 250.50 جم من بطاقة ****9972 لدى TALABAT", egAccounts);
+    expect(p).not.toBeNull();
+    expect(p.amount).toBe(250.5);
+    expect(p.currency).toBe("EGP");
+    expect(p.direction).toBe("expense");
+    expect(p.accountId).toBe("a5");
+  });
+  it('never mistakes words containing جم (جمعية) for a currency', () => {
+    const p = parseBankSms("تم خصم مبلغ 500 جنيه اشتراك جمعية بطاقة ****9972", egAccounts);
+    expect(p.amount).toBe(500);
+    expect(p.currency).toBe("EGP");
+  });
+});
