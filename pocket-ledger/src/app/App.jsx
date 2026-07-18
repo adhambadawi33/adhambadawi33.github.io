@@ -292,8 +292,12 @@ export default function App({ storage }) {
     const plans = data.plans.map((p) =>
       p.id === planId ? { ...p, milestones: p.milestones.map((m) => (m.id === msId ? { ...m, paid: true } : m)) } : p
     );
+    /* One accidental tap here books a huge payment — undo restores the
+       milestone AND the logged transaction together. */
+    const prev = data;
     commit({ ...data, plans, transactions: [...tx, ...data.transactions] }, true);
     showFlash();
+    scheduleUndo(`Paid: ${plan.name}`, () => commit({ ...prev }, true));
   };
   const delPlan = (p) => {
     const prev = data;
@@ -316,8 +320,12 @@ export default function App({ storage }) {
       const monthsPaid = x.kind === "installment" ? Math.min(x.monthsTotal, (x.monthsPaid || 0) + 1) : x.monthsPaid;
       return { ...x, nextDue: addCycle(x.nextDue, x.cycle), ...(x.kind === "installment" ? { monthsPaid } : {}) };
     });
+    /* "Paid" does TWO things (log expense + push next due) — deleting the
+       transaction later only undoes one. Undo here reverts both at once. */
+    const prev = data;
     commit({ ...data, recurrs, transactions: [...tx, ...data.transactions] }, true);
     showFlash();
+    scheduleUndo(`Paid: ${r.name}`, () => commit({ ...prev }, true));
   };
   const importSmsText = (text) => {
     const { items, skipped } = parseSmsBatch(text, data.accounts);
