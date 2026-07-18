@@ -114,6 +114,11 @@ export default function App({ storage }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
+  /* Flag/unflag a subscription as "needs cancelling" — it moves to a
+     highlighted watchlist on Planned until actually cancelled + deleted. */
+  const toggleToCancel = (r) =>
+    commit({ ...data, recurrs: data.recurrs.map((x) => (x.id === r.id ? { ...x, toCancel: !x.toCancel } : x)) }, true);
+
   const fetchRatesNow = useCallback(async () => {
     const rates = await fetchLiveRates();
     commit({ ...data, settings: { ...data.settings, rates, ratesUpdatedAt: todayISO() } }, true);
@@ -426,7 +431,7 @@ export default function App({ storage }) {
             <PlannedScreen
               recurrs={data.recurrs} budgets={data.budgets} monthByCat={monthly.byCategory} base={base} rates={settings.rates} hide={hide} accName={accName}
               onAddRecurr={(k) => { setRecurrKind(k); setSheet("recurr"); }}
-              onPaid={markPaid} onDelRecurr={delRecurr} dueTone={dueTone} setBudget={setBudget}
+              onPaid={markPaid} onDelRecurr={delRecurr} onToggleCancel={toggleToCancel} dueTone={dueTone} setBudget={setBudget}
             />
           )}
           {tab === "people" && (

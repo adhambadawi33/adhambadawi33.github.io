@@ -1,9 +1,10 @@
 import React from "react";
-import { Plus } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 import { T, EXP_CATS, OWNERS, inputStyle } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
-import { Section, CardBox, Bar } from "../common/primitives.jsx";
-import { RecurrList } from "../common/rows.jsx";
+import { Section, CardBox, Bar, Money } from "../common/primitives.jsx";
+import { RecurrList, OwnerPill } from "../common/rows.jsx";
+import { SubLogo } from "../common/brand.jsx";
 import { fmtMoney } from "../../styles/tokens.js";
 
 const AddMini = ({ onClick, label }) => (
@@ -45,12 +46,55 @@ function BleedSummary({ recurrs, base, rates, hide }) {
   );
 }
 
-export default function PlannedScreen({ recurrs, budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onPaid, onDelRecurr, dueTone, setBudget }) {
+/* "Needs cancelling" watchlist: flagged subs stay loudly in sight until the
+   user actually cancels them at the service and confirms here. */
+function CancelWatchlist({ flagged, base, rates, hide, onDone, onKeep }) {
+  if (!flagged.length) return null;
+  const saving = flagged.reduce((s, r) => s + convert(monthlyOf(r), r.currency, base, rates), 0);
+  const f = (n) => (hide ? "•••••" : Math.round(n).toLocaleString("en-US"));
+  return (
+    <Section title="Needs cancelling">
+      <div className="rounded-2xl px-4 py-3.5 mb-3" style={{ background: T.roseBg, border: "1px solid rgba(178,114,79,.25)" }}>
+        {flagged.map((r, i) => (
+          <div key={r.id} className="py-3" style={{ borderTop: i ? "1px solid rgba(178,114,79,.15)" : "none" }}>
+            <div className="flex items-center gap-3">
+              <SubLogo name={r.name} size={32} />
+              <div className="min-w-0 flex-1">
+                <div className="ui text-sm truncate flex items-center gap-1.5" style={{ color: T.text }}>
+                  <span className="truncate">{r.name}</span>
+                  <OwnerPill id={r.owner} />
+                </div>
+                <div className="ui text-[10.5px]" style={{ color: T.rose }}>cancel at the service first</div>
+              </div>
+              <Money n={r.amount} cur={r.currency} hide={hide} className="text-[13px]" />
+            </div>
+            <div className="flex items-center gap-2 mt-2" style={{ paddingInlineStart: 44 }}>
+              <button onClick={() => onDone(r)} className="tap ui text-[11.5px] font-semibold rounded-lg px-3 py-2 flex items-center gap-1" style={{ background: T.green, color: "#fff" }}>
+                <Check size={12} aria-hidden="true" /> Cancelled — remove it
+              </button>
+              <button onClick={() => onKeep(r)} className="tap ui text-[11.5px] rounded-lg px-3 py-2" style={{ color: T.sub, border: `1px solid ${T.line}`, background: "#fff" }} aria-label={`Keep ${r.name}`}>
+                Keep it
+              </button>
+            </div>
+          </div>
+        ))}
+        <p className="ui text-[11px] mt-2 pt-2" style={{ color: T.rose, borderTop: "1px solid rgba(178,114,79,.15)" }}>
+          Stopping these saves ≈ <b className="mono">{f(saving)}</b> {base}/month = <b className="mono">{f(saving * 12)}</b> a year.
+        </p>
+      </div>
+    </Section>
+  );
+}
+
+export default function PlannedScreen({ recurrs, budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget }) {
+  const flagged = recurrs.filter((r) => r.kind === "subscription" && r.toCancel && !r.paused);
+  const active = recurrs.filter((r) => !r.toCancel);
   return (
     <>
+      <CancelWatchlist flagged={flagged} base={base} rates={rates} hide={hide} onDone={onDelRecurr} onKeep={onToggleCancel} />
       <Section title="Subscriptions" right={<AddMini onClick={() => onAddRecurr("subscription")} />}>
         <BleedSummary recurrs={recurrs} base={base} rates={rates} hide={hide} />
-        <RecurrList kind="subscription" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} accName={accName} />
+        <RecurrList kind="subscription" recurrs={active} hide={hide} onPaid={onPaid} onDel={onDelRecurr} onToggleCancel={onToggleCancel} dueTone={dueTone} accName={accName} />
       </Section>
       <Section title="Installments" right={<AddMini onClick={() => onAddRecurr("installment")} />}>
         <RecurrList kind="installment" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} accName={accName} />

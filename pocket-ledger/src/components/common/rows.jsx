@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeftRight, Trash2, Repeat, Layers, SlidersHorizontal } from "lucide-react";
+import { ArrowLeftRight, Trash2, Repeat, Layers, SlidersHorizontal, Ban } from "lucide-react";
 import { SubLogo } from "./brand.jsx";
 import { T, catDef, ownerDef, fmtMoney, inputStyle } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
@@ -50,7 +50,7 @@ export function TxRow({ t, i, hide, accName, onDel, compact }) {
   );
 }
 
-export function RecurrList({ kind, recurrs, hide, onPaid, onDel, dueTone, accName }) {
+export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel, dueTone, accName }) {
   const list = recurrs.filter((r) => r.kind === kind);
   if (list.length === 0)
     return (
@@ -89,6 +89,11 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, dueTone, accNam
               {!done && (
                 <button onClick={() => onPaid(r)} className="tap ui text-[11px] font-medium rounded-lg px-3 py-2" style={{ background: T.ink, color: "#fff" }}>
                   Paid
+                </button>
+              )}
+              {kind === "subscription" && onToggleCancel && !done && (
+                <button onClick={() => onToggleCancel(r)} className="tap p-2 opacity-50" style={{ color: T.rose }} aria-label={`Mark ${r.name} as needs cancelling`} title="Needs cancelling">
+                  <Ban size={14} />
                 </button>
               )}
               <button onClick={() => onDel(r)} className="tap p-2 opacity-40" style={{ color: T.rose }} aria-label={`Delete ${r.name}`}>

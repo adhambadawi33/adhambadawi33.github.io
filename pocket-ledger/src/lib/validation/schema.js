@@ -142,6 +142,9 @@ export function normalizeRecurring(r, report, accountIds) {
     nextDue: r.nextDue,
     accountId: accountIds.has(str(r.accountId)) ? r.accountId : null,
     owner: ["me", "abeer", "kids"].includes(str(r.owner)) ? r.owner : "me",
+    /* "Needs cancelling" watchlist (Adham): keep to-stop subs in sight
+       until actually cancelled at the service. */
+    toCancel: bool(r.toCancel),
     paused: bool(r.paused),
   };
   if (kind === "installment") {
