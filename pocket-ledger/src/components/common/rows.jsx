@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ArrowLeftRight, Trash2, Repeat, Layers, SlidersHorizontal } from "lucide-react";
 import { SubLogo } from "./brand.jsx";
 import { T, catDef, ownerDef, fmtMoney, inputStyle } from "../../styles/tokens.js";
+import { convert } from "../../lib/finance/currency.js";
 import { Money, Bar, CardBox, EmptyHint } from "./primitives.jsx";
 import { daysUntilFromToday, humanDay } from "../../lib/dates/ui.js";
 
@@ -109,10 +110,12 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, dueTone, accNam
   );
 }
 
-export function DebtCard({ x, hide, onPay, onDel }) {
+export function DebtCard({ x, hide, onPay, onDel, base, rates }) {
   const [amt, setAmt] = useState("");
   const left = Math.max(0, x.amount - x.repaid);
   const lent = x.direction === "lent";
+  /* Native currency is the source of truth; base is a small ≈ line only. */
+  const eq = base && rates && x.currency !== base && left > 0 ? convert(left, x.currency, base, rates) : null;
   return (
     <CardBox className="px-4 py-3.5 mb-3">
       <div className="flex items-start gap-3">
@@ -126,6 +129,7 @@ export function DebtCard({ x, hide, onPay, onDel }) {
         <div className="text-right">
           <Money n={left} cur={x.currency} hide={hide} color={left === 0 ? T.green : lent ? T.green : T.rose} className="text-base" />
           <div className="mono text-[10px]" style={{ color: T.faint }}>of {fmtMoney(x.amount, x.currency, hide)}</div>
+          {eq != null && <div className="mono text-[10px]" style={{ color: T.faint }}>≈ {hide ? "•••••" : `${Math.round(eq).toLocaleString("en-US")} ${base}`}</div>}
         </div>
       </div>
       <div className="mt-2.5"><Bar pct={(x.repaid / x.amount) * 100} color={left === 0 ? T.green : T.gold} /></div>

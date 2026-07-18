@@ -426,7 +426,7 @@ export default function App({ storage }) {
             />
           )}
           {tab === "people" && (
-            <PeopleScreen debts={data.debts} owedToMe={debts.owedToMe} iOwe={debts.iOwe} base={base} hide={hide} onAddDebt={() => setSheet("debt")} onPay={payDebt} onDelDebt={delDebt} />
+            <PeopleScreen debts={data.debts} owedToMe={debts.owedToMe} iOwe={debts.iOwe} base={base} rates={settings.rates} hide={hide} onAddDebt={() => setSheet("debt")} onPay={payDebt} onDelDebt={delDebt} />
           )}
         </main>
 

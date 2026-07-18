@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Plus, Landmark, Check, Pencil, Eye, EyeOff, Download, Upload, Trash2, Sparkles, ChevronDown,
-  ClipboardPaste, Wand2, ChevronUp,
+  ClipboardPaste, Wand2, ChevronUp, Mic,
 } from "lucide-react";
 import {
   T, ACCOUNT_TYPE_DEFS, ACCOUNT_COLORS, EXP_CATS, INC_CATS, OWNERS, fmtMoney, inputCls, inputStyle,
@@ -38,6 +38,8 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
   const [more, setMore] = useState(false);
   const [quick, setQuick] = useState("");
   const [parsedHint, setParsedHint] = useState("");
+  const [listening, setListening] = useState(false);
+  const recRef = useRef(null);
 
   /* Apply parser output as PREFILL only — user always reviews then Saves. */
   const applyParse = React.useCallback((text) => {
@@ -52,12 +54,14 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
     if (p.currency) setCur(p.currency);
     else if (accCur) setCur(accCur);
     if (p.note) { setNote(p.note); }
+    if (p.owner) setOwner(p.owner);
     const bits = [
       p.type, p.amount != null ? `${p.amount} ${p.currency || accCur || ""}`.trim() : null,
       p.type === "transfer"
         ? `${accounts.find((a) => a.id === p.accountId)?.name || "?"} → ${accounts.find((a) => a.id === p.toAccountId)?.name || "?"}`
         : p.category,
       p.type !== "transfer" && p.accountId ? accounts.find((a) => a.id === p.accountId)?.name : null,
+      p.owner === "abeer" ? "Abeer" : p.owner === "kids" ? "Kids" : null,
     ].filter(Boolean);
     setParsedHint(bits.join(" · "));
   }, [accounts, settings]);
@@ -80,6 +84,28 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
     } catch {
       window.alert("Clipboard access was blocked — paste into the field manually.");
     }
+  };
+
+  /* Voice entry (batch 5): the phone's built-in speech recognition feeds the
+     same parser as typed text. Nothing is saved without the user's Save tap. */
+  const startVoice = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { window.alert("Voice capture isn't supported in this browser — use the keyboard mic on the field instead."); return; }
+    if (listening) { try { recRef.current?.stop(); } catch { /* noop */ } return; }
+    const rec = new SR();
+    rec.lang = settings.language === "ar" ? "ar-EG" : "ar-EG";
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.onresult = (e) => {
+      const txt = Array.from(e.results).map((r) => r[0].transcript).join(" ").trim();
+      setQuick(txt);
+      if (e.results[e.results.length - 1].isFinal && txt) applyParse(txt);
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    setListening(true);
+    try { rec.start(); } catch { setListening(false); }
   };
 
   if (!open) return null;
@@ -137,6 +163,15 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
               style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.text }}
               aria-label="Quick add by voice or text"
             />
+            <button
+              onClick={startVoice}
+              className={`tap h-[46px] w-[46px] rounded-xl flex items-center justify-center shrink-0 ${listening ? "pop" : ""}`}
+              style={listening ? { background: T.rose, color: "#fff", border: `1px solid ${T.rose}` } : { background: T.ink, color: "#fff" }}
+              aria-label={listening ? "Stop listening" : "Speak a transaction"}
+              aria-pressed={listening}
+            >
+              <Mic size={17} />
+            </button>
             <button onClick={pasteQuick} className="tap h-[46px] w-[46px] rounded-xl flex items-center justify-center shrink-0" style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.sub }} aria-label="Paste from clipboard">
               <ClipboardPaste size={17} />
             </button>

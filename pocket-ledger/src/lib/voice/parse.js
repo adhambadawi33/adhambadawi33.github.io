@@ -47,6 +47,19 @@ export function findCurrency(norm) {
 }
 
 const INCOME_WORDS = ["قبضت", "استلمت", "مرتب", "راتب", "دخل", "ايراد", "حصلت", "salary", "received", "income", "paid me", "got paid", "deposit"];
+
+/* Owner detection (batch 5): "…لعبير" tags Abeer, "…للولاد" tags the kids.
+   Null when no owner is named — the form keeps its current default. */
+const OWNER_WORDS = [
+  ["abeer", ["عبير", "لعبير", "مراتي", "لمراتي", "abeer"]],
+  ["kids", ["الولاد", "للولاد", "الاولاد", "للاولاد", "العيال", "للعيال", "ولادي", "لولادي", "kids", "the kids"]],
+  ["me", ["ليا", "بتاعي", "بتاعتي", "for me", "mine"]],
+];
+export function findOwner(norm) {
+  for (const [id, words] of OWNER_WORDS)
+    for (const w of words) if (norm.includes(w)) return id;
+  return null;
+}
 const TRANSFER_WORDS = ["حولت", "حول", "تحويل", "نقلت", "transfer", "transferred", "moved", "sent"];
 
 /* keyword -> category. Order matters: specific before generic. */
@@ -144,5 +157,5 @@ export function parseVoice(text, accounts = [], settings = {}) {
   if (!currency && accountId) currency = accounts.find((a) => a.id === accountId)?.currency || null;
   if (!currency && settings.lastAccount) currency = accounts.find((a) => a.id === settings.lastAccount)?.currency || null;
 
-  return { type, amount, currency, accountId, toAccountId: null, category, note: raw };
+  return { type, amount, currency, accountId, toAccountId: null, category, note: raw, owner: findOwner(norm) };
 }

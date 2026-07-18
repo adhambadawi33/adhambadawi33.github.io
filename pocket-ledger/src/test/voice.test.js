@@ -88,3 +88,17 @@ describe("voice parser — transfers", () => {
     expect(p.type).toBe("expense");
   });
 });
+
+describe("voice parser — owner tagging (batch 5)", () => {
+  it("tags Abeer from لعبير", () => {
+    const p = parseVoice("دفعت ٢٠٠ جنيه سوبر ماركت لعبير", accounts, settings);
+    expect(p.owner).toBe("abeer");
+    expect(p.amount).toBe(200);
+  });
+  it("tags the kids from للولاد", () => {
+    expect(parseVoice("مدرسه ٥٠٠ جنيه للولاد", accounts, settings).owner).toBe("kids");
+  });
+  it("leaves owner null when nobody is named", () => {
+    expect(parseVoice("غدا ١٢٠ درهم", accounts, settings).owner).toBeNull();
+  });
+});
