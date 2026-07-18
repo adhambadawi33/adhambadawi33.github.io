@@ -11,9 +11,23 @@ import { CardChip } from "../common/brand.jsx";
 import { bankFor } from "../../lib/brands.js";
 import { CURRENCIES, convert, isValidRate, DEFAULT_RATES } from "../../lib/finance/currency.js";
 import { parseVoice } from "../../lib/voice/parse.js";
-import { todayISO } from "../../lib/dates/localDate.js";
+import { todayISO, toISO, daysInMonth } from "../../lib/dates/localDate.js";
+import { humanDay } from "../../lib/dates/ui.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/* Short account-type tag so pickers make bank vs card obvious (Adham). */
+const typeTag = (t) => (t === "credit" ? "card" : t === "debit" ? "debit" : t === "cash" ? "cash" : "bank");
+
+/* Next calendar occurrence of a card's monthly due day (month-end clamped). */
+function nextDueISO(dueDay) {
+  const t = todayISO();
+  const y = +t.slice(0, 4), m = +t.slice(5, 7), d = +t.slice(8, 10);
+  const thisMonth = Math.min(dueDay, daysInMonth(y, m));
+  if (d <= thisMonth) return toISO(y, m, thisMonth);
+  const [yy, mm] = m === 12 ? [y + 1, 1] : [y, m + 1];
+  return toISO(yy, mm, Math.min(dueDay, daysInMonth(yy, mm)));
+}
 
 /* Opens only on the closed->open transition (handoff §6.2) */
 function useOpenTransition(open, init) {
@@ -263,12 +277,12 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
           <ChipRow
             value={accId}
             onChange={(v) => { setAccId(v); const na = accounts.find((a) => a.id === v); if (na) setCur(na.currency); }}
-            options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${a.currency}` }))}
+            options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${typeTag(a.type)} · ${a.currency}` }))}
           />
         </Field>
         {type === "transfer" && (
           <Field label="To account">
-            <ChipRow value={toId} onChange={setToId} options={accounts.filter((a) => a.id !== accId).map((a) => ({ value: a.id, label: `${a.name} · ${a.currency}` }))} />
+            <ChipRow value={toId} onChange={setToId} options={accounts.filter((a) => a.id !== accId).map((a) => ({ value: a.id, label: `${a.name} · ${typeTag(a.type)} · ${a.currency}` }))} />
           </Field>
         )}
 
@@ -498,7 +512,7 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
               </div>
               {a.dueDay > 0 && (
                 <span className="ui text-[10.5px] font-semibold rounded-full px-2.5 py-1 shrink-0" style={{ background: owed > 0 ? T.amberBg : T.greenBg, color: owed > 0 ? T.amber : T.green }}>
-                  {owed > 0 ? `Due day ${a.dueDay}` : "Nothing owed ✓"}
+                  {owed > 0 ? `Pay by ${humanDay(nextDueISO(a.dueDay))}` : "Nothing owed ✓"}
                 </span>
               )}
             </div>
@@ -568,7 +582,7 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave }) {
         <Field label={sub ? "Next renewal" : "Next payment"}><input type="date" value={f.nextDue} onChange={(e) => setF({ ...f, nextDue: e.target.value })} className={inputCls} style={inputStyle} /></Field>
         <Field label="Pay from">
           <select value={f.accountId || ""} onChange={(e) => setF({ ...f, accountId: e.target.value })} className={inputCls} style={inputStyle}>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {accounts.map((a) => <option key={a.id} value={a.id}>{`${a.name} · ${typeTag(a.type)}`}</option>)}
           </select>
         </Field>
       </div>
