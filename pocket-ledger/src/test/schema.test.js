@@ -74,3 +74,18 @@ describe("schema & migration pipeline (handoff §4.4)", () => {
     expect(data.transactions[0].snapshot.USD).toBe(1);
   });
 });
+
+describe("account manual ordering", () => {
+  it("assigns missing sortOrder by position and sorts accounts by it", () => {
+    const { data } = normalizeData({
+      schemaVersion: 3,
+      accounts: [
+        { id: "b", name: "Second", type: "bank", currency: "AED", sortOrder: 1 },
+        { id: "a", name: "First", type: "bank", currency: "AED", sortOrder: 0 },
+        { id: "c", name: "NoOrder", type: "cash", currency: "AED" },
+      ],
+    });
+    expect(data.accounts.map((a) => a.id)).toEqual(["a", "b", "c"]);
+    expect(data.accounts.map((a) => a.sortOrder)).toEqual([0, 1, 2]);
+  });
+});
