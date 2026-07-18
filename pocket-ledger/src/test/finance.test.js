@@ -148,3 +148,31 @@ describe("budget thresholds", () => {
     expect(state(101, 100)).toEqual({ over: true, warn: false });
   });
 });
+
+describe("planStats (batch 7)", () => {
+  const plan = {
+    id: "p", name: "Villa", currency: "EGP",
+    milestones: [
+      { id: "m1", due: "2026-07-15", amount: 100, paid: true },
+      { id: "m2", due: "2026-10-15", amount: 200, paid: false },
+      { id: "m3", due: "2027-01-15", amount: 300, paid: false },
+    ],
+  };
+  it("computes paid/total sums and finds the next unpaid milestone", async () => {
+    const { planStats } = await import("../lib/finance/plans.js");
+    const s = planStats(plan);
+    expect(s.paidSum).toBe(100);
+    expect(s.totalSum).toBe(600);
+    expect(s.paidCount).toBe(1);
+    expect(s.count).toBe(3);
+    expect(s.next.id).toBe("m2");
+    expect(s.endDue).toBe("2027-01-15");
+    expect(s.done).toBe(false);
+  });
+  it("reports done when every milestone is paid", async () => {
+    const { planStats } = await import("../lib/finance/plans.js");
+    const s = planStats({ ...plan, milestones: plan.milestones.map((m) => ({ ...m, paid: true })) });
+    expect(s.done).toBe(true);
+    expect(s.next).toBeNull();
+  });
+});

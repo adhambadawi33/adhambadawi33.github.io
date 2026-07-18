@@ -11,6 +11,7 @@ import { STORAGE_KEY, LEGACY_KEYS } from "../lib/storage/adapter.js";
 import { blankData, normalizeData } from "../lib/validation/schema.js";
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
 import { debtTotals } from "../lib/finance/netWorth.js";
+import { planStats } from "../lib/finance/plans.js";
 import { snapshotRates, convert } from "../lib/finance/currency.js";
 import { fetchLiveRates } from "../lib/finance/fxLive.js";
 import { parseSmsBatch } from "../lib/voice/sms.js";
@@ -171,10 +172,22 @@ export default function App({ storage }) {
   }, [data, month, base, monthly, topCats]);
   const upcoming = useMemo(() => {
     if (!data) return [];
-    return data.recurrs
+    const recs = data.recurrs
       .filter((r) => !r.paused && !(r.kind === "installment" && r.monthsPaid >= r.monthsTotal))
-      .map((r) => ({ ...r, d: daysUntilFromToday(r.nextDue) }))
-      .sort((a, b) => a.d - b.d);
+      .map((r) => ({ ...r, d: daysUntilFromToday(r.nextDue) }));
+    /* Payment plans surface their next milestone alongside recurrings. */
+    const planItems = (data.plans || [])
+      .map((p) => {
+        const s = planStats(p);
+        if (!s.next) return null;
+        return {
+          id: `plan:${p.id}:${s.next.id}`, kind: "plan", name: p.name,
+          amount: s.next.amount, currency: p.currency, nextDue: s.next.due,
+          planId: p.id, msId: s.next.id, d: daysUntilFromToday(s.next.due),
+        };
+      })
+      .filter(Boolean);
+    return [...recs, ...planItems].sort((a, b) => a.d - b.d);
   }, [data]);
   const recent = useMemo(
     () => (data ? [...data.transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4) : []),
@@ -256,7 +269,34 @@ export default function App({ storage }) {
     commit({ ...data, recurrs: data.recurrs.filter((x) => x.id !== r.id) }, true);
     scheduleUndo(`${t("deleted")}: ${r.name}`, () => commit({ ...prev }, true));
   };
+  /* Mark a plan milestone paid: flips the flag and logs the expense on the
+     plan's account — same review-free flow as recurr "Paid". */
+  const payPlanMilestone = (planId, msId) => {
+    const plan = data.plans.find((p) => p.id === planId);
+    const ms = plan?.milestones.find((m) => m.id === msId);
+    if (!plan || !ms || ms.paid) return;
+    const acct = data.accounts.find((a) => a.id === plan.accountId && !a.archived) || activeAccounts[0];
+    const tx = acct
+      ? [{
+          id: uid(), date: todayISO(), type: "expense", amount: ms.amount, currency: plan.currency,
+          accountId: acct.id, category: "Installments",
+          note: `${plan.name}${ms.label ? ` · ${ms.label}` : ""}`, snapshot: snapshotRates(settings.rates),
+        }]
+      : [];
+    const plans = data.plans.map((p) =>
+      p.id === planId ? { ...p, milestones: p.milestones.map((m) => (m.id === msId ? { ...m, paid: true } : m)) } : p
+    );
+    commit({ ...data, plans, transactions: [...tx, ...data.transactions] }, true);
+    showFlash();
+  };
+  const delPlan = (p) => {
+    const prev = data;
+    commit({ ...data, plans: data.plans.filter((x) => x.id !== p.id) }, true);
+    scheduleUndo(`${t("deleted")}: ${p.name}`, () => commit({ ...prev }, true));
+  };
+
   const markPaid = (r) => {
+    if (r.kind === "plan") return payPlanMilestone(r.planId, r.msId);
     const acct = data.accounts.find((a) => a.id === r.accountId && !a.archived) || activeAccounts[0];
     const tx = acct
       ? [{
@@ -353,7 +393,7 @@ export default function App({ storage }) {
     const { summary } = res;
     /* Safe-by-default import: OK adds (merge, nothing lost); replacing
        everything needs a second, explicit confirmation. */
-    const counts = `${summary.accounts} accounts, ${summary.transactions} transactions, ${summary.recurring} recurring, ${summary.debts} loans`;
+    const counts = `${summary.accounts} accounts, ${summary.transactions} transactions, ${summary.recurring} recurring, ${summary.debts} loans${summary.plans ? `, ${summary.plans} payment plans` : ""}`;
     const merge = window.confirm(`This file contains ${counts}.\n\nOK = ADD it to your current data (safe — nothing is deleted).\nCancel = more options.`);
     let next = null;
     if (merge) next = mergeData(data, res.data);
@@ -444,9 +484,10 @@ export default function App({ storage }) {
           )}
           {tab === "planned" && (
             <PlannedScreen
-              recurrs={data.recurrs} budgets={data.budgets} monthByCat={monthly.byCategory} base={base} rates={settings.rates} hide={hide} accName={accName}
+              recurrs={data.recurrs} plans={data.plans} budgets={data.budgets} monthByCat={monthly.byCategory} base={base} rates={settings.rates} hide={hide} accName={accName}
               onAddRecurr={(k) => { setRecurrKind(k); setSheet("recurr"); }}
               onPaid={markPaid} onDelRecurr={delRecurr} onToggleCancel={toggleToCancel} dueTone={dueTone} setBudget={setBudget}
+              onPayMilestone={payPlanMilestone} onDelPlan={delPlan}
             />
           )}
           {tab === "people" && (

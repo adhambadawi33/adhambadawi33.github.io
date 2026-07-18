@@ -89,3 +89,30 @@ describe("account manual ordering", () => {
     expect(data.accounts.map((a) => a.sortOrder)).toEqual([0, 1, 2]);
   });
 });
+
+describe("payment plans (batch 7)", () => {
+  const raw = {
+    schemaVersion: 3,
+    accounts: [{ id: "a", name: "CIB", type: "bank", currency: "EGP" }],
+    plans: [
+      {
+        id: "villa", name: "الفيلا", currency: "EGP", accountId: "a", owner: "me",
+        milestones: [
+          { id: "m2", due: "2026-10-15", amount: 494788.38, label: "4" },
+          { id: "m1", due: "2026-07-15", amount: 1156008.38, label: "3", paid: true },
+          { due: "bad-date", amount: 100 }, // dropped
+          { due: "2026-12-15", amount: -5 }, // dropped
+        ],
+      },
+      { id: "empty", name: "No milestones", milestones: [] }, // quarantined
+    ],
+  };
+  it("normalizes plans: sorts milestones by due, drops invalid ones, quarantines empty plans", () => {
+    const { data, report } = normalizeData(raw);
+    expect(data.plans).toHaveLength(1);
+    const p = data.plans[0];
+    expect(p.milestones.map((m) => m.id)).toEqual(["m1", "m2"]);
+    expect(p.accountId).toBe("a");
+    expect(report.quarantined.some((q) => q.kind === "plan")).toBe(true);
+  });
+});

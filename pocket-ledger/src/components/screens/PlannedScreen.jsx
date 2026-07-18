@@ -1,11 +1,13 @@
-import React from "react";
-import { Plus, Check } from "lucide-react";
+import React, { useState } from "react";
+import { Plus, Check, Landmark, ChevronDown, Trash2 } from "lucide-react";
 import { T, EXP_CATS, OWNERS, inputStyle } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
+import { planStats } from "../../lib/finance/plans.js";
 import { Section, CardBox, Bar, Money } from "../common/primitives.jsx";
 import { RecurrList, OwnerPill } from "../common/rows.jsx";
 import { SubLogo } from "../common/brand.jsx";
 import { fmtMoney } from "../../styles/tokens.js";
+import { daysUntilFromToday, humanDay, monthYear } from "../../lib/dates/ui.js";
 
 const AddMini = ({ onClick, label }) => (
   <button onClick={onClick} className="tap ui text-xs flex items-center gap-1 rounded-lg px-2.5 py-2" style={{ background: T.ink, color: "#fff" }}>
@@ -86,12 +88,96 @@ function CancelWatchlist({ flagged, base, rates, hide, onDone, onKeep }) {
   );
 }
 
-export default function PlannedScreen({ recurrs, budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget }) {
+/* Payment plan (batch 7): one card = the whole contract. Next payment on
+   top (that's the actionable bit), overall progress under it, and the full
+   schedule folded away — surface, don't dig. */
+function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
+  const [open, setOpen] = useState(false);
+  const s = planStats(p);
+  const tone = s.next ? dueTone(daysUntilFromToday(s.next.due)) : null;
+  const pct = s.totalSum > 0 ? (s.paidSum / s.totalSum) * 100 : 0;
+  return (
+    <CardBox className="px-4 py-3.5 mb-3">
+      <div className="flex items-center gap-3">
+        <span className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: T.goldBg || "#B08D5722", color: T.goldDeep }} aria-hidden="true">
+          <Landmark size={17} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="ui text-sm truncate flex items-center gap-1.5" style={{ color: T.text }}>
+            <span className="truncate">{p.name}</span>
+            <OwnerPill id={p.owner} />
+          </div>
+          {accName && p.accountId && (
+            <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.faint }}>from {accName(p.accountId)}</div>
+          )}
+        </div>
+        <button onClick={() => onDel(p)} className="tap p-2 opacity-40" style={{ color: T.rose }} aria-label={`Delete ${p.name}`}>
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {s.next ? (
+        <div className="flex items-center gap-3 mt-3 rounded-xl px-3.5 py-3" style={{ background: T.paper }}>
+          <div className="min-w-0 flex-1">
+            <div className="ui text-[11px]" style={{ color: T.faint }}>Next payment · {s.paidCount + 1} of {s.count}</div>
+            <Money n={s.next.amount} cur={p.currency} hide={hide} className="text-[17px]" />
+            <div className="ui text-[11px] mt-0.5" style={{ color: tone.c }}>{tone.t} · {humanDay(s.next.due)}</div>
+          </div>
+          <button onClick={() => onPayNext(p.id, s.next.id)} className="tap ui text-[11px] font-medium rounded-lg px-3 py-2 shrink-0" style={{ background: T.ink, color: "#fff" }}>
+            Paid
+          </button>
+        </div>
+      ) : (
+        <div className="ui text-[12px] mt-3 flex items-center gap-1.5" style={{ color: T.green }}>
+          <Check size={14} aria-hidden="true" /> Fully paid ✓
+        </div>
+      )}
+
+      <div className="mt-3"><Bar pct={pct} color={s.done ? T.green : T.gold} /></div>
+      <div className="mono text-[10px] mt-1" style={{ color: T.faint }}>
+        {fmtMoney(Math.round(s.paidSum), p.currency, hide)} of {fmtMoney(Math.round(s.totalSum), p.currency, hide)} paid · {Math.round(pct)}%
+        {!s.done && ` · ends ${monthYear(s.endDue)}`}
+      </div>
+
+      <button onClick={() => setOpen(!open)} className="tap ui text-xs flex items-center gap-1 mt-2.5" style={{ color: T.sub }} aria-expanded={open}>
+        <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+        {open ? "Hide schedule" : `Show all ${s.count} payments`}
+      </button>
+      {open && (
+        <div className="mt-2 rounded-xl px-3.5 py-1" style={{ background: T.paper }}>
+          {p.milestones.map((m) => {
+            const isNext = s.next && m.id === s.next.id;
+            return (
+              <div key={m.id} className="flex items-center gap-2 py-1.5" style={{ borderBottom: `1px solid ${T.line}22` }}>
+                <span className="ui text-[10px] w-10 shrink-0" style={{ color: m.paid ? T.green : isNext ? T.goldDeep : T.faint }}>
+                  {m.paid ? "✓" : isNext ? "next" : ""} {m.label}
+                </span>
+                <span className="mono text-[10px] flex-1" style={{ color: m.paid ? T.faint : T.sub }}>{m.due}</span>
+                <span className="mono text-[11px]" style={{ color: m.paid ? T.faint : T.text, textDecoration: m.paid ? "line-through" : "none" }}>
+                  {fmtMoney(m.amount, p.currency, hide)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </CardBox>
+  );
+}
+
+export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget, onPayMilestone, onDelPlan }) {
   const flagged = recurrs.filter((r) => r.kind === "subscription" && r.toCancel && !r.paused);
   const active = recurrs.filter((r) => !r.toCancel);
   return (
     <>
       <CancelWatchlist flagged={flagged} base={base} rates={rates} hide={hide} onDone={onDelRecurr} onKeep={onToggleCancel} />
+      {plans.length > 0 && (
+        <Section title="Payment plans">
+          {plans.map((p) => (
+            <PlanCard key={p.id} p={p} hide={hide} accName={accName} dueTone={dueTone} onPayNext={onPayMilestone} onDel={onDelPlan} />
+          ))}
+        </Section>
+      )}
       <Section title="Subscriptions" right={<AddMini onClick={() => onAddRecurr("subscription")} />}>
         <BleedSummary recurrs={recurrs} base={base} rates={rates} hide={hide} />
         <RecurrList kind="subscription" recurrs={active} hide={hide} onPaid={onPaid} onDel={onDelRecurr} onToggleCancel={onToggleCancel} dueTone={dueTone} accName={accName} />

@@ -26,6 +26,7 @@ export function blankData(now = todayISO()) {
     transactions: [],
     recurrs: [],
     debts: [],
+    plans: [],
     budgets: {},
     pending: [],
     settings: {
@@ -155,6 +156,33 @@ export function normalizeRecurring(r, report, accountIds) {
   return out;
 }
 
+/* Payment plans (batch 7): a fixed schedule of dated, differently-sized
+   payments — e.g. a property contract. Unlike installments (fixed monthly
+   amount), each milestone carries its own due date and amount. */
+export function normalizePlan(p, report, accountIds) {
+  const rawMs = Array.isArray(p?.milestones) ? p.milestones : [];
+  const milestones = rawMs
+    .map((m) =>
+      m && typeof m === "object" && isValidISO(m.due) && num(m.amount, NaN) > 0
+        ? { id: str(m.id) || uid(), due: m.due, amount: num(m.amount), label: str(m.label), paid: bool(m.paid) }
+        : null
+    )
+    .filter(Boolean)
+    .sort((a, b) => a.due.localeCompare(b.due));
+  if (!p || typeof p !== "object" || !str(p.name).trim() || milestones.length === 0) {
+    report.quarantined.push({ kind: "plan", raw: p });
+    return null;
+  }
+  return {
+    id: str(p.id) || uid(),
+    name: str(p.name).trim(),
+    currency: cur(p.currency),
+    accountId: accountIds.has(str(p.accountId)) ? p.accountId : null,
+    owner: ["me", "abeer", "kids"].includes(str(p.owner)) ? p.owner : "me",
+    milestones,
+  };
+}
+
 export function normalizeDebt(d, report) {
   if (!d || typeof d !== "object" || !str(d.person).trim() || !(num(d.amount, NaN) > 0)) {
     report.quarantined.push({ kind: "debt", raw: d });
@@ -260,6 +288,9 @@ export function normalizeData(raw) {
     .map((r) => normalizeRecurring(r, report, ids))
     .filter(Boolean);
   out.debts = (Array.isArray(src.debts) ? src.debts : []).map((d) => normalizeDebt(d, report)).filter(Boolean);
+  out.plans = (Array.isArray(src.plans) ? src.plans : [])
+    .map((p) => normalizePlan(p, report, ids))
+    .filter(Boolean);
   out.pending = (Array.isArray(src.pending) ? src.pending : [])
     .map((x) => normalizePending(x, report, ids))
     .filter(Boolean);
