@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.disp { font-family: 'Fraunces', Georgia, serif; font-weight: 500; }
+.mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.ui   { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; background: #E7EAEF; }
+*:focus-visible { outline: 2px solid #C9A96A; outline-offset: 1px; }
+
+.tap { transition: transform .08s ease, opacity .15s ease; }
+.tap:active { transform: scale(.96); }
+.no-scroll::-webkit-scrollbar { display: none; }
+.no-scroll { scrollbar-width: none; }
+.slide-up { animation: slideUp .28s cubic-bezier(.32,.72,.32,1) both; }
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.pop { animation: pop .3s cubic-bezier(.2,1.4,.5,1) both; }
+@keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+input::placeholder, textarea::placeholder { color: #93A0AE; }
+input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
