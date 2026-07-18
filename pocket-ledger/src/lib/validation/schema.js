@@ -85,7 +85,7 @@ export function normalizeTransaction(t, report, accountIds, rates) {
   const type = TX_TYPES.includes(t.type) ? t.type : null;
   const date = isValidISO(t.date) ? t.date : null;
   const snapshot = snapshotRates(t.snapshot || rates);
-  const base = { id: str(t.id) || uid(), date, note: str(t.note), snapshot };
+  const base = { id: str(t.id) || uid(), date, note: str(t.note), snapshot, owner: ["me", "abeer", "kids"].includes(str(t.owner)) ? t.owner : "me" };
 
   if (type === "transfer") {
     const sourceAccountId = str(t.sourceAccountId || t.accountId);
@@ -141,6 +141,7 @@ export function normalizeRecurring(r, report, accountIds) {
     cycle: ["weekly", "monthly", "yearly"].includes(r.cycle) ? r.cycle : "monthly",
     nextDue: r.nextDue,
     accountId: accountIds.has(str(r.accountId)) ? r.accountId : null,
+    owner: ["me", "abeer", "kids"].includes(str(r.owner)) ? r.owner : "me",
     paused: bool(r.paused),
   };
   if (kind === "installment") {

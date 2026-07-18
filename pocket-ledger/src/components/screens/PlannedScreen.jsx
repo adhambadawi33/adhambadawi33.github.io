@@ -1,6 +1,7 @@
 import React from "react";
 import { Plus } from "lucide-react";
-import { T, EXP_CATS, inputStyle } from "../../styles/tokens.js";
+import { T, EXP_CATS, OWNERS, inputStyle } from "../../styles/tokens.js";
+import { convert } from "../../lib/finance/currency.js";
 import { Section, CardBox, Bar } from "../common/primitives.jsx";
 import { RecurrList } from "../common/rows.jsx";
 import { fmtMoney } from "../../styles/tokens.js";
@@ -11,14 +12,48 @@ const AddMini = ({ onClick, label }) => (
   </button>
 );
 
-export default function PlannedScreen({ recurrs, budgets, monthByCat, base, hide, onAddRecurr, onPaid, onDelRecurr, dueTone, setBudget }) {
+/* Normalize any billing cycle to a monthly figure for the bleed total. */
+const monthlyOf = (r) => (r.cycle === "yearly" ? r.amount / 12 : r.cycle === "weekly" ? r.amount * 4.33 : r.amount);
+
+/* The subscription "bleed monitor" (Adham's biggest pain): one glance =
+   what leaks monthly, what that means per year, and whose it is. */
+function BleedSummary({ recurrs, base, rates, hide }) {
+  const subs = recurrs.filter((r) => r.kind === "subscription" && !r.paused);
+  if (!subs.length) return null;
+  let total = 0;
+  const byOwner = { me: 0, abeer: 0, kids: 0 };
+  for (const r of subs) {
+    const v = convert(monthlyOf(r), r.currency, base, rates);
+    total += v;
+    byOwner[r.owner || "me"] += v;
+  }
+  const f = (n) => (hide ? "•••••" : Math.round(n).toLocaleString("en-US"));
+  return (
+    <CardBox className="px-4 py-3.5 mb-3">
+      <div className="flex items-baseline justify-between mb-1">
+        <span className="mono text-[22px]" style={{ color: T.text }}>≈ {f(total)} <span className="ui text-[12px]" style={{ color: T.faint }}>{base} / month</span></span>
+        <span className="ui text-[11px]" style={{ color: T.sub }}>= <b className="mono">{f(total * 12)}</b> a year</span>
+      </div>
+      <div className="flex gap-2 mt-2.5">
+        {OWNERS.filter((o) => byOwner[o.id] > 0.005).map((o) => (
+          <span key={o.id} className="ui text-[11px] font-medium rounded-lg px-2.5 py-1.5 flex-1 text-center" style={{ background: o.bg, color: o.c }}>
+            {o.label} · <b className="mono">{f(byOwner[o.id])}</b>
+          </span>
+        ))}
+      </div>
+    </CardBox>
+  );
+}
+
+export default function PlannedScreen({ recurrs, budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onPaid, onDelRecurr, dueTone, setBudget }) {
   return (
     <>
       <Section title="Subscriptions" right={<AddMini onClick={() => onAddRecurr("subscription")} />}>
-        <RecurrList kind="subscription" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} />
+        <BleedSummary recurrs={recurrs} base={base} rates={rates} hide={hide} />
+        <RecurrList kind="subscription" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} accName={accName} />
       </Section>
       <Section title="Installments" right={<AddMini onClick={() => onAddRecurr("installment")} />}>
-        <RecurrList kind="installment" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} />
+        <RecurrList kind="installment" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} accName={accName} />
       </Section>
       <Section title={`Monthly budgets · ${base}`}>
         <CardBox className="px-4 py-2">

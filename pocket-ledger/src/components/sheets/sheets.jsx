@@ -4,7 +4,7 @@ import {
   ClipboardPaste, Wand2, ChevronUp,
 } from "lucide-react";
 import {
-  T, ACCOUNT_TYPE_DEFS, ACCOUNT_COLORS, EXP_CATS, INC_CATS, fmtMoney, inputCls, inputStyle,
+  T, ACCOUNT_TYPE_DEFS, ACCOUNT_COLORS, EXP_CATS, INC_CATS, OWNERS, fmtMoney, inputCls, inputStyle,
 } from "../../styles/tokens.js";
 import { Sheet, Field, ChipRow, Numpad, EmptyHint, Money } from "../common/primitives.jsx";
 import { CardChip } from "../common/brand.jsx";
@@ -34,6 +34,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
   const [toId, setToId] = useState(null);
   const [date, setDate] = useState(todayISO());
   const [note, setNote] = useState("");
+  const [owner, setOwner] = useState("me");
   const [more, setMore] = useState(false);
   const [quick, setQuick] = useState("");
   const [parsedHint, setParsedHint] = useState("");
@@ -62,7 +63,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
   }, [accounts, settings]);
 
   const init = React.useCallback(() => {
-    setAmount(""); setNote(""); setDate(todayISO()); setType("expense"); setCat(EXP_CATS[0].n); setMore(false);
+    setAmount(""); setNote(""); setDate(todayISO()); setType("expense"); setCat(EXP_CATS[0].n); setOwner("me"); setMore(false);
     setQuick(initialText || ""); setParsedHint("");
     const last = accounts.find((a) => a.id === settings.lastAccount) || accounts[0];
     setAccId(last?.id || null);
@@ -100,7 +101,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
         accountId: acc.id, toAccountId: to.id, amount: +amount, currency: cur, category: "Transfer",
       });
     } else {
-      onSave({ id: uid(), type, date, note: note.trim(), snapshot, amount: +amount, currency: cur, accountId: acc.id, category: cat });
+      onSave({ id: uid(), type, date, note: note.trim(), snapshot, amount: +amount, currency: cur, accountId: acc.id, category: cat, owner });
     }
   };
 
@@ -197,6 +198,12 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
                 );
               })}
             </div>
+          </Field>
+        )}
+
+        {type !== "transfer" && (
+          <Field label="Whose is it?">
+            <ChipRow value={owner} onChange={setOwner} options={OWNERS.map((o) => ({ value: o.id, label: o.label }))} />
           </Field>
         )}
 
@@ -475,7 +482,7 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
 export function RecurrSheet({ open, onClose, kind, accounts, onSave }) {
   const [f, setF] = useState(null);
   const init = React.useCallback(() => {
-    setF({ name: "", amount: "", currency: "AED", cycle: "monthly", nextDue: todayISO(), accountId: accounts[0]?.id || null, monthsTotal: "", monthsPaid: "0" });
+    setF({ name: "", amount: "", currency: "AED", cycle: "monthly", nextDue: todayISO(), accountId: accounts[0]?.id || null, owner: "me", monthsTotal: "", monthsPaid: "0" });
   }, [accounts]);
   useOpenTransition(open, init);
   if (!open || !f) return null;
@@ -484,6 +491,9 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave }) {
   return (
     <Sheet open onClose={onClose} title={sub ? "New subscription" : "New installment"}>
       <Field label="Name"><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={sub ? "e.g. Netflix" : "e.g. Car loan"} className={inputCls} style={inputStyle} /></Field>
+      <Field label="Whose is it?">
+        <ChipRow value={f.owner} onChange={(v) => setF({ ...f, owner: v })} options={OWNERS.map((o) => ({ value: o.id, label: o.label }))} />
+      </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={sub ? "Amount / cycle" : "Monthly amount"}>
           <input type="number" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle} />
@@ -511,7 +521,7 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave }) {
         </Field>
       </div>
       <button
-        onClick={() => ok && onSave({ id: uid(), kind, name: f.name.trim(), amount: +f.amount, currency: f.currency, cycle: sub ? f.cycle : "monthly", nextDue: f.nextDue, accountId: f.accountId, paused: false, ...(sub ? {} : { monthsTotal: +f.monthsTotal, monthsPaid: +f.monthsPaid || 0 }) })}
+        onClick={() => ok && onSave({ id: uid(), kind, name: f.name.trim(), amount: +f.amount, currency: f.currency, cycle: sub ? f.cycle : "monthly", nextDue: f.nextDue, accountId: f.accountId, owner: f.owner || "me", paused: false, ...(sub ? {} : { monthsTotal: +f.monthsTotal, monthsPaid: +f.monthsPaid || 0 }) })}
         disabled={!ok}
         className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
         style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}

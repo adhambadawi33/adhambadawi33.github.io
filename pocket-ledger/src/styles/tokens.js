@@ -14,6 +14,15 @@ export const T = {
   amber: "#A9853F", amberBg: "#F5EEDB",
 };
 
+/* Household owners (batch 4): subs, installments and expenses are tagged
+   with whose they are — Adham / Abeer / the kids. */
+export const OWNERS = [
+  { id: "me", label: "Me", c: "#4C6350", bg: "rgba(76,99,80,.13)" },
+  { id: "abeer", label: "Abeer", c: "#9E5E77", bg: "rgba(158,94,119,.13)" },
+  { id: "kids", label: "Kids", c: "#5E7189", bg: "rgba(94,113,137,.13)" },
+];
+export const ownerDef = (id) => OWNERS.find((o) => o.id === id) || OWNERS[0];
+
 export const ACCOUNT_TYPE_DEFS = [
   { id: "bank", label: "Bank", icon: Landmark },
   { id: "cash", label: "Cash", icon: Banknote },

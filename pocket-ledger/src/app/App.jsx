@@ -420,7 +420,7 @@ export default function App({ storage }) {
           )}
           {tab === "planned" && (
             <PlannedScreen
-              recurrs={data.recurrs} budgets={data.budgets} monthByCat={monthly.byCategory} base={base} hide={hide}
+              recurrs={data.recurrs} budgets={data.budgets} monthByCat={monthly.byCategory} base={base} rates={settings.rates} hide={hide} accName={accName}
               onAddRecurr={(k) => { setRecurrKind(k); setSheet("recurr"); }}
               onPaid={markPaid} onDelRecurr={delRecurr} dueTone={dueTone} setBudget={setBudget}
             />

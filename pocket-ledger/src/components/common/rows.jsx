@@ -1,9 +1,16 @@
 import React, { useState } from "react";
 import { ArrowLeftRight, Trash2, Repeat, Layers, SlidersHorizontal } from "lucide-react";
 import { SubLogo } from "./brand.jsx";
-import { T, catDef, fmtMoney, inputStyle } from "../../styles/tokens.js";
+import { T, catDef, ownerDef, fmtMoney, inputStyle } from "../../styles/tokens.js";
 import { Money, Bar, CardBox, EmptyHint } from "./primitives.jsx";
 import { daysUntilFromToday, humanDay } from "../../lib/dates/ui.js";
+
+/* Owner tag — shown only for Abeer/kids to keep "mine" rows quiet (ADHD). */
+export function OwnerPill({ id, size = "text-[9.5px]" }) {
+  if (!id || id === "me") return null;
+  const o = ownerDef(id);
+  return <span className={`ui ${size} font-semibold rounded-lg px-1.5 py-0.5 shrink-0`} style={{ background: o.bg, color: o.c }}>{o.label}</span>;
+}
 
 export function TxRow({ t, i, hide, accName, onDel, compact }) {
   const isIn = t.type === "income";
@@ -22,8 +29,9 @@ export function TxRow({ t, i, hide, accName, onDel, compact }) {
         {isTr ? <ArrowLeftRight size={15} /> : isAdj ? <SlidersHorizontal size={15} /> : <def.I size={15} />}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="ui text-sm truncate" style={{ color: T.text }}>
-          {isTr ? "Transfer" : isAdj ? "Balance adjustment" : t.category}
+        <div className="ui text-sm truncate flex items-center gap-1.5" style={{ color: T.text }}>
+          <span className="truncate">{isTr ? "Transfer" : isAdj ? "Balance adjustment" : t.category}</span>
+          <OwnerPill id={t.owner} />
         </div>
         <div className="ui text-[11px] truncate" style={{ color: T.faint }}>
           {isTr ? `${accName(t.sourceAccountId)} → ${accName(t.destinationAccountId)}` : accName(t.accountId)}
@@ -41,7 +49,7 @@ export function TxRow({ t, i, hide, accName, onDel, compact }) {
   );
 }
 
-export function RecurrList({ kind, recurrs, hide, onPaid, onDel, dueTone }) {
+export function RecurrList({ kind, recurrs, hide, onPaid, onDel, dueTone, accName }) {
   const list = recurrs.filter((r) => r.kind === kind);
   if (list.length === 0)
     return (
@@ -64,11 +72,17 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, dueTone }) {
             <div className="flex items-center gap-3">
               <SubLogo name={r.name} size={34} tintBg={tone.bg} tintColor={tone.c} />
               <div className="min-w-0 flex-1">
-                <div className="ui text-sm truncate" style={{ color: T.text }}>{r.name}</div>
+                <div className="ui text-sm truncate flex items-center gap-1.5" style={{ color: T.text }}>
+                  <span className="truncate">{r.name}</span>
+                  <OwnerPill id={r.owner} />
+                </div>
                 <div className="ui text-[11px]" style={{ color: done ? T.green : tone.c }}>
                   {done ? "Completed ✓" : `${tone.t} · ${humanDay(r.nextDue)}`}
                   {!done && r.kind === "subscription" ? ` · ${r.cycle}` : ""}
                 </div>
+                {accName && r.accountId && (
+                  <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.faint }}>from {accName(r.accountId)}</div>
+                )}
               </div>
               <Money n={r.amount} cur={r.currency} hide={hide} className="text-sm" />
               {!done && (
