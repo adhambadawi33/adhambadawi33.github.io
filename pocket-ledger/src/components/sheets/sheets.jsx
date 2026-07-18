@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Plus, Landmark, Check, Pencil, Eye, EyeOff, Download, Upload, Trash2, Sparkles, ChevronDown,
-  ClipboardPaste, Wand2,
+  ClipboardPaste, Wand2, ChevronUp,
 } from "lucide-react";
 import {
   T, ACCOUNT_TYPE_DEFS, ACCOUNT_COLORS, EXP_CATS, INC_CATS, fmtMoney, inputCls, inputStyle,
@@ -230,7 +230,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
 }
 
 /* ── Accounts list + safe balance adjustment (handoff §4.6 / §5.2) ── */
-export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, onEdit, onArchive, onAdjust }) {
+export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, onEdit, onArchive, onAdjust, onMove }) {
   const [adjustFor, setAdjustFor] = useState(null);
   const [actual, setActual] = useState("");
   useEffect(() => { if (!open) { setAdjustFor(null); setActual(""); } }, [open]);
@@ -240,13 +240,21 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
         <Plus size={16} aria-hidden="true" />New account
       </button>
       {accounts.length === 0 && <p className="ui text-sm text-center py-6" style={{ color: T.faint }}>Add each bank, card and your cash wallet.</p>}
-      {accounts.map((a) => {
+      {accounts.map((a, idx) => {
         const Ico = (ACCOUNT_TYPE_DEFS.find((t) => t.id === a.type) || ACCOUNT_TYPE_DEFS[0]).icon;
         const bal = balances[a.id] || 0;
         const isAdj = adjustFor === a.id;
         return (
           <div key={a.id} style={{ borderBottom: `1px solid ${T.paper}`, opacity: a.archived ? 0.45 : 1 }}>
             <div className="flex items-center gap-3 py-3">
+              <div className="flex flex-col -my-1" aria-label={`Reorder ${a.name}`}>
+                <button onClick={() => onMove(a, -1)} disabled={idx === 0} className="tap p-1 disabled:opacity-20" style={{ color: T.sub }} aria-label={`Move ${a.name} up`}>
+                  <ChevronUp size={15} />
+                </button>
+                <button onClick={() => onMove(a, 1)} disabled={idx === accounts.length - 1} className="tap p-1 disabled:opacity-20" style={{ color: T.sub }} aria-label={`Move ${a.name} down`}>
+                  <ChevronDown size={15} />
+                </button>
+              </div>
               <span className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: a.color, color: "#fff" }} aria-hidden="true"><Ico size={17} /></span>
               <div className="flex-1 min-w-0">
                 <div className="ui text-sm" style={{ color: T.text }}>{a.name}{a.archived ? " (hidden)" : ""}</div>
