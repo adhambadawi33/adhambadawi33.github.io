@@ -6,7 +6,7 @@ import HomeScreen from "../components/screens/HomeScreen.jsx";
 import ActivityScreen from "../components/screens/ActivityScreen.jsx";
 import PlannedScreen from "../components/screens/PlannedScreen.jsx";
 import PeopleScreen from "../components/screens/PeopleScreen.jsx";
-import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet } from "../components/sheets/sheets.jsx";
+import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet } from "../components/sheets/sheets.jsx";
 import { STORAGE_KEY, LEGACY_KEYS } from "../lib/storage/adapter.js";
 import { blankData, normalizeData } from "../lib/validation/schema.js";
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
@@ -387,6 +387,7 @@ export default function App({ storage }) {
               rates={settings.rates}
               groupLabels={{ banks: t("groups.banks"), cards: t("groups.cards"), cash: t("groups.cash") }}
               onManageAccounts={() => setSheet("accounts")}
+              onOpenCards={() => setSheet("cards")}
               onOpenPlanned={() => setTab("planned")}
               onOpenActivity={() => setTab("activity")}
               onDelTx={delTx} onPaid={markPaid}
@@ -443,6 +444,7 @@ export default function App({ storage }) {
         <RecurrSheet open={sheet === "recurr"} onClose={() => setSheet(null)} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} />
         <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} onPasteImport={pasteSms} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
         <DebtSheet open={sheet === "debt"} onClose={() => setSheet(null)} onSave={saveDebt} />
+        <CardsSheet open={sheet === "cards"} onClose={() => setSheet(null)} cards={activeAccounts.filter((a) => a.type === "credit")} balances={balances} hide={hide} base={base} rates={settings.rates} />
         <SettingsSheet
           open={sheet === "settings"} onClose={() => setSheet(null)} settings={settings}
           counts={{ tx: data.transactions.length, accounts: data.accounts.length, recurrs: data.recurrs.length, debts: data.debts.length }}

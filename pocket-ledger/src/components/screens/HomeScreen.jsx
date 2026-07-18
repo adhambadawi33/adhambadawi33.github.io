@@ -3,6 +3,8 @@ import { Landmark, CalendarClock, Repeat, Layers, ChevronRight } from "lucide-re
 import { T, ACCOUNT_TYPE_DEFS, catDef, fmtMoney } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
 import { Section, CardBox, EmptyHint, Money, Bar } from "../common/primitives.jsx";
+import { BankMark, CardChip, SubLogo } from "../common/brand.jsx";
+import { subBrandFor } from "../../lib/brands.js";
 import { TxRow } from "../common/rows.jsx";
 import { humanDay } from "../../lib/dates/ui.js";
 
@@ -14,10 +16,23 @@ const ACCOUNT_GROUPS = [
   { key: "cash", types: ["cash"], dot: "#9E6E6E" },
 ];
 
+/* Bank wordmark when the bank is recognized; card chip for credit cards;
+   tinted type icon otherwise. */
+function AccountBadge({ a, Ico, isCredit }) {
+  if (isCredit) return <CardChip account={a} width={44} />;
+  const mark = BankMark({ name: a.name, size: 24 });
+  if (mark) return mark;
+  return (
+    <span className="h-6 w-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${a.color}22`, color: a.color }} aria-hidden="true">
+      <Ico size={13} />
+    </span>
+  );
+}
+
 export default function HomeScreen({
   accounts, balances, upcoming, topCats, monthExpense, recent,
   hide, accName, base, dueTone, rates, groupLabels,
-  onManageAccounts, onOpenPlanned, onOpenActivity, onDelTx, onPaid, onAccountTap,
+  onManageAccounts, onOpenPlanned, onOpenActivity, onOpenCards, onDelTx, onPaid, onAccountTap,
 }) {
   return (
     <>
@@ -48,7 +63,14 @@ export default function HomeScreen({
                     <span className="inline-block h-1.5 w-1.5 rounded-sm" style={{ background: g.dot }} aria-hidden="true" />
                     {groupLabels?.[g.key] || g.key}
                   </span>
-                  <span className="mono text-[12px]" style={{ color: subtotal < -0.005 ? T.rose : T.text }}>{fmtSigned(Math.round(subtotal), base)}</span>
+                  {g.key === "cards" ? (
+                    <button onClick={onOpenCards} className="tap flex items-center gap-0.5">
+                      <span className="mono text-[12px]" style={{ color: subtotal < -0.005 ? T.rose : T.text }}>{fmtSigned(Math.round(subtotal), base)}</span>
+                      <ChevronRight size={12} style={{ color: T.faint }} aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <span className="mono text-[12px]" style={{ color: subtotal < -0.005 ? T.rose : T.text }}>{fmtSigned(Math.round(subtotal), base)}</span>
+                  )}
                 </div>
                 <div className="flex gap-3 overflow-x-auto no-scroll -mx-4 px-4 pb-1">
                   {list.map((a) => {
@@ -64,7 +86,7 @@ export default function HomeScreen({
                         style={{ background: T.surface, border: `1px solid ${T.line}`, borderInlineStart: `4px solid ${a.color}` }}
                       >
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="h-6 w-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${a.color}22`, color: a.color }} aria-hidden="true"><Ico size={13} /></span>
+                          <AccountBadge a={a} Ico={Ico} isCredit={isCredit} />
                           <span className="ui text-[9px] uppercase tracking-wider" style={{ color: T.faint }}>{a.type}</span>
                         </div>
                         <div className="ui text-[12px] truncate" style={{ color: T.sub }}>{a.name}</div>
@@ -94,9 +116,13 @@ export default function HomeScreen({
               const tone = dueTone(r.d);
               return (
                 <div key={r.id} className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i ? `1px solid ${T.paper}` : "none" }}>
-                  <span className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: tone.bg, color: tone.c }} aria-hidden="true">
-                    {r.kind === "subscription" ? <Repeat size={16} /> : <Layers size={16} />}
-                  </span>
+                  {subBrandFor(r.name) ? (
+                    <SubLogo name={r.name} size={36} />
+                  ) : (
+                    <span className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: tone.bg, color: tone.c }} aria-hidden="true">
+                      {r.kind === "subscription" ? <Repeat size={16} /> : <Layers size={16} />}
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="ui text-sm truncate" style={{ color: T.text }}>{r.name}</div>
                     <div className="ui text-[11px]" style={{ color: tone.c }}>{tone.t} · {humanDay(r.nextDue)}</div>

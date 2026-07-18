@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ArrowLeftRight, Trash2, Repeat, Layers, SlidersHorizontal } from "lucide-react";
+import { SubLogo } from "./brand.jsx";
 import { T, catDef, fmtMoney, inputStyle } from "../../styles/tokens.js";
 import { Money, Bar, CardBox, EmptyHint } from "./primitives.jsx";
 import { daysUntilFromToday, humanDay } from "../../lib/dates/ui.js";
@@ -61,6 +62,7 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, dueTone }) {
         return (
           <div key={r.id} className="px-4 py-3" style={{ borderTop: i ? `1px solid ${T.paper}` : "none", opacity: done ? 0.55 : 1 }}>
             <div className="flex items-center gap-3">
+              <SubLogo name={r.name} size={34} tintBg={tone.bg} tintColor={tone.c} />
               <div className="min-w-0 flex-1">
                 <div className="ui text-sm truncate" style={{ color: T.text }}>{r.name}</div>
                 <div className="ui text-[11px]" style={{ color: done ? T.green : tone.c }}>

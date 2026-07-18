@@ -66,7 +66,12 @@ export function normalizeAccount(a, report) {
     openingBalance: opening,
     cardDigits,
     creditLimit: Math.max(0, num(a.creditLimit, 0)),
-    color: /^#[0-9A-Fa-f]{6}$/.test(str(a.color)) ? a.color : "#1F4E5F",
+    /* Credit-card metadata (batch 2): issuing bank, network, payment cycle. */
+    bank: str(a.bank).trim(),
+    network: ["visa", "mastercard"].includes(str(a.network)) ? a.network : "",
+    dueDay: Math.min(31, Math.max(0, Math.round(num(a.dueDay, 0)))) || 0,
+    minPayment: Math.max(0, num(a.minPayment, 0)),
+    color: /^#[0-9A-Fa-f]{6}$/.test(str(a.color)) ? a.color : "#4C6350",
     archived: bool(a.archived),
     sortOrder: num(a.sortOrder, NaN),
   };

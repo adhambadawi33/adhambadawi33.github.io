@@ -7,6 +7,8 @@ import {
   T, ACCOUNT_TYPE_DEFS, ACCOUNT_COLORS, EXP_CATS, INC_CATS, fmtMoney, inputCls, inputStyle,
 } from "../../styles/tokens.js";
 import { Sheet, Field, ChipRow, Numpad, EmptyHint, Money } from "../common/primitives.jsx";
+import { CardChip } from "../common/brand.jsx";
+import { bankFor } from "../../lib/brands.js";
 import { CURRENCIES, convert, isValidRate, DEFAULT_RATES } from "../../lib/finance/currency.js";
 import { parseVoice } from "../../lib/voice/parse.js";
 import { todayISO } from "../../lib/dates/localDate.js";
@@ -308,7 +310,7 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
     setF(
       initial
         ? { ...initial, openingDisplay: String(Math.abs(initial.openingBalance) || ""), cardDigitsText: (initial.cardDigits || []).join(", ") }
-        : { id: uid(), name: "", type: "bank", currency: "AED", openingDisplay: "", creditLimit: "", cardDigitsText: "", color: ACCOUNT_COLORS[0], archived: false }
+        : { id: uid(), name: "", type: "bank", currency: "AED", openingDisplay: "", creditLimit: "", cardDigitsText: "", bank: "", network: "", dueDay: "", minPayment: "", color: ACCOUNT_COLORS[0], archived: false }
     );
   }, [initial]);
   useOpenTransition(open, init);
@@ -335,9 +337,25 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
         </p>
       )}
       {isCredit && (
-        <Field label="Credit limit (optional)">
-          <input type="number" inputMode="decimal" value={f.creditLimit} onChange={(e) => setF({ ...f, creditLimit: e.target.value })} placeholder="e.g. 50000" className={`${inputCls} mono`} style={inputStyle} />
-        </Field>
+        <>
+          <Field label="Credit limit (optional)">
+            <input type="number" inputMode="decimal" value={f.creditLimit} onChange={(e) => setF({ ...f, creditLimit: e.target.value })} placeholder="e.g. 50000" className={`${inputCls} mono`} style={inputStyle} />
+          </Field>
+          <Field label="Card network">
+            <ChipRow value={f.network || ""} onChange={(v) => setF({ ...f, network: v })} options={[{ value: "visa", label: "Visa" }, { value: "mastercard", label: "Mastercard" }, { value: "", label: "Other" }]} />
+          </Field>
+          <Field label="Issuing bank (optional)">
+            <input value={f.bank || ""} onChange={(e) => setF({ ...f, bank: e.target.value })} placeholder="e.g. Emirates NBD, CIB" className={inputCls} style={inputStyle} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Payment due day (1–31)">
+              <input type="number" inputMode="numeric" min="1" max="31" value={f.dueDay || ""} onChange={(e) => setF({ ...f, dueDay: e.target.value })} placeholder="e.g. 5" className={`${inputCls} mono`} style={inputStyle} />
+            </Field>
+            <Field label="Min payment (optional)">
+              <input type="number" inputMode="decimal" value={f.minPayment || ""} onChange={(e) => setF({ ...f, minPayment: e.target.value })} placeholder="e.g. 350" className={`${inputCls} mono`} style={inputStyle} />
+            </Field>
+          </div>
+        </>
       )}
       <Field label="Card last-4 digits · for bank-SMS matching (optional)">
         <input
@@ -367,7 +385,7 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
           const openingBalance = isCredit ? -openVal : +f.openingDisplay || 0;
           const { openingDisplay: _d, cardDigitsText: _c, ...rest } = f;
           const cardDigits = (f.cardDigitsText || "").split(/[\s,]+/).filter((d) => /^\d{4}$/.test(d));
-          onSave({ ...rest, openingBalance, creditLimit: +f.creditLimit || 0, cardDigits });
+          onSave({ ...rest, openingBalance, creditLimit: +f.creditLimit || 0, cardDigits, bank: (f.bank || "").trim(), network: f.network || "", dueDay: +f.dueDay || 0, minPayment: +f.minPayment || 0 });
         }}
         disabled={!ok}
         className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
@@ -375,6 +393,80 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
       >
         Save account
       </button>
+    </Sheet>
+  );
+}
+
+/* ── Cards detail page (batch 2, design w/ Adham): every credit card with
+   available-in-limit, signed owed, usage bar, due day and min payment. ── */
+export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }) {
+  if (!open) return null;
+  const rows = cards.map((a) => {
+    const bal = balances[a.id] || 0;
+    const owed = Math.max(0, -bal);
+    const avail = a.creditLimit ? a.creditLimit + bal : null;
+    return { a, bal, owed, avail };
+  });
+  const totAvail = rows.reduce((s, r) => s + (r.avail != null ? convert(r.avail, r.a.currency, base, rates) : 0), 0);
+  const totOwed = rows.reduce((s, r) => s + convert(r.owed, r.a.currency, base, rates), 0);
+  return (
+    <Sheet open onClose={onClose} title="Cards" tall>
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.paper }}>
+          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>Available across cards</div>
+          <div className="mono text-[17px]" style={{ color: T.text }}>{hide ? "•••••" : `${Math.round(totAvail).toLocaleString("en-US")} ${base}`}</div>
+        </div>
+        <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.roseBg }}>
+          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>Total owed</div>
+          <div className="mono text-[17px]" style={{ color: totOwed > 0.005 ? T.rose : T.green }}>{hide ? "•••••" : `${totOwed > 0.005 ? "−" : ""}${Math.round(totOwed).toLocaleString("en-US")} ${base}`}</div>
+        </div>
+      </div>
+
+      {rows.length === 0 && <p className="ui text-sm text-center py-8" style={{ color: T.sub }}>No credit cards yet — add one from Accounts.</p>}
+
+      {rows.map(({ a, bal, owed, avail }) => {
+        const bank = bankFor(a.bank || a.name);
+        const usedPct = a.creditLimit ? Math.min(100, (owed / a.creditLimit) * 100) : 0;
+        return (
+          <div key={a.id} className="rounded-2xl p-4 mb-3" style={{ background: T.surface, border: `1px solid ${T.line}`, borderInlineStart: `4px solid ${a.color}` }}>
+            <div className="flex items-center gap-3 mb-3">
+              <CardChip account={a} width={44} />
+              <div className="min-w-0 flex-1">
+                <div className="ui text-[14px] font-semibold truncate" style={{ color: T.text }}>{a.name}</div>
+                <div className="mono text-[10.5px]" style={{ color: T.faint }}>
+                  {a.cardDigits?.length ? `•••• ${a.cardDigits[0]}` : ""}{a.cardDigits?.length && (bank || a.bank) ? " · " : ""}{a.bank || bank?.label || ""}
+                </div>
+              </div>
+              {a.dueDay > 0 && (
+                <span className="ui text-[10.5px] font-semibold rounded-full px-2.5 py-1 shrink-0" style={{ background: owed > 0 ? T.amberBg : T.greenBg, color: owed > 0 ? T.amber : T.green }}>
+                  {owed > 0 ? `Due day ${a.dueDay}` : "Nothing owed ✓"}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2.5 mb-3">
+              <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
+                <div className="ui text-[9.5px] mb-0.5" style={{ color: T.faint }}>Available</div>
+                <div className="mono text-[16px]" style={{ color: T.text }}>{avail != null ? fmtMoney(avail, a.currency, hide) : "—"}</div>
+              </div>
+              <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
+                <div className="ui text-[9.5px] mb-0.5" style={{ color: T.faint }}>Owed</div>
+                <div className="mono text-[16px]" style={{ color: owed > 0 ? T.rose : T.green }}>{hide ? "•••••" : owed > 0 ? `−${fmtMoney(owed, a.currency, false)}` : "0"}</div>
+              </div>
+            </div>
+            {a.creditLimit > 0 && (
+              <>
+                <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: T.line }}>
+                  <div className="h-full rounded-full" style={{ width: `${usedPct}%`, background: a.color, transition: "width .4s ease" }} />
+                </div>
+                <div className="flex justify-between ui text-[10.5px]" style={{ color: T.sub }}>
+                  <span>used <b className="mono">{fmtMoney(owed, a.currency, hide)}</b> of <b className="mono">{fmtMoney(a.creditLimit, a.currency, hide)}</b></span>
+                  {a.minPayment > 0 && owed > 0 && <span>min payment <b className="mono">{fmtMoney(a.minPayment, a.currency, hide)}</b></span>}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })}
     </Sheet>
   );
 }
