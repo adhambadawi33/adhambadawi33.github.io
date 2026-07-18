@@ -106,3 +106,5 @@ Shortcuts → Automation → **Message** → Sender: your bank (or Message Conta
 **Get File** `pl-inbox.txt` → **URL Encode** → **URL** `https://YOUR-SITE/#sms=` + encoded → **Open URLs** → then **Text** (empty) → **Save File** (replace `pl-inbox.txt`) to clear the queue.
 
 Messages accumulate silently all week; run B when you want to review — the inbox opens with everything queued for approval.
+
+<!-- test: Claude Code pipeline check -->
