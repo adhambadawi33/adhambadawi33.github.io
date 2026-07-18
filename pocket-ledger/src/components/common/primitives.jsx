@@ -19,8 +19,13 @@ export function Sheet({ open, onClose, title, children, tall }) {
     panel.current?.focus();
     const onKey = (e) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
+    /* Lock the page behind the sheet — otherwise touch-scrolling the sheet
+       (or the dimmed edge) scrolls the app in the background on iOS. */
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
       opener.current?.focus?.();
     };
   }, [open, onClose]);
@@ -47,7 +52,7 @@ export function Sheet({ open, onClose, title, children, tall }) {
             <X size={18} />
           </button>
         </div>
-        <div className="overflow-y-auto px-5 py-4" style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom))" }}>
+        <div className="overflow-y-auto px-5 py-4" style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom))", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
           {children}
         </div>
       </div>
