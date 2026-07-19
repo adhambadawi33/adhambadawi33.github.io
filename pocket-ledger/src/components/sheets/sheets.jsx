@@ -66,7 +66,9 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
     setDebtDraft(null);
     setType(p.type);
     if (p.amount != null) setAmount(String(p.amount));
-    if (p.type !== "transfer" && p.category) setCat(p.category);
+    /* Honest fallback: an unrecognized expense lands in "Other", not in
+       whatever category happened to be selected (was: Food by default). */
+    if (p.type !== "transfer") setCat(p.category || (p.type === "income" ? "Other income" : "Other"));
     if (p.accountId) setAccId(p.accountId);
     if (p.type === "transfer" && p.toAccountId) setToId(p.toAccountId);
     const accCur = p.accountId ? accounts.find((a) => a.id === p.accountId)?.currency : null;

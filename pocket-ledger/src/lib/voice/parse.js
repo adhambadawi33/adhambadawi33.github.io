@@ -83,8 +83,8 @@ export function findDebt(norm) {
 /* keyword -> category. Order matters: specific before generic. */
 export const CAT_KEYWORDS = [
   ["Groceries", ["كارفور", "لولو", "بقاله", "سوبرماركت", "سوبر ماركت", "خضار", "تموين", "carrefour", "lulu", "spinneys", "grocer", "supermarket", "grocery"]],
-  ["Transport", ["بنزين", "وقود", "جاز", "سولار", "تاكسي", "اوبر", "كريم", "مواصلات", "باركينج", "ركنه", "سياره", "fuel", "petrol", "gas", "shell", "adnoc", "enoc", "aramco", "محطه", "uber", "careem", "taxi", "parking", "salik", "metro"]],
-  ["Housing & Bills", ["ايجار", "كهربا", "كهرباء", "ميه", "مياه", "فاتوره", "فواتير", "نت", "انترنت", "واي فاي", "ديوا", "rent", "dewa", "sewa", "bill", "electricity", "water", "internet", "wifi", "etisalat", "du "]],
+  ["Transport", ["بنزين", "وقود", "جاز", "سولار", "تاكسي", "اوبر", "كريم", "مواصلات", "باركينج", "ركنه", "سياره", "عربيه", "العربيه", "ميكانيكي", "بنشر", "fuel", "petrol", "gas", "shell", "adnoc", "enoc", "aramco", "محطه", "uber", "careem", "taxi", "parking", "salik", "metro", "car "]],
+  ["Housing & Bills", ["ايجار", "كهربا", "كهرباء", "ميه", "مياه", "فاتوره", "فواتير", "نت", "انترنت", "واي فاي", "ديوا", "صيانه", "سباك", "كهربائي", "نجار", "rent", "dewa", "sewa", "bill", "electricity", "water", "internet", "wifi", "etisalat", "du ", "maintenance", "plumber"]],
   ["Health", ["دكتور", "طبيب", "صيدليه", "دوا", "دواء", "علاج", "تحاليل", "مستشفي", "doctor", "pharmacy", "medicine", "clinic", "hospital", "dental"]],
   ["Education", ["مدرسه", "مدارس", "دروس", "كورس", "جامعه", "كتب", "school", "course", "tuition", "university", "books"]],
   ["Family", ["هديه", "هدايا", "عيله", "اهل", "ولاد", "اطفال", "gift", "family", "kids"]],

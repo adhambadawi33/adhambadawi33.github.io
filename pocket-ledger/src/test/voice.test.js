@@ -143,3 +143,18 @@ describe("voice parser — debt phrases (batch 6)", () => {
     expect(parseVoice("كارفور 300", accounts, settings).type).toBe("expense");
   });
 });
+
+describe("Egyptian car & maintenance words (Adham: صيانة عربية landed in Food)", () => {
+  it('classifies "صيانه عربيه ٥٠٠ جنيه" as Transport', () => {
+    const p = parseVoice("صيانه عربيه ٥٠٠ جنيه", accounts, settings);
+    expect(p.category).toBe("Transport");
+    expect(p.amount).toBe(500);
+  });
+  it("bare maintenance/plumber words go to Housing & Bills", () => {
+    expect(parseVoice("صيانه تكييف ٣٠٠ جنيه", accounts, settings).category).toBe("Housing & Bills");
+    expect(parseVoice("سباك ٢٠٠ جنيه", accounts, settings).category).toBe("Housing & Bills");
+  });
+  it("leaves category null for truly unknown text (UI shows Other)", () => {
+    expect(parseVoice("حاجات متنوعه ١٥٠ جنيه", accounts, settings).category).toBeNull();
+  });
+});
