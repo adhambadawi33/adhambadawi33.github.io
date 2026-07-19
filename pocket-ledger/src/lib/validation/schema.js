@@ -75,6 +75,8 @@ export function normalizeAccount(a, report) {
     dueDay: Math.min(31, Math.max(0, Math.round(num(a.dueDay, 0)))) || 0,
     minPayment: Math.max(0, num(a.minPayment, 0)),
     color: /^#[0-9A-Fa-f]{6}$/.test(str(a.color)) ? a.color : "#4C6350",
+    /* Optional second brand color — keylines render a gradient (batch 11). */
+    color2: /^#[0-9A-Fa-f]{6}$/.test(str(a.color2)) ? a.color2 : "",
     archived: bool(a.archived),
     sortOrder: num(a.sortOrder, NaN),
   };

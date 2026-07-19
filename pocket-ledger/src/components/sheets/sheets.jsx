@@ -4,7 +4,7 @@ import {
   ClipboardPaste, Wand2, ChevronUp, Mic, HandCoins,
 } from "lucide-react";
 import {
-  T, ACCOUNT_TYPE_DEFS, ACCOUNT_COLORS, EXP_CATS, INC_CATS, OWNERS, fmtMoney, inputCls, inputStyle,
+  T, ACCOUNT_TYPE_DEFS, ACCOUNT_COLORS, EXP_CATS, INC_CATS, OWNERS, fmtMoney, inputCls, inputStyle, accountStripe,
 } from "../../styles/tokens.js";
 import { Sheet, Field, ChipRow, Numpad, EmptyHint, Money } from "../common/primitives.jsx";
 import { CardChip } from "../common/brand.jsx";
@@ -335,7 +335,7 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
                   <ChevronDown size={15} />
                 </button>
               </div>
-              <span className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: a.color, color: "#fff" }} aria-hidden="true"><Ico size={17} /></span>
+              <span className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: accountStripe(a, 135), color: "#fff" }} aria-hidden="true"><Ico size={17} /></span>
               <div className="flex-1 min-w-0">
                 <div className="ui text-sm" style={{ color: T.text }}>{a.name}{a.archived ? " (hidden)" : ""}</div>
                 <div className="ui text-[11px] capitalize" style={{ color: T.faint }}>{a.type} · {a.currency}</div>
@@ -388,7 +388,7 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
     setF(
       initial
         ? { ...initial, openingDisplay: String(Math.abs(initial.openingBalance) || ""), cardDigitsText: (initial.cardDigits || []).join(", ") }
-        : { id: uid(), name: "", type: "bank", currency: "AED", openingDisplay: "", creditLimit: "", cardDigitsText: "", bank: "", network: "", dueDay: "", minPayment: "", color: ACCOUNT_COLORS[0], archived: false }
+        : { id: uid(), name: "", type: "bank", currency: "AED", openingDisplay: "", creditLimit: "", cardDigitsText: "", bank: "", network: "", dueDay: "", minPayment: "", color: ACCOUNT_COLORS[0], color2: "", archived: false }
     );
   }, [initial]);
   useOpenTransition(open, init);
@@ -455,6 +455,18 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
           ))}
         </div>
       </Field>
+      <Field label="Second color (optional) · blends into a gradient">
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setF({ ...f, color2: "" })} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.faint }} aria-label="No second color" aria-pressed={!f.color2}>
+            {!f.color2 ? <Check size={15} style={{ color: T.sub }} aria-hidden="true" /> : "—"}
+          </button>
+          {ACCOUNT_COLORS.map((c) => (
+            <button key={c} onClick={() => setF({ ...f, color2: c })} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${f.color}, ${c})` }} aria-label={`Second color ${c}`} aria-pressed={f.color2 === c}>
+              {f.color2 === c && <Check size={15} style={{ color: "#fff" }} aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+      </Field>
       <button
         onClick={() => {
           if (!ok) return;
@@ -510,7 +522,8 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
         const bank = bankFor(a.bank || a.name);
         const usedPct = a.creditLimit ? Math.min(100, (owed / a.creditLimit) * 100) : 0;
         return (
-          <div key={a.id} className="rounded-2xl p-4 mb-3" style={{ background: T.surface, border: `1px solid ${T.line}`, borderInlineStart: `4px solid ${a.color}` }}>
+          <div key={a.id} className="rounded-2xl p-4 mb-3 relative overflow-hidden" style={{ background: T.surface, border: `1px solid ${T.line}` }}>
+            <span aria-hidden="true" className="absolute inset-y-0 w-1" style={{ insetInlineStart: 0, background: accountStripe(a) }} />
             <div className="flex items-center gap-3 mb-3">
               <CardChip account={a} width={44} />
               <div className="min-w-0 flex-1">

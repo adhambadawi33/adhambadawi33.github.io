@@ -1,6 +1,6 @@
 import React from "react";
 import { Landmark, CalendarClock, Repeat, Layers, ChevronRight, Lightbulb, X } from "lucide-react";
-import { T, ACCOUNT_TYPE_DEFS, catDef, fmtMoney } from "../../styles/tokens.js";
+import { T, ACCOUNT_TYPE_DEFS, catDef, fmtMoney, accountStripe } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
 import { Section, CardBox, EmptyHint, Money, Bar } from "../common/primitives.jsx";
 import { BankMark, CardChip, SubLogo } from "../common/brand.jsx";
@@ -99,9 +99,10 @@ export default function HomeScreen({
                     return (
                       <button
                         key={a.id} onClick={() => onAccountTap(a)}
-                        className="tap shrink-0 w-40 rounded-2xl p-3 text-left"
-                        style={{ background: T.surface, border: `1px solid ${T.line}`, borderInlineStart: `4px solid ${a.color}` }}
+                        className="tap shrink-0 w-40 rounded-2xl p-3 text-left relative overflow-hidden"
+                        style={{ background: T.surface, border: `1px solid ${T.line}` }}
                       >
+                        <span aria-hidden="true" className="absolute inset-y-0 w-1" style={{ insetInlineStart: 0, background: accountStripe(a) }} />
                         <div className="flex items-center gap-2 mb-3">
                           <AccountBadge a={a} Ico={Ico} isCredit={isCredit} />
                           <span className="ui text-[10px] uppercase tracking-wider" style={{ color: T.faint }}>{a.type}</span>

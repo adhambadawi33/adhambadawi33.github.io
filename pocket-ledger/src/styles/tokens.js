@@ -34,7 +34,12 @@ export const ACCOUNT_TYPE_DEFS = [
 export const ACCOUNT_COLORS = [
   "#4C6350", "#5E7189", "#B08D57", "#9E6E6E", "#5E7D67", "#8A6A3B", "#6E4555", "#54606C",
   "#1D4E89", "#2469A8", "#17557F", "#4A6FA5", "#0B6B3A", "#2B3F8C",
+  "#E8752A", "#4FA3D8", "#AEB9C4", "#C93A3A",
 ];
+
+/* Account keyline paint: two brand colors blend into a gradient (batch 11). */
+export const accountStripe = (a, deg = 180) =>
+  a?.color2 ? `linear-gradient(${deg}deg, ${a.color}, ${a.color2})` : a?.color;
 
 export const EXP_CATS = [
   { n: "Food & Dining", I: Utensils, c: "#B4744B" },
