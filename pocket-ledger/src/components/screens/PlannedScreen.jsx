@@ -166,19 +166,27 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
 }
 
 export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onEditRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget, onPayMilestone, onDelPlan }) {
-  /* "Which subscriptions sit on which card?" (Adham) — one tap filters the
-     list AND the bleed summary to a single account. */
+  /* "Which subscriptions sit on which card / belong to whom?" (Adham) —
+     the two chip rows compose, and the bleed summary follows both. */
   const [subAcc, setSubAcc] = useState("all");
+  const [subOwner, setSubOwner] = useState("all");
   const flagged = recurrs.filter((r) => r.kind === "subscription" && r.toCancel && !r.paused);
   const active = recurrs.filter((r) => !r.toCancel);
-  const subAccIds = [...new Set(active.filter((r) => r.kind === "subscription").map((r) => r.accountId || "none"))];
+  const subsOnly = active.filter((r) => r.kind === "subscription");
+  const subAccIds = [...new Set(subsOnly.map((r) => r.accountId || "none"))];
   const accFilterOptions = [
     { value: "all", label: "All" },
     ...subAccIds.filter((id) => id !== "none").map((id) => ({ value: id, label: accName(id) })),
     ...(subAccIds.includes("none") ? [{ value: "none", label: "No card" }] : []),
   ];
+  const subOwnerIds = [...new Set(subsOnly.map((r) => r.owner || "me"))];
+  const ownerFilterOptions = [
+    { value: "all", label: "Everyone" },
+    ...OWNERS.filter((o) => subOwnerIds.includes(o.id)).map((o) => ({ value: o.id, label: o.label })),
+  ];
   const bySubAcc = (r) => subAcc === "all" || (r.accountId || "none") === subAcc;
-  const filteredSubs = active.filter((r) => r.kind !== "subscription" || bySubAcc(r));
+  const bySubOwner = (r) => subOwner === "all" || (r.owner || "me") === subOwner;
+  const filteredSubs = active.filter((r) => r.kind !== "subscription" || (bySubAcc(r) && bySubOwner(r)));
   return (
     <>
       <CancelWatchlist flagged={flagged} base={base} rates={rates} hide={hide} onDone={onDelRecurr} onKeep={onToggleCancel} />
@@ -191,8 +199,13 @@ export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat
       )}
       <Section title="Subscriptions" right={<AddMini onClick={() => onAddRecurr("subscription")} />}>
         {accFilterOptions.length > 2 && (
-          <div className="overflow-x-auto no-scroll -mx-4 px-4 mb-3">
+          <div className="overflow-x-auto no-scroll -mx-4 px-4 mb-2">
             <div className="w-max"><ChipRow value={subAcc} onChange={setSubAcc} options={accFilterOptions} /></div>
+          </div>
+        )}
+        {ownerFilterOptions.length > 2 && (
+          <div className="overflow-x-auto no-scroll -mx-4 px-4 mb-3">
+            <div className="w-max"><ChipRow value={subOwner} onChange={setSubOwner} options={ownerFilterOptions} /></div>
           </div>
         )}
         <BleedSummary recurrs={filteredSubs} base={base} rates={rates} hide={hide} />
