@@ -233,7 +233,7 @@ export default function App({ storage }) {
   const scheduleUndo = (label, restore) => {
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setUndo({ label, restore });
-    undoTimer.current = setTimeout(() => setUndo(null), 6000);
+    undoTimer.current = setTimeout(() => setUndo(null), 10000);
   };
   const doUndo = () => {
     if (undo) { undo.restore(); setUndo(null); }
@@ -337,6 +337,10 @@ export default function App({ storage }) {
     const ms = plan?.milestones.find((m) => m.id === msId);
     if (!plan || !ms || ms.paid) return;
     const acct = data.accounts.find((a) => a.id === plan.accountId && !a.archived) || activeAccounts[0];
+    /* Plan payments are huge and rare (villa: ~4/year) — the one place a
+       confirm beats undo-only (design discussion with Adham, Jul 20). */
+    const label = ms.label ? ` ${ms.label}` : "";
+    if (!window.confirm(`${plan.name}${label} — ${fmtNet(ms.amount, plan.currency, false)}\n\nOK = log this payment${acct ? ` from ${acct.name}` : ""}.`)) return;
     const tx = acct
       ? [{
           id: uid(), date: todayISO(), type: "expense", amount: ms.amount, currency: plan.currency,

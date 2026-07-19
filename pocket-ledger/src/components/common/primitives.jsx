@@ -148,15 +148,16 @@ export function Numpad({ value, onChange }) {
   );
 }
 
-/* Undo toast for safe deletion (handoff §4.8). */
+/* Undo toast for safe deletion & paid taps (handoff §4.8) — loud enough
+   to catch the eye: gold-bordered, big Undo button, 10s window. */
 export function UndoToast({ toast, onUndo }) {
   if (!toast) return null;
   return (
     <div className="fixed left-1/2 -translate-x-1/2 z-[70] w-[92%] max-w-md" style={{ bottom: "calc(88px + env(safe-area-inset-bottom))" }} role="status" aria-live="polite">
-      <div className="pop flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: T.ink, color: "#fff" }}>
-        <span className="ui text-sm flex-1 truncate">{toast.label}</span>
-        <button onClick={onUndo} className="tap ui text-sm font-semibold flex items-center gap-1" style={{ color: T.gold }}>
-          <RotateCcw size={14} /> Undo
+      <div className="pop flex items-center gap-3 rounded-2xl px-4 py-3.5" style={{ background: T.ink, color: "#fff", border: `1.5px solid ${T.gold}`, boxShadow: "0 8px 24px rgba(15,27,45,0.35)" }}>
+        <span className="ui text-sm flex-1">{toast.label}</span>
+        <button onClick={onUndo} className="tap ui text-sm font-bold rounded-xl px-3.5 py-2 flex items-center gap-1.5 shrink-0" style={{ background: T.gold, color: T.ink }}>
+          <RotateCcw size={15} /> Undo
         </button>
       </div>
     </div>
