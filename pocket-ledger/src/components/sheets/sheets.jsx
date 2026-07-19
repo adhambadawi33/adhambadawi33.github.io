@@ -649,6 +649,55 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
   );
 }
 
+/* ── Edit a logged transaction (batch 9): fix the note, or move it to the
+   right account. Amount/category stay put — delete + re-add for those. ── */
+export function EditTxSheet({ open, onClose, tx, accounts, onSave }) {
+  const [note, setNote] = useState("");
+  const [accId, setAccId] = useState(null);
+  const init = React.useCallback(() => {
+    setNote(tx?.note || "");
+    setAccId(tx?.accountId || null);
+  }, [tx]);
+  useOpenTransition(open, init);
+  if (!open || !tx) return null;
+  const isTr = tx.type === "transfer";
+  const movable = !isTr && tx.type !== "adjustment";
+  const save = () => {
+    onSave({ ...tx, note: note.trim(), ...(movable && accId ? { accountId: accId } : {}) });
+  };
+  return (
+    <Sheet open onClose={onClose} title="Edit transaction">
+      <div className="rounded-xl px-3.5 py-3 mb-4 flex items-center justify-between" style={{ background: T.paper }}>
+        <div className="ui text-[13px]" style={{ color: T.text }}>
+          {isTr ? "Transfer" : tx.type === "adjustment" ? "Balance adjustment" : tx.category}
+          <span className="ui text-[11px] ml-2" style={{ color: T.faint }}>{tx.date}</span>
+        </div>
+        <Money n={isTr ? tx.sourceAmount : tx.amount} cur={isTr ? tx.sourceCurrency : tx.currency} hide={false} className="text-[15px]" />
+      </div>
+      <Field label="Note">
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Carrefour weekly groceries" className={inputCls} style={inputStyle} />
+      </Field>
+      {movable && (
+        <Field label="Paid from · move it if it's on the wrong account">
+          <ChipRow
+            value={accId}
+            onChange={setAccId}
+            options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${typeTag(a.type)}` }))}
+          />
+        </Field>
+      )}
+      {!movable && (
+        <p className="ui text-[11px] mb-3" style={{ color: T.faint }}>
+          {isTr ? "Transfers keep their two accounts — delete and re-add to change them." : "Adjustments stay on their account to keep reconciliation honest."}
+        </p>
+      )}
+      <button onClick={save} className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2" style={{ background: T.ink, color: "#fff" }}>
+        Save changes
+      </button>
+    </Sheet>
+  );
+}
+
 /* ── SMS approval inbox (nothing posts without explicit approval) ── */
 export function InboxSheet({ open, onClose, pending, accounts, onPasteImport, onManualImport, onApprove, onDismiss, onApproveAll }) {
   const [sel, setSel] = useState({});

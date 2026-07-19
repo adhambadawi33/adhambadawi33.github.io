@@ -3,7 +3,7 @@ import { Plus, Check, Landmark, ChevronDown, Trash2 } from "lucide-react";
 import { T, EXP_CATS, OWNERS, inputStyle } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
 import { planStats } from "../../lib/finance/plans.js";
-import { Section, CardBox, Bar, Money } from "../common/primitives.jsx";
+import { Section, CardBox, Bar, Money, ChipRow } from "../common/primitives.jsx";
 import { RecurrList, OwnerPill } from "../common/rows.jsx";
 import { SubLogo } from "../common/brand.jsx";
 import { fmtMoney } from "../../styles/tokens.js";
@@ -166,8 +166,19 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
 }
 
 export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget, onPayMilestone, onDelPlan }) {
+  /* "Which subscriptions sit on which card?" (Adham) — one tap filters the
+     list AND the bleed summary to a single account. */
+  const [subAcc, setSubAcc] = useState("all");
   const flagged = recurrs.filter((r) => r.kind === "subscription" && r.toCancel && !r.paused);
   const active = recurrs.filter((r) => !r.toCancel);
+  const subAccIds = [...new Set(active.filter((r) => r.kind === "subscription").map((r) => r.accountId || "none"))];
+  const accFilterOptions = [
+    { value: "all", label: "All" },
+    ...subAccIds.filter((id) => id !== "none").map((id) => ({ value: id, label: accName(id) })),
+    ...(subAccIds.includes("none") ? [{ value: "none", label: "No card" }] : []),
+  ];
+  const bySubAcc = (r) => subAcc === "all" || (r.accountId || "none") === subAcc;
+  const filteredSubs = active.filter((r) => r.kind !== "subscription" || bySubAcc(r));
   return (
     <>
       <CancelWatchlist flagged={flagged} base={base} rates={rates} hide={hide} onDone={onDelRecurr} onKeep={onToggleCancel} />
@@ -179,8 +190,13 @@ export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat
         </Section>
       )}
       <Section title="Subscriptions" right={<AddMini onClick={() => onAddRecurr("subscription")} />}>
-        <BleedSummary recurrs={recurrs} base={base} rates={rates} hide={hide} />
-        <RecurrList kind="subscription" recurrs={active} hide={hide} onPaid={onPaid} onDel={onDelRecurr} onToggleCancel={onToggleCancel} dueTone={dueTone} accName={accName} />
+        {accFilterOptions.length > 2 && (
+          <div className="overflow-x-auto no-scroll -mx-4 px-4 mb-3">
+            <div className="w-max"><ChipRow value={subAcc} onChange={setSubAcc} options={accFilterOptions} /></div>
+          </div>
+        )}
+        <BleedSummary recurrs={filteredSubs} base={base} rates={rates} hide={hide} />
+        <RecurrList kind="subscription" recurrs={filteredSubs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} onToggleCancel={onToggleCancel} dueTone={dueTone} accName={accName} />
       </Section>
       <Section title="Installments" right={<AddMini onClick={() => onAddRecurr("installment")} />}>
         <RecurrList kind="installment" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} accName={accName} />

@@ -6,7 +6,7 @@ import HomeScreen from "../components/screens/HomeScreen.jsx";
 import ActivityScreen from "../components/screens/ActivityScreen.jsx";
 import PlannedScreen from "../components/screens/PlannedScreen.jsx";
 import PeopleScreen from "../components/screens/PeopleScreen.jsx";
-import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet } from "../components/sheets/sheets.jsx";
+import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet, EditTxSheet } from "../components/sheets/sheets.jsx";
 import VoiceSheet from "../components/sheets/VoiceSheet.jsx";
 import { STORAGE_KEY, LEGACY_KEYS } from "../lib/storage/adapter.js";
 import { blankData, normalizeData } from "../lib/validation/schema.js";
@@ -40,6 +40,7 @@ export default function App({ storage }) {
   const [resetOpen, setResetOpen] = useState(false);
   const [voiceText, setVoiceText] = useState(null);
   const [debtDraft, setDebtDraft] = useState(null);
+  const [editTxTarget, setEditTxTarget] = useState(null);
   const hashConsumed = useRef(false);
   const importSmsRef = useRef(null);
   const fabPress = useRef({ timer: null, fired: false });
@@ -233,6 +234,11 @@ export default function App({ storage }) {
     showFlash();
     setSheet(null);
     setVoiceText(null);
+  };
+  const saveTxEdit = (tx) => {
+    commit({ ...data, transactions: data.transactions.map((x) => (x.id === tx.id ? tx : x)) }, true);
+    setEditTxTarget(null);
+    setSheet(null);
   };
   const delTx = (tx) => {
     const prev = data;
@@ -500,7 +506,7 @@ export default function App({ storage }) {
             />
           )}
           {tab === "activity" && (
-            <ActivityScreen txByDay={txByDay} filter={actFilter} setFilter={setActFilter} accounts={activeAccounts} hide={hide} accName={accName} onDelTx={delTx} onExport={exportCsv} insight={insight} base={base} />
+            <ActivityScreen txByDay={txByDay} filter={actFilter} setFilter={setActFilter} accounts={activeAccounts} hide={hide} accName={accName} onDelTx={delTx} onEditTx={(t) => { setEditTxTarget(t); setSheet("edit-tx"); }} onExport={exportCsv} insight={insight} base={base} />
           )}
           {tab === "planned" && (
             <PlannedScreen
@@ -568,6 +574,7 @@ export default function App({ storage }) {
         <RecurrSheet open={sheet === "recurr"} onClose={() => setSheet(null)} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} />
         <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} onPasteImport={pasteSms} onManualImport={importSmsText} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
         <DebtSheet open={sheet === "debt"} onClose={() => { setSheet(null); setDebtDraft(null); }} onSave={saveDebt} initial={debtDraft} />
+        <EditTxSheet open={sheet === "edit-tx"} onClose={() => { setSheet(null); setEditTxTarget(null); }} tx={editTxTarget} accounts={activeAccounts} onSave={saveTxEdit} />
         <CardsSheet open={sheet === "cards"} onClose={() => setSheet(null)} cards={activeAccounts.filter((a) => a.type === "credit")} balances={balances} hide={hide} base={base} rates={settings.rates} />
         <SettingsSheet
           open={sheet === "settings"} onClose={() => setSheet(null)} settings={settings}

@@ -14,15 +14,21 @@ export function OwnerPill({ id, size = "text-[9.5px]" }) {
   return <span className={`ui ${size} font-semibold rounded-lg px-1.5 py-0.5 shrink-0`} style={{ background: o.bg, color: o.c }}>{o.label}</span>;
 }
 
-export function TxRow({ t, i, hide, accName, onDel, compact }) {
+export function TxRow({ t, i, hide, accName, onDel, onEdit, compact }) {
   const isIn = t.type === "income";
   const isTr = t.type === "transfer";
   const isAdj = t.type === "adjustment";
   const def = catDef(isAdj ? "Adjustment" : t.category);
   const amount = isTr ? t.sourceAmount : t.amount;
   const currency = isTr ? t.sourceCurrency : t.currency;
+  /* With onEdit, the row body becomes a button: tap to edit note / move account. */
+  const Body = onEdit ? "button" : "div";
   return (
     <div className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i ? `1px solid ${T.paper}` : "none" }}>
+      <Body
+        {...(onEdit ? { onClick: () => onEdit(t), "aria-label": `Edit ${isTr ? "transfer" : t.category} of ${amount}` } : {})}
+        className={`flex items-center gap-3 flex-1 min-w-0 text-left ${onEdit ? "tap" : ""}`}
+      >
       <span
         className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
         style={{ background: isIn ? T.greenBg : isTr || isAdj ? T.paper : `${def.c}1A`, color: isIn ? T.green : isTr || isAdj ? T.sub : def.c }}
@@ -42,6 +48,7 @@ export function TxRow({ t, i, hide, accName, onDel, compact }) {
       </div>
       <span className="ui sr-only">{isIn || (isAdj && amount > 0) ? "money in" : "money out"}</span>
       <Money n={amount} cur={currency} hide={hide} color={isIn || (isAdj && amount > 0) ? T.green : T.text} className="text-sm" />
+      </Body>
       {!compact && (
         <button onClick={() => onDel(t)} className="tap p-2 opacity-40 hover:opacity-100" style={{ color: T.rose }} aria-label={`Delete ${isTr ? "transfer" : t.category} of ${fmtMoney(amount, currency)}`}>
           <Trash2 size={14} />

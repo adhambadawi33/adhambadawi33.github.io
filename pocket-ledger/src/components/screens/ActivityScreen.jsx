@@ -31,7 +31,7 @@ function InsightCard({ insight, base, hide }) {
   );
 }
 
-export default function ActivityScreen({ txByDay, filter, setFilter, accounts, hide, accName, onDelTx, onExport, insight, base }) {
+export default function ActivityScreen({ txByDay, filter, setFilter, accounts, hide, accName, onDelTx, onEditTx, onExport, insight, base }) {
   return (
     <>
       <InsightCard insight={insight} base={base} hide={hide} />
@@ -66,7 +66,7 @@ export default function ActivityScreen({ txByDay, filter, setFilter, accounts, h
             <div className="ui text-[11px] uppercase tracking-wider mb-1.5 px-0.5" style={{ color: T.faint }}>{humanDay(day)}</div>
             <CardBox>
               {rows.map((t, i) => (
-                <TxRow key={t.id} t={t} i={i} hide={hide} accName={accName} onDel={onDelTx} />
+                <TxRow key={t.id} t={t} i={i} hide={hide} accName={accName} onDel={onDelTx} onEdit={onEditTx} />
               ))}
             </CardBox>
           </div>
