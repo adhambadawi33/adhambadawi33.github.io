@@ -683,10 +683,15 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave }) {
   };
   return (
     <Sheet open onClose={onClose} title="Edit transaction">
+      {/* Live header: reflects the category being picked below, icon included. */}
       <div className="rounded-xl px-3.5 py-3 mb-4 flex items-center justify-between" style={{ background: T.paper }}>
-        <div className="ui text-[13px]" style={{ color: T.text }}>
-          {isTr ? "Transfer" : tx.type === "adjustment" ? "Balance adjustment" : tx.category}
-          <span className="ui text-[11px] ml-2" style={{ color: T.faint }}>{tx.date}</span>
+        <div className="ui text-[13px] flex items-center gap-2" style={{ color: T.text }}>
+          {!isTr && tx.type !== "adjustment" && (() => {
+            const def = cats.find((c) => c.n === (cat || tx.category));
+            return def ? <def.I size={15} style={{ color: def.c }} aria-hidden="true" /> : null;
+          })()}
+          {isTr ? "Transfer" : tx.type === "adjustment" ? "Balance adjustment" : (cat || tx.category)}
+          <span className="ui text-[11px]" style={{ color: T.faint }}>{tx.date}</span>
         </div>
         <Money n={isTr ? tx.sourceAmount : tx.amount} cur={isTr ? tx.sourceCurrency : tx.currency} hide={false} className="text-[15px]" />
       </div>
