@@ -567,17 +567,29 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
 }
 
 /* ── Recurring ── */
-export function RecurrSheet({ open, onClose, kind, accounts, onSave }) {
+export function RecurrSheet({ open, onClose, kind, accounts, onSave, initial }) {
   const [f, setF] = useState(null);
+  /* `initial` = edit mode (batch 12): tap a subscription/installment row to
+     move it to another card, fix the amount, date — anything. */
   const init = React.useCallback(() => {
-    setF({ name: "", amount: "", currency: "AED", cycle: "monthly", nextDue: todayISO(), accountId: accounts[0]?.id || null, owner: "me", monthsTotal: "", monthsPaid: "0" });
-  }, [accounts]);
+    setF(
+      initial
+        ? {
+            name: initial.name, amount: String(initial.amount), currency: initial.currency,
+            cycle: initial.cycle, nextDue: initial.nextDue, accountId: initial.accountId,
+            owner: initial.owner || "me",
+            monthsTotal: initial.monthsTotal != null ? String(initial.monthsTotal) : "",
+            monthsPaid: initial.monthsPaid != null ? String(initial.monthsPaid) : "0",
+          }
+        : { name: "", amount: "", currency: "AED", cycle: "monthly", nextDue: todayISO(), accountId: accounts[0]?.id || null, owner: "me", monthsTotal: "", monthsPaid: "0" }
+    );
+  }, [accounts, initial]);
   useOpenTransition(open, init);
   if (!open || !f) return null;
   const sub = kind === "subscription";
   const ok = f.name.trim() && +f.amount > 0 && (sub || +f.monthsTotal > 0);
   return (
-    <Sheet open onClose={onClose} title={sub ? "New subscription" : "New installment"}>
+    <Sheet open onClose={onClose} title={initial ? (sub ? "Edit subscription" : "Edit installment") : (sub ? "New subscription" : "New installment")}>
       <Field label="Name"><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={sub ? "e.g. Netflix" : "e.g. Car loan"} className={inputCls} style={inputStyle} /></Field>
       <Field label="Whose is it?">
         <ChipRow value={f.owner} onChange={(v) => setF({ ...f, owner: v })} options={OWNERS.map((o) => ({ value: o.id, label: o.label }))} />
@@ -609,7 +621,7 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave }) {
         </Field>
       </div>
       <button
-        onClick={() => ok && onSave({ id: uid(), kind, name: f.name.trim(), amount: +f.amount, currency: f.currency, cycle: sub ? f.cycle : "monthly", nextDue: f.nextDue, accountId: f.accountId, owner: f.owner || "me", paused: false, ...(sub ? {} : { monthsTotal: +f.monthsTotal, monthsPaid: +f.monthsPaid || 0 }) })}
+        onClick={() => ok && onSave({ id: initial?.id || uid(), kind, name: f.name.trim(), amount: +f.amount, currency: f.currency, cycle: sub ? f.cycle : "monthly", nextDue: f.nextDue, accountId: f.accountId, owner: f.owner || "me", paused: initial?.paused || false, toCancel: initial?.toCancel || false, ...(sub ? {} : { monthsTotal: +f.monthsTotal, monthsPaid: +f.monthsPaid || 0 }) })}
         disabled={!ok}
         className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
         style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}

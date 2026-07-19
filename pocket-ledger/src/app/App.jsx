@@ -36,6 +36,7 @@ export default function App({ storage }) {
   const [sheet, setSheet] = useState(null);
   const [editAcc, setEditAcc] = useState(null);
   const [recurrKind, setRecurrKind] = useState("subscription");
+  const [editRecurr, setEditRecurr] = useState(null);
   const [actFilter, setActFilter] = useState({ q: "", accountId: "all" });
   const [undo, setUndo] = useState(null);
   const [resetOpen, setResetOpen] = useState(false);
@@ -287,7 +288,12 @@ export default function App({ storage }) {
     commit({ ...data, transactions: [tx, ...data.transactions] }, true);
     showFlash();
   };
-  const saveRecurr = (r) => { commit({ ...data, recurrs: [...data.recurrs, r] }, true); setSheet(null); };
+  const saveRecurr = (r) => {
+    const exists = data.recurrs.some((x) => x.id === r.id);
+    commit({ ...data, recurrs: exists ? data.recurrs.map((x) => (x.id === r.id ? r : x)) : [...data.recurrs, r] }, true);
+    setSheet(null);
+    setEditRecurr(null);
+  };
   const delRecurr = (r) => {
     const prev = data;
     commit({ ...data, recurrs: data.recurrs.filter((x) => x.id !== r.id) }, true);
@@ -527,7 +533,8 @@ export default function App({ storage }) {
           {tab === "planned" && (
             <PlannedScreen
               recurrs={data.recurrs} plans={data.plans} budgets={data.budgets} monthByCat={monthly.byCategory} base={base} rates={settings.rates} hide={hide} accName={accName}
-              onAddRecurr={(k) => { setRecurrKind(k); setSheet("recurr"); }}
+              onAddRecurr={(k) => { setRecurrKind(k); setEditRecurr(null); setSheet("recurr"); }}
+              onEditRecurr={(r) => { setRecurrKind(r.kind); setEditRecurr(r); setSheet("recurr"); }}
               onPaid={markPaid} onDelRecurr={delRecurr} onToggleCancel={toggleToCancel} dueTone={dueTone} setBudget={setBudget}
               onPayMilestone={payPlanMilestone} onDelPlan={delPlan}
             />
@@ -587,7 +594,7 @@ export default function App({ storage }) {
         />
         <AccountsSheet open={sheet === "accounts"} onClose={() => setSheet(null)} accounts={sortedAccounts} balances={balances} hide={hide} onMove={moveAccount} onNew={() => { setEditAcc(null); setSheet("account-form"); }} onEdit={(a) => { setEditAcc(a); setSheet("account-form"); }} onArchive={archiveAccount} onAdjust={adjustAccount} />
         <AccountFormSheet open={sheet === "account-form"} onClose={() => setSheet("accounts")} initial={editAcc} onSave={saveAccount} currentBalance={editAcc ? balances[editAcc.id] : 0} />
-        <RecurrSheet open={sheet === "recurr"} onClose={() => setSheet(null)} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} />
+        <RecurrSheet open={sheet === "recurr"} onClose={() => { setSheet(null); setEditRecurr(null); }} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} initial={editRecurr} />
         <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} onPasteImport={pasteSms} onManualImport={importSmsText} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
         <DebtSheet open={sheet === "debt"} onClose={() => { setSheet(null); setDebtDraft(null); }} onSave={saveDebt} initial={debtDraft} />
         <EditTxSheet open={sheet === "edit-tx"} onClose={() => { setSheet(null); setEditTxTarget(null); }} tx={editTxTarget} accounts={activeAccounts} onSave={saveTxEdit} />

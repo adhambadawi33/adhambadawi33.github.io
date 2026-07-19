@@ -58,7 +58,7 @@ export function TxRow({ t, i, hide, accName, onDel, onEdit, compact }) {
   );
 }
 
-export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel, dueTone, accName }) {
+export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel, dueTone, accName, onEdit }) {
   /* Ban/Delete live behind a per-row "…" toggle so the name and due date
      keep their width on narrow phones. */
   const [moreId, setMoreId] = useState(null);
@@ -82,6 +82,14 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
         return (
           <div key={r.id} className="px-4 py-3" style={{ borderTop: i ? `1px solid ${T.paper}` : "none", opacity: done ? 0.55 : 1 }}>
             <div className="flex items-start gap-3">
+              {/* Tap the row body to edit — move it to another card, fix the
+                  amount or date (batch 12). */}
+              <button
+                onClick={() => onEdit?.(r)}
+                disabled={!onEdit}
+                aria-label={onEdit ? `Edit ${r.name}` : undefined}
+                className={`flex items-start gap-3 flex-1 min-w-0 text-left ${onEdit ? "tap" : ""}`}
+              >
               <SubLogo name={r.name} size={36} tintBg={tone.bg} tintColor={tone.c} />
               <div className="min-w-0 flex-1">
                 <div className="ui text-sm truncate flex items-center gap-1.5" style={{ color: T.text }}>
@@ -96,6 +104,7 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
                   <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.faint }}>from {accName(r.accountId)}</div>
                 )}
               </div>
+              </button>
               <div className="shrink-0 flex flex-col items-end gap-1.5">
                 <Money n={r.amount} cur={r.currency} hide={hide} className="text-sm" />
                 <div className="flex items-center gap-1">

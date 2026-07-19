@@ -165,7 +165,7 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
   );
 }
 
-export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget, onPayMilestone, onDelPlan }) {
+export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onEditRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget, onPayMilestone, onDelPlan }) {
   /* "Which subscriptions sit on which card?" (Adham) — one tap filters the
      list AND the bleed summary to a single account. */
   const [subAcc, setSubAcc] = useState("all");
@@ -196,10 +196,10 @@ export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat
           </div>
         )}
         <BleedSummary recurrs={filteredSubs} base={base} rates={rates} hide={hide} />
-        <RecurrList kind="subscription" recurrs={filteredSubs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} onToggleCancel={onToggleCancel} dueTone={dueTone} accName={accName} />
+        <RecurrList kind="subscription" recurrs={filteredSubs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} onToggleCancel={onToggleCancel} dueTone={dueTone} accName={accName} onEdit={onEditRecurr} />
       </Section>
       <Section title="Installments" right={<AddMini onClick={() => onAddRecurr("installment")} />}>
-        <RecurrList kind="installment" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} accName={accName} />
+        <RecurrList kind="installment" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} accName={accName} onEdit={onEditRecurr} />
       </Section>
       <Section title={`Monthly budgets · ${base}`}>
         <CardBox className="px-4 py-2">
