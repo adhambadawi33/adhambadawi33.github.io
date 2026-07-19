@@ -21,6 +21,12 @@ body { margin: 0; background: #E7EAEF; }
 @keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .pulse-mic { animation: pulseMic 1.4s ease-in-out infinite; }
 @keyframes pulseMic { 0%, 100% { box-shadow: 0 0 0 0 rgba(158,110,110,.4); } 50% { box-shadow: 0 0 0 24px rgba(158,110,110,0); } }
+.wavebar { display: inline-block; width: 4px; border-radius: 2px; transform-origin: center; animation: waveIdle 1.3s ease-in-out infinite; }
+@keyframes waveIdle { 0%, 100% { transform: scaleY(0.25); opacity: .55; } 50% { transform: scaleY(0.7); opacity: .8; } }
+.wave-hot .wavebar { animation: waveHot .42s ease-in-out infinite; }
+@keyframes waveHot { 0%, 100% { transform: scaleY(0.3); opacity: .7; } 50% { transform: scaleY(1); opacity: 1; } }
+.fade-in { animation: fadeIn .25s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 input::placeholder, textarea::placeholder { color: #93A0AE; }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

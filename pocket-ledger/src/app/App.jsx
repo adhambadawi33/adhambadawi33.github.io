@@ -263,13 +263,16 @@ export default function App({ storage }) {
     });
   };
 
-  const addTx = (tx, correction) => {
+  const addTx = (tx, correction, opts = {}) => {
     const learn = correction ? learnEntry(correction.note, correction.category) : null;
     const next = { ...data, transactions: [tx, ...data.transactions], settings: withLearned({ ...settings, lastAccount: tx.accountId }, learn) };
     commit(next, true);
     showFlash();
-    setSheet(null);
-    setVoiceText(null);
+    /* Sequential voice capture keeps the sheet open for the next sentence. */
+    if (!opts.keepOpen) {
+      setSheet(null);
+      setVoiceText(null);
+    }
     toastLearned(next, learn);
   };
   const saveTxEdit = (tx) => {
