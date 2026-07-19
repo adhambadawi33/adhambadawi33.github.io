@@ -17,6 +17,7 @@ import { computeNudges, pickNudge } from "../lib/nudges.js";
 import { snapshotRates, convert } from "../lib/finance/currency.js";
 import { fetchLiveRates } from "../lib/finance/fxLive.js";
 import { parseSmsBatch } from "../lib/voice/sms.js";
+import { learnableTokens } from "../lib/voice/parse.js";
 import { todayISO, addCycle, thisMonthKey } from "../lib/dates/localDate.js";
 import { daysUntilFromToday } from "../lib/dates/ui.js";
 import { buildCsv, downloadText, stampedName } from "../lib/export/csv.js";
@@ -242,16 +243,45 @@ export default function App({ storage }) {
   /* ── actions ── */
   const showFlash = () => { setFlash(true); setTimeout(() => setFlash(false), 750); };
 
-  const addTx = (tx) => {
-    commit({ ...data, transactions: [tx, ...data.transactions], settings: { ...settings, lastAccount: tx.accountId } }, true);
+  /* Self-learning (batch 13): when a voice/quick-add guess got corrected,
+     remember the sentence's keywords under the chosen category. Undo on the
+     toast forgets the lesson (the transaction itself stays). */
+  const learnEntry = (note, category) => {
+    const tokens = learnableTokens(note || "");
+    return tokens.length ? { tokens, category } : null;
+  };
+  const withLearned = (base, learn) =>
+    learn
+      ? { ...base, learnedCats: { ...base.learnedCats, ...Object.fromEntries(learn.tokens.map((t) => [t, learn.category])) } }
+      : base;
+  const toastLearned = (next, learn) => {
+    if (!learn) return;
+    scheduleUndo(`Learned: ${learn.tokens.join("، ")} → ${learn.category}`, () => {
+      const cleaned = { ...next.settings.learnedCats };
+      for (const t of learn.tokens) delete cleaned[t];
+      commit({ ...next, settings: { ...next.settings, learnedCats: cleaned } }, true);
+    });
+  };
+
+  const addTx = (tx, correction) => {
+    const learn = correction ? learnEntry(correction.note, correction.category) : null;
+    const next = { ...data, transactions: [tx, ...data.transactions], settings: withLearned({ ...settings, lastAccount: tx.accountId }, learn) };
+    commit(next, true);
     showFlash();
     setSheet(null);
     setVoiceText(null);
+    toastLearned(next, learn);
   };
   const saveTxEdit = (tx) => {
-    commit({ ...data, transactions: data.transactions.map((x) => (x.id === tx.id ? tx : x)) }, true);
+    const old = data.transactions.find((x) => x.id === tx.id);
+    const learn = old && old.category !== tx.category && tx.type !== "transfer" && tx.type !== "adjustment"
+      ? learnEntry(tx.note, tx.category)
+      : null;
+    const next = { ...data, transactions: data.transactions.map((x) => (x.id === tx.id ? tx : x)), settings: withLearned(settings, learn) };
+    commit(next, true);
     setEditTxTarget(null);
     setSheet(null);
+    toastLearned(next, learn);
   };
   const delTx = (tx) => {
     const prev = data;

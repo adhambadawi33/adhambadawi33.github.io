@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { parseVoice, toEnDigits, normAr } from "../lib/voice/parse.js";
+import { parseVoice, toEnDigits, normAr, learnableTokens } from "../lib/voice/parse.js";
+import { todayISO, addDays } from "../lib/dates/localDate.js";
 
 const accounts = [
   { id: "a1", name: "ADCB Current", type: "bank", currency: "AED" },
@@ -156,5 +157,54 @@ describe("Egyptian car & maintenance words (Adham: صيانة عربية landed 
   });
   it("leaves category null for truly unknown text (UI shows Other)", () => {
     expect(parseVoice("حاجات متنوعه ١٥٠ جنيه", accounts, settings).category).toBeNull();
+  });
+});
+
+describe("spoken dates (batch 13)", () => {
+  it('"امبارح" sets yesterday and never eats the amount', () => {
+    const p = parseVoice("دفعت ٢٠٠ بنزين امبارح", accounts, settings);
+    expect(p.date).toBe(addDays(todayISO(), -1));
+    expect(p.amount).toBe(200);
+    expect(p.category).toBe("Transport");
+  });
+  it('"من ٣ ايام" strips before amount detection', () => {
+    const p = parseVoice("من ٣ ايام دفعت ٢٠٠ كارفور", accounts, settings);
+    expect(p.date).toBe(addDays(todayISO(), -3));
+    expect(p.amount).toBe(200);
+  });
+  it('"من يومين" word-number works', () => {
+    expect(parseVoice("غدا ١٥٠ جنيه من يومين", accounts, settings).date).toBe(addDays(todayISO(), -2));
+  });
+  it("weekday resolves to the most recent past occurrence", () => {
+    const p = parseVoice("دفعت ٥٠٠ كارفور يوم الجمعه اللي فات", accounts, settings);
+    const d = new Date(p.date + "T00:00:00");
+    expect(d.getDay()).toBe(5); // Friday
+    expect(p.date < todayISO()).toBe(true);
+  });
+  it("no date words → date stays null (today)", () => {
+    expect(parseVoice("غدا ١٢٠ درهم", accounts, settings).date).toBeNull();
+  });
+});
+
+describe("self-learning categories (batch 13)", () => {
+  it("extracts merchant-ish tokens, skipping verbs/currencies/owners", () => {
+    const t = learnableTokens("دفعت ٥٠٠ جنيه فلاش تكنولوجيز لعبير امبارح");
+    expect(t).toContain("فلاش");
+    expect(t).toContain("تكنولوجيز");
+    expect(t).not.toContain("دفعت");
+    expect(t).not.toContain("جنيه");
+    expect(t).not.toContain("لعبير");
+    expect(t).not.toContain("امبارح");
+  });
+  it("learned keywords beat built-in guesses", () => {
+    const learned = { "كارفور": "Shopping" };
+    const p = parseVoice("كارفور ٣٠٠ جنيه", accounts, { ...settings, learnedCats: learned });
+    expect(p.category).toBe("Shopping"); // builtin says Groceries — user's lesson wins
+  });
+  it("unknown merchant becomes known after learning", () => {
+    const before = parseVoice("فلاش تكنولوجيز ٥٠٠ جنيه", accounts, settings);
+    expect(before.category).toBeNull();
+    const after = parseVoice("فلاش تكنولوجيز ٥٠٠ جنيه", accounts, { ...settings, learnedCats: { "فلاش": "Shopping" } });
+    expect(after.category).toBe("Shopping");
   });
 });

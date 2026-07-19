@@ -55,6 +55,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
   const [debtDraft, setDebtDraft] = useState(null);
   const [listening, setListening] = useState(false);
   const recRef = useRef(null);
+  const parsedCatRef = useRef(null);
 
   /* Apply parser output as PREFILL only — user always reviews then Saves. */
   const applyParse = React.useCallback((text) => {
@@ -66,9 +67,14 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
     setDebtDraft(null);
     setType(p.type);
     if (p.amount != null) setAmount(String(p.amount));
+    if (p.date) setDate(p.date);
     /* Honest fallback: an unrecognized expense lands in "Other", not in
        whatever category happened to be selected (was: Food by default). */
-    if (p.type !== "transfer") setCat(p.category || (p.type === "income" ? "Other income" : "Other"));
+    if (p.type !== "transfer") {
+      const guess = p.category || (p.type === "income" ? "Other income" : "Other");
+      setCat(guess);
+      parsedCatRef.current = guess;
+    }
     if (p.accountId) setAccId(p.accountId);
     if (p.type === "transfer" && p.toAccountId) setToId(p.toAccountId);
     const accCur = p.accountId ? accounts.find((a) => a.id === p.accountId)?.currency : null;
@@ -89,7 +95,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
 
   const init = React.useCallback(() => {
     setAmount(""); setNote(""); setDate(todayISO()); setType("expense"); setCat(EXP_CATS[0].n); setOwner("me"); setMore(false);
-    setQuick(initialText || ""); setParsedHint(""); setDebtDraft(null);
+    setQuick(initialText || ""); setParsedHint(""); setDebtDraft(null); parsedCatRef.current = null;
     const last = accounts.find((a) => a.id === settings.lastAccount) || accounts[0];
     setAccId(last?.id || null);
     setCur(last?.currency || "AED");
@@ -148,7 +154,11 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
         accountId: acc.id, toAccountId: to.id, amount: +amount, currency: cur, category: "Transfer",
       });
     } else {
-      onSave({ id: uid(), type, date, note: note.trim(), snapshot, amount: +amount, currency: cur, accountId: acc.id, category: cat, owner });
+      onSave(
+        { id: uid(), type, date, note: note.trim(), snapshot, amount: +amount, currency: cur, accountId: acc.id, category: cat, owner },
+        /* Quick-add guess corrected by hand? Teach the parser (batch 13). */
+        parsedCatRef.current && cat !== parsedCatRef.current ? { note: quick || note, category: cat } : null
+      );
     }
   };
 
@@ -645,7 +655,7 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
       amount: initial?.amount != null ? String(initial.amount) : "",
       currency: initial?.currency || "AED",
       note: initial?.note || "",
-      date: todayISO(),
+      date: initial?.date || todayISO(),
     });
   }, [initial]);
   useOpenTransition(open, init);

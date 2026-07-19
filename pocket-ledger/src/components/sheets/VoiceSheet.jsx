@@ -5,6 +5,7 @@ import { Sheet, Field, ChipRow } from "../common/primitives.jsx";
 import { CURRENCIES } from "../../lib/finance/currency.js";
 import { parseVoice } from "../../lib/voice/parse.js";
 import { todayISO } from "../../lib/dates/localDate.js";
+import { humanDay } from "../../lib/dates/ui.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const typeTag = (t) => (t === "credit" ? "card" : t === "debit" ? "debit" : t === "cash" ? "cash" : "bank");
@@ -38,12 +39,15 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
       return;
     }
     const acc = accounts.find((a) => a.id === p.accountId) || accounts.find((a) => a.id === settings.lastAccount) || accounts[0];
+    const guessCat = p.category || (p.type === "income" ? "Other income" : "Other");
     setF({
       type: p.type === "income" ? "income" : "expense",
       amount: p.amount,
       currency: p.currency || acc?.currency || settings.base || "EGP",
       /* Unknown expenses go to "Other" — never silently to the first category. */
-      category: p.category || (p.type === "income" ? "Other income" : "Other"),
+      category: guessCat,
+      guessCat,
+      date: p.date || todayISO(),
       accountId: acc?.id || null,
       owner: p.owner || "me",
       note: p.note || text,
@@ -113,11 +117,15 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
 
   const save = () => {
     if (!ok) return;
-    onSave({
-      id: uid(), type: f.type, date: todayISO(), note: (f.note || "").trim(),
-      snapshot: { ...settings.rates }, amount: +f.amount, currency: f.currency,
-      accountId: acc.id, category: f.category, owner: f.owner,
-    });
+    onSave(
+      {
+        id: uid(), type: f.type, date: f.date || todayISO(), note: (f.note || "").trim(),
+        snapshot: { ...settings.rates }, amount: +f.amount, currency: f.currency,
+        accountId: acc.id, category: f.category, owner: f.owner,
+      },
+      /* Corrected guess? Teach the app for next time (undo-able toast). */
+      f.category !== f.guessCat ? { note: f.note, category: f.category } : null
+    );
   };
 
   return (
@@ -189,7 +197,11 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
           {!(+f.amount > 0) && (
             <p className="ui text-[12px] text-center mb-2" style={{ color: T.rose }}>مفيش مبلغ — دوس «قول تاني» أو «اكتبها»</p>
           )}
-          <p className="ui text-[11px] text-center mb-4" style={{ color: T.faint }}>«{heard}»</p>
+          <p className="ui text-[11px] text-center mb-1" style={{ color: T.faint }}>«{heard}»</p>
+          {f.date && f.date !== todayISO() && (
+            <p className="ui text-[12px] text-center mb-3 font-medium" style={{ color: T.goldDeep }}>📅 {humanDay(f.date)}</p>
+          )}
+          {(!f.date || f.date === todayISO()) && <div className="mb-3" />}
 
           <div className="flex justify-center gap-1.5 mb-4">
             {CURRENCIES.map((c) => (

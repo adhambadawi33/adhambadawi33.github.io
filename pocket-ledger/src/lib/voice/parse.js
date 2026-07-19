@@ -4,6 +4,8 @@
    SAFETY RULE: this only PREFILLS the form — the user always reviews and
    taps Save. Nothing is ever committed automatically. */
 
+import { todayISO, addDays } from "../dates/localDate.js";
+
 const AR_DIGITS = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9", "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4", "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9" };
 
 export function toEnDigits(s) {
@@ -63,6 +65,61 @@ export function findOwner(norm) {
   return null;
 }
 const TRANSFER_WORDS = ["حولت", "حول", "تحويل", "نقلت", "transfer", "transferred", "moved", "sent"];
+
+/* Spoken dates (batch 13): "امبارح" / "من ٣ ايام" / "الجمعه اللي فاتت".
+   The matched phrase is STRIPPED from the text before amount detection so
+   "من ٣ ايام دفعت ٢٠٠" reads amount 200, not 3. */
+const WEEKDAY_AR = { "الاحد": 0, "الحد": 0, "الاتنين": 1, "الثلاثاء": 2, "التلات": 2, "الاربعاء": 3, "الاربع": 3, "الخميس": 4, "الجمعه": 5, "السبت": 6 };
+const WEEKDAY_EN = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+const AGO_WORDS = { "يومين": 2, "تلات ايام": 3, "اربع ايام": 4, "خمس ايام": 5, "ست ايام": 6, "اسبوع": 7 };
+
+export function findSpokenDate(norm, now = new Date()) {
+  const mk = (daysAgo, m) => ({
+    iso: addDays(todayISO(now), -daysAgo),
+    rest: (norm.slice(0, m.index) + " " + norm.slice(m.index + m[0].length)).replace(/\s+/g, " ").trim(),
+  });
+  let m = /(?:^|\s)(اول امبارح|اول مبارح)(?=\s|$)/.exec(norm);
+  if (m) return mk(2, m);
+  m = /(?:^|\s)(امبارح|مبارح|yesterday)(?=\s|$)/.exec(norm);
+  if (m) return mk(1, m);
+  m = /(?:^|\s)من\s+(\d+)\s+(?:ايام|يوم)(?=\s|$)/.exec(norm);
+  if (m) return mk(+m[1], m);
+  m = new RegExp(`(?:^|\\s)من\\s+(${Object.keys(AGO_WORDS).join("|")})(?=\\s|$)`).exec(norm);
+  if (m) return mk(AGO_WORDS[m[1]], m);
+  m = /(?:^|\s)(\d+)\s+days?\s+ago(?=\s|$)/.exec(norm);
+  if (m) return mk(+m[1], m);
+  m = new RegExp(`(?:^|\\s)(?:يوم\\s+)?(${Object.keys(WEEKDAY_AR).join("|")})(?:\\s+اللي\\s+فات\\w*)?(?=\\s|$)`).exec(norm);
+  if (m) {
+    const delta = ((now.getDay() - WEEKDAY_AR[m[1]] + 6) % 7) + 1; // most recent PAST occurrence
+    return mk(delta, m);
+  }
+  m = new RegExp(`(?:^|\\s)last\\s+(${Object.keys(WEEKDAY_EN).join("|")})(?=\\s|$)`).exec(norm);
+  if (m) {
+    const delta = ((now.getDay() - WEEKDAY_EN[m[1]] + 6) % 7) + 1;
+    return mk(delta, m);
+  }
+  return null;
+}
+
+/* Self-learning (batch 13): candidate keywords worth remembering from a
+   corrected sentence — everything except verbs, currencies, owners, dates
+   and other grammar glue. */
+const LEARN_STOP = new Set([
+  "دفعت", "اشتريت", "جبت", "حاسبت", "اخدت", "عملت", "صرفت", "قبضت", "استلمت", "حولت", "سلفت", "استلفت",
+  "جنيه", "جنيهات", "درهم", "دراهم", "ريال", "ريالات", "دولار", "دولارات",
+  "علي", "اللي", "ده", "دي", "كده", "كمان", "تاني", "بس", "يوم", "ايام", "امبارح", "مبارح", "النهارده",
+  "لعبير", "عبير", "مراتي", "لمراتي", "الولاد", "للولاد", "الاولاد", "للاولاد", "العيال", "للعيال", "ليا",
+  "كاش", "نقدي", "فيزا", "بطاقه", "كارت", "حساب", "بنك",
+  "الاحد", "الحد", "الاتنين", "الثلاثاء", "التلات", "الاربعاء", "الاربع", "الخميس", "الجمعه", "السبت", "فات", "فاتت",
+  "the", "and", "for", "from", "with", "paid", "bought", "spent", "yesterday", "ago", "days", "last", "aed", "sar", "egp", "usd", "cash", "card", "visa",
+]);
+export function learnableTokens(text) {
+  const norm = normAr(text);
+  return [...new Set(
+    norm.split(/[^a-z0-9؀-ۿ]+/)
+      .filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !LEARN_STOP.has(w))
+  )].slice(0, 3);
+}
 
 /* Debt phrases (batch 6): "سلفت احمد ٥٠٠" → I lent Ahmed 500,
    "استلفت من احمد ٥٠٠" → I borrowed 500 from Ahmed.
@@ -130,7 +187,9 @@ function findAccount(norm, accounts, exclude) {
   return null;
 }
 
-export function guessCategory(norm, type = "expense") {
+export function guessCategory(norm, type = "expense", learned = {}) {
+  /* Personal dictionary first — the user's own corrections beat defaults. */
+  for (const [k, cat] of Object.entries(learned)) if (norm.includes(k)) return cat;
   const table = type === "income" ? INCOME_CAT_KEYWORDS : CAT_KEYWORDS;
   for (const [cat, words] of table)
     for (const w of words) if (norm.includes(w)) return cat;
@@ -145,7 +204,11 @@ export function guessCategory(norm, type = "expense") {
 export function parseVoice(text, accounts = [], settings = {}) {
   const raw = String(text || "").trim();
   if (!raw) return null;
-  const norm = normAr(raw);
+  const norm0 = normAr(raw);
+  /* Pull the spoken date out FIRST — its numbers must never read as amounts. */
+  const spoken = findSpokenDate(norm0);
+  const norm = spoken ? spoken.rest : norm0;
+  const date = spoken ? spoken.iso : null;
 
   let type = "expense";
   if (INCOME_WORDS.some((w) => norm.includes(w))) type = "income";
@@ -159,7 +222,7 @@ export function parseVoice(text, accounts = [], settings = {}) {
     return {
       type: "debt", direction: debt.direction, person: debt.person,
       amount, currency: currency || settings.base || null,
-      accountId: null, toAccountId: null, category: null, note: raw, owner: null,
+      accountId: null, toAccountId: null, category: null, note: raw, owner: null, date,
     };
   }
 
@@ -175,15 +238,15 @@ export function parseVoice(text, accounts = [], settings = {}) {
     if (wantsTransfer && src && dst) {
       return {
         type: "transfer", amount, currency: currency, accountId: src, toAccountId: dst,
-        category: null, note: raw,
+        category: null, note: raw, owner: null, date,
       };
     }
   }
 
   let accountId = findAccount(norm, accounts);
-  const category = guessCategory(norm, type);
+  const category = guessCategory(norm, type, settings.learnedCats || {});
   if (!currency && accountId) currency = accounts.find((a) => a.id === accountId)?.currency || null;
   if (!currency && settings.lastAccount) currency = accounts.find((a) => a.id === settings.lastAccount)?.currency || null;
 
-  return { type, amount, currency, accountId, toAccountId: null, category, note: raw, owner: findOwner(norm) };
+  return { type, amount, currency, accountId, toAccountId: null, category, note: raw, owner: findOwner(norm), date };
 }

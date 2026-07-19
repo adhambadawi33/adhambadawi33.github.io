@@ -39,6 +39,7 @@ export function blankData(now = todayISO()) {
       includeIousInNetWorth: false,
       lastBackupAt: null,
       nudgeSnooze: {},
+      learnedCats: {},
     },
     meta: { createdAt: now, updatedAt: now, quarantine: [] },
   };
@@ -240,6 +241,16 @@ function normalizeSettings(s) {
     nudgeSnooze:
       s.nudgeSnooze && typeof s.nudgeSnooze === "object"
         ? Object.fromEntries(Object.entries(s.nudgeSnooze).filter(([, v]) => isValidISO(v)).slice(0, 50))
+        : {},
+    /* Personal category dictionary learned from his corrections (batch 13). */
+    learnedCats:
+      s.learnedCats && typeof s.learnedCats === "object"
+        ? Object.fromEntries(
+            Object.entries(s.learnedCats)
+              .filter(([k, v]) => typeof k === "string" && k.length >= 2 && k.length <= 40 &&
+                (EXPENSE_CATEGORIES.includes(v) || INCOME_CATEGORIES.includes(v)))
+              .slice(0, 300)
+          )
         : {},
   };
 }
