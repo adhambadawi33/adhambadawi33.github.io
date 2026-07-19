@@ -178,7 +178,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
               onChange={(e) => setQuick(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); applyParse(quick); } }}
               placeholder='🎙️ اكتب أو أملِ… "غدا 120 درهم كاش"'
-              className="ui flex-1 rounded-xl px-3.5 py-3 text-[14px] outline-none"
+              className="ui flex-1 rounded-xl px-3.5 py-3 text-[15px] outline-none"
               style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.text }}
               aria-label="Quick add by voice or text"
             />
@@ -204,7 +204,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
             </p>
           )}
           {!parsedHint && !debtDraft && (
-            <p className="ui text-[10.5px] mt-1.5" style={{ color: T.faint }}>
+            <p className="ui text-[11px] mt-1.5" style={{ color: T.faint }}>
               💡 اختصار: دوس مطوّلًا على زرار <b>+</b> الدهبي وقول جملتك على طول
             </p>
           )}
@@ -239,7 +239,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
         </div>
 
         <div className="text-center mb-2" aria-live="polite">
-          <span className="mono text-[40px] leading-none" style={{ color: +amount > 0 ? T.text : T.faint }}>{amount || "0"}</span>
+          <span className="mono text-[44px] leading-none" style={{ color: +amount > 0 ? T.text : T.faint }}>{amount || "0"}</span>
           <span className="ui text-base ml-2" style={{ color: T.faint }}>{cur}</span>
         </div>
         <div className="flex justify-center gap-1.5 mb-3">
@@ -514,25 +514,25 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
             <div className="flex items-center gap-3 mb-3">
               <CardChip account={a} width={44} />
               <div className="min-w-0 flex-1">
-                <div className="ui text-[14px] font-semibold truncate" style={{ color: T.text }}>{a.name}</div>
-                <div className="mono text-[10.5px]" style={{ color: T.faint }}>
+                <div className="ui text-[15px] font-semibold truncate" style={{ color: T.text }}>{a.name}</div>
+                <div className="mono text-[11px]" style={{ color: T.faint }}>
                   {a.cardDigits?.length ? `•••• ${a.cardDigits[0]}` : ""}{a.cardDigits?.length && (bank || a.bank) ? " · " : ""}{a.bank || bank?.label || ""}
                 </div>
               </div>
               {a.dueDay > 0 && (
-                <span className="ui text-[10.5px] font-semibold rounded-full px-2.5 py-1 shrink-0" style={{ background: owed > 0 ? T.amberBg : T.greenBg, color: owed > 0 ? T.amber : T.green }}>
+                <span className="ui text-[11px] font-semibold rounded-full px-2.5 py-1 shrink-0" style={{ background: owed > 0 ? T.amberBg : T.greenBg, color: owed > 0 ? T.amber : T.green }}>
                   {owed > 0 ? `Pay by ${humanDay(nextDueISO(a.dueDay))}` : "Nothing owed ✓"}
                 </span>
               )}
             </div>
             <div className="flex gap-2.5 mb-3">
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
-                <div className="ui text-[9.5px] mb-0.5" style={{ color: T.faint }}>Limit left</div>
-                <div className="mono text-[16px]" style={{ color: T.sub }}>{avail != null ? fmtMoney(avail, a.currency, hide) : "—"}</div>
+                <div className="ui text-[10px] mb-0.5" style={{ color: T.faint }}>Limit left</div>
+                <div className="mono text-[17px]" style={{ color: T.sub }}>{avail != null ? fmtMoney(avail, a.currency, hide) : "—"}</div>
               </div>
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
-                <div className="ui text-[9.5px] mb-0.5" style={{ color: T.faint }}>Owed</div>
-                <div className="mono text-[16px]" style={{ color: owed > 0 ? T.rose : T.green }}>{hide ? "•••••" : owed > 0 ? `−${fmtMoney(owed, a.currency, false)}` : "0"}</div>
+                <div className="ui text-[10px] mb-0.5" style={{ color: T.faint }}>Owed</div>
+                <div className="mono text-[17px]" style={{ color: owed > 0 ? T.rose : T.green }}>{hide ? "•••••" : owed > 0 ? `−${fmtMoney(owed, a.currency, false)}` : "0"}</div>
               </div>
             </div>
             {a.creditLimit > 0 && (
@@ -540,7 +540,7 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
                 <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: T.line }}>
                   <div className="h-full rounded-full" style={{ width: `${usedPct}%`, background: a.color, transition: "width .4s ease" }} />
                 </div>
-                <div className="flex justify-between ui text-[10.5px]" style={{ color: T.sub }}>
+                <div className="flex justify-between ui text-[11px]" style={{ color: T.sub }}>
                   <span>used <b className="mono">{fmtMoney(owed, a.currency, hide)}</b> of <b className="mono">{fmtMoney(a.creditLimit, a.currency, hide)}</b></span>
                   {a.minPayment > 0 && owed > 0 && <span>min payment <b className="mono">{fmtMoney(a.minPayment, a.currency, hide)}</b></span>}
                 </div>

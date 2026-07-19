@@ -60,21 +60,21 @@ function CancelWatchlist({ flagged, base, rates, hide, onDone, onKeep }) {
         {flagged.map((r, i) => (
           <div key={r.id} className="py-3" style={{ borderTop: i ? "1px solid rgba(178,114,79,.15)" : "none" }}>
             <div className="flex items-center gap-3">
-              <SubLogo name={r.name} size={32} />
+              <SubLogo name={r.name} size={36} />
               <div className="min-w-0 flex-1">
                 <div className="ui text-sm truncate flex items-center gap-1.5" style={{ color: T.text }}>
                   <span className="truncate">{r.name}</span>
                   <OwnerPill id={r.owner} />
                 </div>
-                <div className="ui text-[10.5px]" style={{ color: T.rose }}>cancel at the service first</div>
+                <div className="ui text-[11px]" style={{ color: T.rose }}>cancel at the service first</div>
               </div>
               <Money n={r.amount} cur={r.currency} hide={hide} className="text-[13px]" />
             </div>
             <div className="flex items-center gap-2 mt-2" style={{ paddingInlineStart: 44 }}>
-              <button onClick={() => onDone(r)} className="tap ui text-[11.5px] font-semibold rounded-lg px-3 py-2 flex items-center gap-1" style={{ background: T.green, color: "#fff" }}>
+              <button onClick={() => onDone(r)} className="tap ui text-[12px] font-semibold rounded-lg px-3 py-2 flex items-center gap-1" style={{ background: T.green, color: "#fff" }}>
                 <Check size={12} aria-hidden="true" /> Cancelled — remove it
               </button>
-              <button onClick={() => onKeep(r)} className="tap ui text-[11.5px] rounded-lg px-3 py-2" style={{ color: T.sub, border: `1px solid ${T.line}`, background: "#fff" }} aria-label={`Keep ${r.name}`}>
+              <button onClick={() => onKeep(r)} className="tap ui text-[12px] rounded-lg px-3 py-2" style={{ color: T.sub, border: `1px solid ${T.line}`, background: "#fff" }} aria-label={`Keep ${r.name}`}>
                 Keep it
               </button>
             </div>

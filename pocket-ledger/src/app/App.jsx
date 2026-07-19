@@ -13,6 +13,7 @@ import { blankData, normalizeData } from "../lib/validation/schema.js";
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
 import { debtTotals } from "../lib/finance/netWorth.js";
 import { planStats } from "../lib/finance/plans.js";
+import { computeNudges, pickNudge } from "../lib/nudges.js";
 import { snapshotRates, convert } from "../lib/finance/currency.js";
 import { fetchLiveRates } from "../lib/finance/fxLive.js";
 import { parseSmsBatch } from "../lib/voice/sms.js";
@@ -215,6 +216,17 @@ export default function App({ storage }) {
 
   const accName = useCallback((id) => data?.accounts.find((a) => a.id === id)?.name || "—", [data]);
 
+  /* One calm nudge at most (batch 10); dismissing snoozes it for 3 days. */
+  const nudge = useMemo(() => {
+    if (!data) return null;
+    return pickNudge(
+      computeNudges({ accounts: data.accounts, recurrs: data.recurrs, plans: data.plans, balances, settings }),
+      settings.nudgeSnooze
+    );
+  }, [data, balances, settings]);
+  const dismissNudge = (key) =>
+    commit({ ...data, settings: { ...settings, nudgeSnooze: { ...settings.nudgeSnooze, [key]: todayISO() } } }, true);
+
   /* ── undo-based deletion (handoff §4.8) ── */
   const scheduleUndo = (label, restore) => {
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -409,7 +421,10 @@ export default function App({ storage }) {
   };
 
   const exportCsv = () => downloadText(buildCsv(data, accName), stampedName("pocket-ledger", "csv"));
-  const exportBackup = () => downloadText(buildBackup(data), stampedName("pocket-ledger-backup", "json"), "application/json");
+  const exportBackup = () => {
+    downloadText(buildBackup(data), stampedName("pocket-ledger-backup", "json"), "application/json");
+    commit({ ...data, settings: { ...settings, lastBackupAt: todayISO() } }, true);
+  };
   const importBackup = async (file) => {
     const text = await file.text();
     const res = parseBackup(text);
@@ -493,6 +508,7 @@ export default function App({ storage }) {
         <main className="flex-1 px-4 pt-5" style={{ paddingBottom: "calc(110px + env(safe-area-inset-bottom))" }}>
           {tab === "home" && (
             <HomeScreen
+              nudge={nudge} onDismissNudge={dismissNudge}
               accounts={activeAccounts} balances={balances} upcoming={upcoming} topCats={topCats}
               monthExpense={monthly.expense} recent={recent} hide={hide} accName={accName} base={base} dueTone={dueTone}
               rates={settings.rates}

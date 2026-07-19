@@ -157,7 +157,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
         <div className="pt-2">
           <div className="rounded-2xl px-4 py-4 flex items-center gap-3" style={{ background: T.paper, border: `1px solid ${T.gold}` }}>
             <HandCoins size={22} style={{ color: T.goldDeep }} aria-hidden="true" />
-            <div className="ui text-[14px] flex-1 min-w-0" style={{ color: T.text }}>
+            <div className="ui text-[15px] flex-1 min-w-0" style={{ color: T.text }}>
               ده دين — {debt.direction === "lent" ? "انت سلّفت" : "انت استلفت"}
               {debt.person ? ` ${debt.person}` : ""}{debt.amount != null ? ` · ${debt.amount} ${debt.currency || ""}`.trimEnd() : ""}
             </div>
@@ -236,7 +236,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
             </p>
           )}
 
-          <button onClick={save} disabled={!ok} className="tap ui w-full rounded-2xl py-4 text-[16px] font-semibold mt-2" style={{ background: ok ? T.gold : T.line, color: ok ? T.ink : T.faint }}>
+          <button onClick={save} disabled={!ok} className="tap ui w-full rounded-2xl py-4 text-[17px] font-semibold mt-2" style={{ background: ok ? T.gold : T.line, color: ok ? T.ink : T.faint }}>
             تمام، سجّلها ✓
           </button>
           <div className="flex gap-2 mt-3">

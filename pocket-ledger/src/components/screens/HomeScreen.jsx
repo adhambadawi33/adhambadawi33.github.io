@@ -1,5 +1,5 @@
 import React from "react";
-import { Landmark, CalendarClock, Repeat, Layers, ChevronRight } from "lucide-react";
+import { Landmark, CalendarClock, Repeat, Layers, ChevronRight, Lightbulb, X } from "lucide-react";
 import { T, ACCOUNT_TYPE_DEFS, catDef, fmtMoney } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
 import { Section, CardBox, EmptyHint, Money, Bar } from "../common/primitives.jsx";
@@ -29,13 +29,31 @@ function AccountBadge({ a, Ico, isCredit }) {
   );
 }
 
+/* One gentle nudge, tops (batch 10) — calm colors, plain words, easy to
+   dismiss. Never a stack of warnings. */
+function NudgeCard({ nudge, onDismiss }) {
+  if (!nudge) return null;
+  const amber = nudge.tone === "amber";
+  return (
+    <div className="rounded-2xl px-4 py-3 mb-4 flex items-start gap-3" style={{ background: amber ? T.amberBg : T.surface, border: `1px solid ${amber ? T.amber : T.line}` }}>
+      <Lightbulb size={16} className="shrink-0 mt-0.5" style={{ color: amber ? T.amber : T.goldDeep }} aria-hidden="true" />
+      <p className="ui text-[12px] leading-relaxed flex-1" style={{ color: T.text }}>{nudge.text}</p>
+      <button onClick={() => onDismiss(nudge.key)} className="tap p-1 -m-1 shrink-0 opacity-50" style={{ color: T.sub }} aria-label="Dismiss hint">
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
+
 export default function HomeScreen({
+  nudge, onDismissNudge,
   accounts, balances, upcoming, topCats, monthExpense, recent,
   hide, accName, base, dueTone, rates, groupLabels,
   onManageAccounts, onOpenPlanned, onOpenActivity, onOpenCards, onDelTx, onPaid, onAccountTap,
 }) {
   return (
     <>
+      <NudgeCard nudge={nudge} onDismiss={onDismissNudge} />
       {accounts.length === 0 && (
         <EmptyHint
           icon={<Landmark size={26} />}
@@ -60,7 +78,7 @@ export default function HomeScreen({
               <div key={g.key} className="mb-3">
                 <div className="flex items-baseline justify-between mb-1.5 px-0.5">
                   <span className="ui text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1.5" style={{ color: T.sub }}>
-                    <span className="inline-block h-1.5 w-1.5 rounded-sm" style={{ background: g.dot }} aria-hidden="true" />
+                    <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: g.dot }} aria-hidden="true" />
                     {groupLabels?.[g.key] || g.key}
                   </span>
                   {g.key === "cards" ? (
@@ -86,7 +104,7 @@ export default function HomeScreen({
                       >
                         <div className="flex items-center gap-2 mb-3">
                           <AccountBadge a={a} Ico={Ico} isCredit={isCredit} />
-                          <span className="ui text-[9px] uppercase tracking-wider" style={{ color: T.faint }}>{a.type}</span>
+                          <span className="ui text-[10px] uppercase tracking-wider" style={{ color: T.faint }}>{a.type}</span>
                         </div>
                         <div className="ui text-[12px] truncate" style={{ color: T.sub }}>{a.name}</div>
                         <div className="mono text-[15px] mt-0.5" style={{ color: isCredit && bal < 0 ? T.rose : T.text }}>{fmtSigned(bal, a.currency)}</div>

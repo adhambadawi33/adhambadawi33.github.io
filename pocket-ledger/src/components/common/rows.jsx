@@ -8,7 +8,7 @@ import { daysUntilFromToday, humanDay, monthYear } from "../../lib/dates/ui.js";
 import { addMonthsClamped } from "../../lib/dates/localDate.js";
 
 /* Owner tag — shown only for Abeer/kids to keep "mine" rows quiet (ADHD). */
-export function OwnerPill({ id, size = "text-[9.5px]" }) {
+export function OwnerPill({ id, size = "text-[10px]" }) {
   if (!id || id === "me") return null;
   const o = ownerDef(id);
   return <span className={`ui ${size} font-semibold rounded-lg px-1.5 py-0.5 shrink-0`} style={{ background: o.bg, color: o.c }}>{o.label}</span>;
@@ -82,7 +82,7 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
         return (
           <div key={r.id} className="px-4 py-3" style={{ borderTop: i ? `1px solid ${T.paper}` : "none", opacity: done ? 0.55 : 1 }}>
             <div className="flex items-start gap-3">
-              <SubLogo name={r.name} size={34} tintBg={tone.bg} tintColor={tone.c} />
+              <SubLogo name={r.name} size={36} tintBg={tone.bg} tintColor={tone.c} />
               <div className="min-w-0 flex-1">
                 <div className="ui text-sm truncate flex items-center gap-1.5" style={{ color: T.text }}>
                   <span className="truncate">{r.name}</span>
@@ -117,11 +117,11 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
             {moreId === r.id && (
               <div className="flex items-center justify-end gap-2 mt-1.5" style={{ paddingInlineStart: 46 }}>
                 {kind === "subscription" && onToggleCancel && !done && (
-                  <button onClick={() => { onToggleCancel(r); setMoreId(null); }} className="tap ui text-[11.5px] rounded-lg px-3 py-2 flex items-center gap-1.5" style={{ background: T.roseBg, color: T.rose }}>
+                  <button onClick={() => { onToggleCancel(r); setMoreId(null); }} className="tap ui text-[12px] rounded-lg px-3 py-2 flex items-center gap-1.5" style={{ background: T.roseBg, color: T.rose }}>
                     <Ban size={12} aria-hidden="true" /> Needs cancelling
                   </button>
                 )}
-                <button onClick={() => { onDel(r); setMoreId(null); }} className="tap ui text-[11.5px] rounded-lg px-3 py-2 flex items-center gap-1.5" style={{ background: T.roseBg, color: T.rose }} aria-label={`Delete ${r.name}`}>
+                <button onClick={() => { onDel(r); setMoreId(null); }} className="tap ui text-[12px] rounded-lg px-3 py-2 flex items-center gap-1.5" style={{ background: T.roseBg, color: T.rose }} aria-label={`Delete ${r.name}`}>
                   <Trash2 size={12} aria-hidden="true" /> Delete
                 </button>
               </div>

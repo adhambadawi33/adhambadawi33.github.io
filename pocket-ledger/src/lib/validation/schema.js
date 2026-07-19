@@ -37,6 +37,8 @@ export function blankData(now = todayISO()) {
       language: "en",
       theme: "light",
       includeIousInNetWorth: false,
+      lastBackupAt: null,
+      nudgeSnooze: {},
     },
     meta: { createdAt: now, updatedAt: now, quarantine: [] },
   };
@@ -231,6 +233,12 @@ function normalizeSettings(s) {
     language: s.language === "ar" ? "ar" : "en",
     theme: "light",
     includeIousInNetWorth: bool(s.includeIousInNetWorth),
+    lastBackupAt: isValidISO(s.lastBackupAt) ? s.lastBackupAt : null,
+    /* Gentle-nudge snoozes: key -> date dismissed (batch 10). */
+    nudgeSnooze:
+      s.nudgeSnooze && typeof s.nudgeSnooze === "object"
+        ? Object.fromEntries(Object.entries(s.nudgeSnooze).filter(([, v]) => isValidISO(v)).slice(0, 50))
+        : {},
   };
 }
 
