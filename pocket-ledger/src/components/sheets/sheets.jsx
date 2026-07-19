@@ -654,16 +654,19 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
 export function EditTxSheet({ open, onClose, tx, accounts, onSave }) {
   const [note, setNote] = useState("");
   const [accId, setAccId] = useState(null);
+  const [cat, setCat] = useState(null);
   const init = React.useCallback(() => {
     setNote(tx?.note || "");
     setAccId(tx?.accountId || null);
+    setCat(tx?.category || null);
   }, [tx]);
   useOpenTransition(open, init);
   if (!open || !tx) return null;
   const isTr = tx.type === "transfer";
   const movable = !isTr && tx.type !== "adjustment";
+  const cats = tx.type === "income" ? INC_CATS : EXP_CATS.filter((c) => c.n !== "Adjustment");
   const save = () => {
-    onSave({ ...tx, note: note.trim(), ...(movable && accId ? { accountId: accId } : {}) });
+    onSave({ ...tx, note: note.trim(), ...(movable && accId ? { accountId: accId } : {}), ...(movable && cat ? { category: cat } : {}) });
   };
   return (
     <Sheet open onClose={onClose} title="Edit transaction">
@@ -677,6 +680,22 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave }) {
       <Field label="Note">
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Carrefour weekly groceries" className={inputCls} style={inputStyle} />
       </Field>
+      {movable && (
+        <Field label="Category">
+          <div className="overflow-x-auto no-scroll -mx-5 px-5">
+            <div className="flex gap-2 w-max">
+              {cats.map((c) => {
+                const on = cat === c.n;
+                return (
+                  <button key={c.n} onClick={() => setCat(c.n)} aria-pressed={on} className="tap ui rounded-xl px-3.5 py-2.5 text-sm flex items-center gap-1.5 whitespace-nowrap" style={on ? { background: `${c.c}1A`, border: `1.5px solid ${c.c}`, color: T.text } : { background: T.paper, color: T.sub, border: `1px solid ${T.line}` }}>
+                    <c.I size={14} style={{ color: c.c }} aria-hidden="true" />{c.n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Field>
+      )}
       {movable && (
         <Field label="Paid from · move it if it's on the wrong account">
           <ChipRow
