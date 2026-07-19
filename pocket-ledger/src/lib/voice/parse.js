@@ -78,22 +78,22 @@ export function findSpokenDate(norm, now = new Date()) {
     iso: addDays(todayISO(now), -daysAgo),
     rest: (norm.slice(0, m.index) + " " + norm.slice(m.index + m[0].length)).replace(/\s+/g, " ").trim(),
   });
-  let m = /(?:^|\s)(اول امبارح|اول مبارح)(?=\s|$)/.exec(norm);
+  let m = /(?:^|\s)(اول امبارح|اول مبارح)(?=[\s.,،؛؟!]|$)/.exec(norm);
   if (m) return mk(2, m);
-  m = /(?:^|\s)(امبارح|مبارح|yesterday)(?=\s|$)/.exec(norm);
+  m = /(?:^|\s)(امبارح|مبارح|yesterday)(?=[\s.,،؛؟!]|$)/.exec(norm);
   if (m) return mk(1, m);
-  m = /(?:^|\s)من\s+(\d+)\s+(?:ايام|يوم)(?=\s|$)/.exec(norm);
+  m = /(?:^|\s)من\s+(\d+)\s+(?:ايام|يوم)(?=[\s.,،؛؟!]|$)/.exec(norm);
   if (m) return mk(+m[1], m);
-  m = new RegExp(`(?:^|\\s)من\\s+(${Object.keys(AGO_WORDS).join("|")})(?=\\s|$)`).exec(norm);
+  m = new RegExp(`(?:^|\\s)من\\s+(${Object.keys(AGO_WORDS).join("|")})(?=[\\s.,،؛؟!]|$)`).exec(norm);
   if (m) return mk(AGO_WORDS[m[1]], m);
-  m = /(?:^|\s)(\d+)\s+days?\s+ago(?=\s|$)/.exec(norm);
+  m = /(?:^|\s)(\d+)\s+days?\s+ago(?=[\s.,،؛؟!]|$)/.exec(norm);
   if (m) return mk(+m[1], m);
-  m = new RegExp(`(?:^|\\s)(?:يوم\\s+)?(${Object.keys(WEEKDAY_AR).join("|")})(?:\\s+اللي\\s+فات\\w*)?(?=\\s|$)`).exec(norm);
+  m = new RegExp(`(?:^|\\s)(?:يوم\\s+)?(${Object.keys(WEEKDAY_AR).join("|")})(?:\\s+اللي\\s+فات\\w*)?(?=[\\s.,،؛؟!]|$)`).exec(norm);
   if (m) {
     const delta = ((now.getDay() - WEEKDAY_AR[m[1]] + 6) % 7) + 1; // most recent PAST occurrence
     return mk(delta, m);
   }
-  m = new RegExp(`(?:^|\\s)last\\s+(${Object.keys(WEEKDAY_EN).join("|")})(?=\\s|$)`).exec(norm);
+  m = new RegExp(`(?:^|\\s)last\\s+(${Object.keys(WEEKDAY_EN).join("|")})(?=[\\s.,،؛؟!]|$)`).exec(norm);
   if (m) {
     const delta = ((now.getDay() - WEEKDAY_EN[m[1]] + 6) % 7) + 1;
     return mk(delta, m);

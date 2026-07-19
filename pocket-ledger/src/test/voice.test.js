@@ -208,3 +208,14 @@ describe("self-learning categories (batch 13)", () => {
     expect(after.category).toBe("Shopping");
   });
 });
+
+describe("dictation punctuation (Adham: date word swallowed by a trailing period)", () => {
+  it('"...امبارح." with iOS-added period still sets yesterday', () => {
+    const p = parseVoice("دفعت ٢٠٠ بنزين امبارح.", accounts, settings);
+    expect(p.date).toBe(addDays(todayISO(), -1));
+    expect(p.amount).toBe(200);
+  });
+  it('"من ٣ ايام،" with Arabic comma works too', () => {
+    expect(parseVoice("دفعت ١٠٠ كارفور من ٣ ايام،", accounts, settings).date).toBe(addDays(todayISO(), -3));
+  });
+});

@@ -304,7 +304,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
           {/* Rarely-changed details fold into one line: currency · account · date */}
           <button onClick={() => setMore(!more)} className="tap w-full rounded-xl px-3.5 py-3 mb-3 flex items-center justify-between gap-2" style={{ background: T.paper, border: `1px solid ${T.line}` }} aria-expanded={more}>
             <span className="ui text-[12px] truncate" style={{ color: T.sub }}>
-              {f.currency}{f.det.currency ? " ✓" : ""} · {acc ? acc.name : "اختار حساب"}{acc ? (f.det.account ? " ✓" : " (افتراضي)") : ""}
+              {f.currency}{f.det.currency ? " ✓" : ""} · {acc ? acc.name : "اختار حساب"}{acc ? (f.det.account ? " ✓" : " (افتراضي)") : ""} · {f.date === today ? "النهارده" : humanDay(f.date)}{f.det.date ? " ✓" : ""}
             </span>
             <ChevronDown size={14} className="shrink-0" style={{ color: T.faint, transform: more ? "rotate(180deg)" : "none", transition: "transform .15s" }} aria-hidden="true" />
           </button>
@@ -324,6 +324,15 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
                   value={f.accountId}
                   onChange={(v) => { const na = accounts.find((a) => a.id === v); setF({ ...f, accountId: v, currency: na ? na.currency : f.currency, det: { ...f.det, account: true } }); }}
                   options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${typeTag(a.type)}` }))}
+                />
+              </Field>
+              <Field label="التاريخ">
+                <input
+                  type="date"
+                  value={f.date || today}
+                  onChange={(e) => setF({ ...f, date: e.target.value, det: { ...f.det, date: true } })}
+                  className="ui w-full rounded-xl px-3.5 py-3 text-[15px] outline-none"
+                  style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.text }}
                 />
               </Field>
             </div>
