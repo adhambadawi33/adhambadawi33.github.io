@@ -697,15 +697,31 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave }) {
   };
   return (
     <Sheet open onClose={onClose} title="Edit transaction">
-      {/* Live header: reflects the category being picked below, icon included. */}
+      {/* The header category is DIRECTLY editable — tap it, pick, done.
+          (The chip row below stays in sync as a visual alternative.) */}
       <div className="rounded-xl px-3.5 py-3 mb-4 flex items-center justify-between" style={{ background: T.paper }}>
-        <div className="ui text-[13px] flex items-center gap-2" style={{ color: T.text }}>
-          {!isTr && tx.type !== "adjustment" && (() => {
-            const def = cats.find((c) => c.n === (cat || tx.category));
-            return def ? <def.I size={15} style={{ color: def.c }} aria-hidden="true" /> : null;
-          })()}
-          {isTr ? "Transfer" : tx.type === "adjustment" ? "Balance adjustment" : (cat || tx.category)}
-          <span className="ui text-[11px]" style={{ color: T.faint }}>{tx.date}</span>
+        <div className="ui text-[13px] flex items-center gap-1.5 min-w-0" style={{ color: T.text }}>
+          {movable ? (
+            <>
+              {(() => {
+                const def = cats.find((c) => c.n === (cat || tx.category));
+                return def ? <def.I size={15} className="shrink-0" style={{ color: def.c }} aria-hidden="true" /> : null;
+              })()}
+              <select
+                value={cat || tx.category}
+                onChange={(e) => setCat(e.target.value)}
+                className="ui text-[13px] font-semibold bg-transparent outline-none"
+                style={{ color: T.text, WebkitAppearance: "none", appearance: "none", border: "none", padding: 0 }}
+                aria-label="Category — tap to change"
+              >
+                {cats.map((c) => <option key={c.n} value={c.n}>{c.n}</option>)}
+              </select>
+              <ChevronDown size={13} className="shrink-0" style={{ color: T.goldDeep }} aria-hidden="true" />
+            </>
+          ) : (
+            <span>{isTr ? "Transfer" : "Balance adjustment"}</span>
+          )}
+          <span className="ui text-[11px] shrink-0" style={{ color: T.faint }}>{tx.date}</span>
         </div>
         <Money n={isTr ? tx.sourceAmount : tx.amount} cur={isTr ? tx.sourceCurrency : tx.currency} hide={false} className="text-[15px]" />
       </div>
