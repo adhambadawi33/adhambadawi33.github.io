@@ -88,7 +88,20 @@ export function computeNudges({ accounts, recurrs, plans = [], balances, setting
     });
   }
 
-  /* 4 — backup getting stale (only once there's real data to lose) */
+  /* 4 — monthly reconciliation: pull statements, match the balances.
+     "Done" = any account Adjust or a backup import (both stamp the date). */
+  const recAge = settings.lastReconcileAt ? diffDays(settings.lastReconcileAt, todayISO()) : null;
+  if (active.length >= 2 && (recAge === null || recAge > 30)) {
+    nudges.push({
+      key: "reconcile",
+      tone: "info",
+      text: recAge === null
+        ? "Monthly check-up: pull your bank statements and match each balance — use Adjust on the account, or hand the statements to Claude."
+        : `${recAge} days since the last balance check — pull fresh bank statements and match them (Adjust, or hand them to Claude).`,
+    });
+  }
+
+  /* 5 — backup getting stale (only once there's real data to lose) */
   const hasData = accounts.length + recurrs.length >= 5;
   const backupAge = settings.lastBackupAt ? diffDays(settings.lastBackupAt, todayISO()) : null;
   if (hasData && (backupAge === null || backupAge > 14)) {

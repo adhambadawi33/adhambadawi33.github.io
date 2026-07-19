@@ -50,3 +50,20 @@ describe("gentle nudges (batch 10)", () => {
     expect(pickNudge(nudges, { a: addDays(today, -5) }).key).toBe("a");
   });
 });
+
+describe("monthly reconcile nudge", () => {
+  const accounts = [
+    { id: "a1", name: "CIB", type: "bank", currency: "EGP", archived: false },
+    { id: "a2", name: "Cash", type: "cash", currency: "EGP", archived: false },
+  ];
+  it("shows when never reconciled or older than 30 days", () => {
+    const never = computeNudges({ accounts, recurrs: [], plans: [], balances: {}, settings: { ...settings, lastReconcileAt: null } });
+    expect(never.some((x) => x.key === "reconcile")).toBe(true);
+    const old = computeNudges({ accounts, recurrs: [], plans: [], balances: {}, settings: { ...settings, lastReconcileAt: addDays(today, -45) } });
+    expect(old.some((x) => x.key === "reconcile")).toBe(true);
+  });
+  it("stays quiet after a recent reconciliation", () => {
+    const fresh = computeNudges({ accounts, recurrs: [], plans: [], balances: {}, settings: { ...settings, lastReconcileAt: addDays(today, -5) } });
+    expect(fresh.some((x) => x.key === "reconcile")).toBe(false);
+  });
+});

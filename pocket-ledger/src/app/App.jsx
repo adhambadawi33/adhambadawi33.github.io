@@ -315,7 +315,8 @@ export default function App({ storage }) {
       accountId: acc.id, category: "Adjustment", note: "Reconciled to actual balance",
       snapshot: snapshotRates(settings.rates),
     };
-    commit({ ...data, transactions: [tx, ...data.transactions] }, true);
+    /* Reconciling stamps the monthly check-up clock (reconcile nudge). */
+    commit({ ...data, transactions: [tx, ...data.transactions], settings: { ...settings, lastReconcileAt: todayISO() } }, true);
     showFlash();
   };
   const saveRecurr = (r) => {
@@ -475,7 +476,8 @@ export default function App({ storage }) {
     else if (window.confirm("REPLACE everything with this file instead?\n\nOK = wipe current data and use the file.\nCancel = do nothing.")) next = res.data;
     if (!next) return;
     await storage.set(`${STORAGE_KEY}:pre-import`, JSON.stringify(data));
-    commit(next, true);
+    /* An import is a reconciliation too — numbers just came from statements. */
+    commit({ ...next, settings: { ...next.settings, lastReconcileAt: todayISO() } }, true);
     setSheet(null);
   };
   const resetAll = () => { commit(blankData(), true); setResetOpen(false); setSheet(null); };

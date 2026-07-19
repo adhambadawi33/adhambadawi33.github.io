@@ -38,6 +38,7 @@ export function blankData(now = todayISO()) {
       theme: "light",
       includeIousInNetWorth: false,
       lastBackupAt: null,
+      lastReconcileAt: null,
       nudgeSnooze: {},
       learnedCats: {},
     },
@@ -237,6 +238,7 @@ function normalizeSettings(s) {
     theme: "light",
     includeIousInNetWorth: bool(s.includeIousInNetWorth),
     lastBackupAt: isValidISO(s.lastBackupAt) ? s.lastBackupAt : null,
+    lastReconcileAt: isValidISO(s.lastReconcileAt) ? s.lastReconcileAt : null,
     /* Gentle-nudge snoozes: key -> date dismissed (batch 10). */
     nudgeSnooze:
       s.nudgeSnooze && typeof s.nudgeSnooze === "object"
