@@ -29,7 +29,12 @@ export const ACCOUNT_TYPE_DEFS = [
   { id: "debit", label: "Debit card", icon: CreditCard },
   { id: "credit", label: "Credit card", icon: CreditCard },
 ];
-export const ACCOUNT_COLORS = ["#4C6350", "#5E7189", "#B08D57", "#9E6E6E", "#5E7D67", "#8A6A3B", "#6E4555", "#54606C"];
+/* Second row = bank-brand hues (Adham's real banks) so renamed accounts
+   can pick their brand color right from the form. */
+export const ACCOUNT_COLORS = [
+  "#4C6350", "#5E7189", "#B08D57", "#9E6E6E", "#5E7D67", "#8A6A3B", "#6E4555", "#54606C",
+  "#1D4E89", "#2469A8", "#17557F", "#4A6FA5", "#0B6B3A", "#2B3F8C",
+];
 
 export const EXP_CATS = [
   { n: "Food & Dining", I: Utensils, c: "#B4744B" },
