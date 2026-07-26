@@ -776,13 +776,15 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave }) {
 }
 
 /* ── SMS approval inbox (nothing posts without explicit approval) ── */
-export function InboxSheet({ open, onClose, pending, accounts, onPasteImport, onManualImport, onApprove, onDismiss, onApproveAll }) {
+export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onPasteImport, onManualImport, onApprove, onDismiss, onApproveAll }) {
+  /* SMS↔subscription links the user chose to break (per item, batch 15). */
+  const [unlinked, setUnlinked] = useState({});
   const [sel, setSel] = useState({});
   /* iOS PWAs often refuse programmatic clipboard reads — fall back to a
      plain text box, where the native long-press Paste always works. */
   const [manual, setManual] = useState(false);
   const [manualTxt, setManualTxt] = useState("");
-  const init = React.useCallback(() => { setSel({}); setManual(false); setManualTxt(""); }, []);
+  const init = React.useCallback(() => { setSel({}); setManual(false); setManualTxt(""); setUnlinked({}); }, []);
   useOpenTransition(open, init);
   if (!open) return null;
   const accFor = (p) => sel[p.id] ?? p.accountId ?? "";
@@ -834,7 +836,7 @@ export function InboxSheet({ open, onClose, pending, accounts, onPasteImport, on
       ) : (
         <>
           {ready.length > 1 && (
-            <button onClick={() => onApproveAll(ready.map((p) => ({ p, accountId: accFor(p) })))} className="tap ui w-full rounded-xl py-2.5 text-sm font-medium mb-3" style={{ background: T.greenBg, color: T.green, border: `1px solid ${T.green}` }}>
+            <button onClick={() => onApproveAll(ready.map((p) => ({ p, accountId: accFor(p), subId: !unlinked[p.id] ? matches[p.id]?.subId : undefined })))} className="tap ui w-full rounded-xl py-2.5 text-sm font-medium mb-3" style={{ background: T.greenBg, color: T.green, border: `1px solid ${T.green}` }}>
               ✓ Approve all matched ({ready.length})
             </button>
           )}
@@ -849,6 +851,16 @@ export function InboxSheet({ open, onClose, pending, accounts, onPasteImport, on
                   </div>
                   <Money n={p.amount} cur={p.currency} color={p.direction === "income" ? T.green : T.text} className="text-base" />
                 </div>
+                {matches[p.id] && !unlinked[p.id] && (
+                  <div className="flex items-center gap-2 mt-2 rounded-lg px-2.5 py-2" style={{ background: T.goldBg || "#B08D5718", border: `1px solid ${T.gold}` }}>
+                    <span className="ui text-[11px] flex-1" style={{ color: T.goldDeep }}>
+                      🔁 ده اشتراك <b>{matches[p.id].name}</b> — هيتعلم عليه مدفوع{matches[p.id].byName ? "" : " (تقريب بالقيمة والميعاد)"}
+                    </span>
+                    <button onClick={() => setUnlinked({ ...unlinked, [p.id]: true })} className="tap ui text-[10px] shrink-0 opacity-60" style={{ color: T.sub }} aria-label={`Don't link to ${matches[p.id].name}`}>
+                      ✕ مش هو
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mt-2.5">
                   <select
                     value={accFor(p)}
@@ -863,7 +875,7 @@ export function InboxSheet({ open, onClose, pending, accounts, onPasteImport, on
                     ))}
                   </select>
                   <button
-                    onClick={() => accFor(p) && onApprove(p, accFor(p))}
+                    onClick={() => accFor(p) && onApprove(p, accFor(p), undefined, !unlinked[p.id] ? matches[p.id]?.subId : undefined)}
                     disabled={!accFor(p)}
                     className="tap ui text-xs font-semibold rounded-lg px-3.5 py-2.5"
                     style={{ background: accFor(p) ? T.ink : T.line, color: accFor(p) ? "#fff" : T.faint }}

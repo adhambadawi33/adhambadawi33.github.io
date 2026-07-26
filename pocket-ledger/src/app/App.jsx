@@ -13,7 +13,9 @@ import { blankData, normalizeData } from "../lib/validation/schema.js";
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
 import { debtTotals } from "../lib/finance/netWorth.js";
 import { planStats } from "../lib/finance/plans.js";
+import { syncSubscriptionOnTx } from "../lib/finance/subscriptions.js";
 import { computeNudges, pickNudge } from "../lib/nudges.js";
+import { matchPendingToSub, subAfterPayment } from "../lib/finance/subMatch.js";
 import { snapshotRates, convert } from "../lib/finance/currency.js";
 import { fetchLiveRates } from "../lib/finance/fxLive.js";
 import { parseSmsBatch } from "../lib/voice/sms.js";
@@ -265,7 +267,10 @@ export default function App({ storage }) {
 
   const addTx = (tx, correction, opts = {}) => {
     const learn = correction ? learnEntry(correction.note, correction.category) : null;
-    const next = { ...data, transactions: [tx, ...data.transactions], settings: withLearned({ ...settings, lastAccount: tx.accountId }, learn) };
+    /* A "Subscriptions" expense also updates the Planned list: renews the
+       matching sub, or auto-adds a new one (undo removes just the sub). */
+    const synced = syncSubscriptionOnTx(data.recurrs, tx, uid);
+    const next = { ...data, recurrs: synced.recurrs, transactions: [tx, ...data.transactions], settings: withLearned({ ...settings, lastAccount: tx.accountId }, learn) };
     commit(next, true);
     showFlash();
     /* Sequential voice capture keeps the sheet open for the next sentence. */
@@ -274,6 +279,7 @@ export default function App({ storage }) {
       setVoiceText(null);
     }
     toastLearned(next, learn);
+    if (synced.toast) scheduleUndo(synced.toast, () => commit({ ...next, recurrs: data.recurrs }, true));
   };
   const saveTxEdit = (tx) => {
     const old = data.transactions.find((x) => x.id === tx.id);
@@ -414,17 +420,23 @@ export default function App({ storage }) {
       return false;
     }
   };
-  const approvePending = (p, accountId, batchData) => {
+  const approvePending = (p, accountId, batchData, subId) => {
     const src = batchData || data;
+    const linkedSub = subId ? src.recurrs.find((r) => r.id === subId) : null;
     const tx = {
       id: uid(), type: p.direction, date: p.date, amount: p.amount, currency: p.currency,
-      accountId, category: p.category || (p.direction === "income" ? "Other income" : "Other"),
-      note: p.merchant ? `${p.merchant} · SMS` : "Bank SMS",
+      accountId,
+      /* Linked to a subscription → it IS that subscription's charge. */
+      category: linkedSub ? "Subscriptions" : p.category || (p.direction === "income" ? "Other income" : "Other"),
+      note: linkedSub ? `${linkedSub.name} · SMS` : p.merchant ? `${p.merchant} · SMS` : "Bank SMS",
       snapshot: snapshotRates(settings.rates),
     };
     const next = {
       ...src,
       transactions: [tx, ...src.transactions],
+      /* One approval = expense logged AND the subscription ticked over
+         (next cycle + adopt the newly charged price) — no manual Paid. */
+      recurrs: linkedSub ? src.recurrs.map((r) => (r.id === subId ? subAfterPayment(r, p, addCycle) : r)) : src.recurrs,
       pending: src.pending.filter((x) => x.id !== p.id),
       settings: { ...src.settings, lastAccount: accountId },
     };
@@ -433,10 +445,21 @@ export default function App({ storage }) {
   };
   const approveAllPending = (pairs) => {
     let next = data;
-    for (const { p, accountId } of pairs) next = approvePending(p, accountId, next);
+    for (const { p, accountId, subId } of pairs) next = approvePending(p, accountId, next, subId);
     commit(next, true);
     showFlash();
   };
+
+  /* Which pending SMS item pays which subscription — shown on inbox cards. */
+  const pendingMatches = useMemo(() => {
+    if (!data) return {};
+    const out = {};
+    for (const p of data.pending) {
+      const m = matchPendingToSub(p, data.recurrs, settings.rates);
+      if (m) out[p.id] = { subId: m.sub.id, name: m.sub.name, byName: m.byName };
+    }
+    return out;
+  }, [data, settings.rates]);
   const dismissPending = (p) => {
     const prev = data;
     commit({ ...data, pending: data.pending.filter((x) => x.id !== p.id) }, true);
@@ -634,7 +657,7 @@ export default function App({ storage }) {
         <AccountsSheet open={sheet === "accounts"} onClose={() => setSheet(null)} accounts={sortedAccounts} balances={balances} hide={hide} onMove={moveAccount} onNew={() => { setEditAcc(null); setSheet("account-form"); }} onEdit={(a) => { setEditAcc(a); setSheet("account-form"); }} onArchive={archiveAccount} onAdjust={adjustAccount} />
         <AccountFormSheet open={sheet === "account-form"} onClose={() => setSheet("accounts")} initial={editAcc} onSave={saveAccount} currentBalance={editAcc ? balances[editAcc.id] : 0} />
         <RecurrSheet open={sheet === "recurr"} onClose={() => { setSheet(null); setEditRecurr(null); }} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} initial={editRecurr} />
-        <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} onPasteImport={pasteSms} onManualImport={importSmsText} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
+        <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} matches={pendingMatches} onPasteImport={pasteSms} onManualImport={importSmsText} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
         <DebtSheet open={sheet === "debt"} onClose={() => { setSheet(null); setDebtDraft(null); }} onSave={saveDebt} initial={debtDraft} />
         <EditTxSheet open={sheet === "edit-tx"} onClose={() => { setSheet(null); setEditTxTarget(null); }} tx={editTxTarget} accounts={activeAccounts} onSave={saveTxEdit} />
         <CardsSheet open={sheet === "cards"} onClose={() => setSheet(null)} cards={activeAccounts.filter((a) => a.type === "credit")} balances={balances} hide={hide} base={base} rates={settings.rates} />
