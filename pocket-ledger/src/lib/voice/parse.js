@@ -112,6 +112,8 @@ const LEARN_STOP = new Set([
   "كاش", "نقدي", "فيزا", "بطاقه", "كارت", "حساب", "بنك",
   "الاحد", "الحد", "الاتنين", "الثلاثاء", "التلات", "الاربعاء", "الاربع", "الخميس", "الجمعه", "السبت", "فات", "فاتت",
   "the", "and", "for", "from", "with", "paid", "bought", "spent", "yesterday", "ago", "days", "last", "aed", "sar", "egp", "usd", "cash", "card", "visa",
+  /* generic words seen polluting Adham's real learned dictionary */
+  "sms", "bill", "kids", "you", "family", "home", "الاولاد",
 ]);
 export function learnableTokens(text) {
   const norm = normAr(text);

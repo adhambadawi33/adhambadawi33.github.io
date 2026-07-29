@@ -219,3 +219,12 @@ describe("dictation punctuation (Adham: date word swallowed by a trailing period
     expect(parseVoice("دفعت ١٠٠ كارفور من ٣ ايام،", accounts, settings).date).toBe(addDays(todayISO(), -3));
   });
 });
+
+describe("learned-dictionary pollution guard (from Adham's real backup)", () => {
+  it('never learns generic tokens like "sms" or "family"', () => {
+    const t = learnableTokens("CRAVE MOA · SMS");
+    expect(t).toContain("crave");
+    expect(t).not.toContain("sms");
+    expect(learnableTokens("You tube family")).toEqual(["tube"]);
+  });
+});
