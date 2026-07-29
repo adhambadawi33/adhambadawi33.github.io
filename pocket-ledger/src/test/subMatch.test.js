@@ -42,3 +42,19 @@ describe("SMS → subscription matching (batch 15)", () => {
     expect(fx.amount).toBe(22.8); // FX charge ≠ price change
   });
 });
+
+describe("Talabat food orders must not claim Talabat Pro (Adham's real SMS)", () => {
+  const talabatSubs = [
+    { id: "s-tpro", kind: "subscription", name: "Talabat Pro", amount: 99, currency: "EGP", cycle: "monthly", nextDue: addDays(today, 30), paused: false },
+  ];
+  it("a 334.80 food order at Talabat does NOT match the 99 EGP sub", () => {
+    const p = { rawText: "تم خصم EGP 334.80 باستخدام Apple Pay عند Talabat", merchant: "Talabat", amount: 334.8, currency: "EGP", date: today };
+    expect(matchPendingToSub(p, talabatSubs, rates)).toBeNull();
+  });
+  it("the real talabat pro 99 EGP charge still matches by name+amount", () => {
+    const p = { rawText: "تم خصم مبلغ EGP 99.00 عند talabat pro", merchant: "talabat pro", amount: 99, currency: "EGP", date: today };
+    const m = matchPendingToSub(p, talabatSubs, rates);
+    expect(m?.sub.id).toBe("s-tpro");
+    expect(m?.byName).toBe(true);
+  });
+});

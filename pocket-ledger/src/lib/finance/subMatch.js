@@ -22,9 +22,15 @@ export function matchPendingToSub(pending, recurrs, rates) {
   if (!subs.length || !(pending?.amount > 0)) return null;
   const text = normAr(`${pending.rawText || ""} ${pending.merchant || ""}`);
 
-  /* 1 — name match wins outright */
+  /* 1 — name match wins, but the name alone isn't enough: a Talabat FOOD
+     order must not claim the "Talabat Pro" subscription. The amount must be
+     in the neighbourhood (±25%) or the charge must land near the renewal. */
   for (const s of subs) {
-    if (nameTokens(s.name).some((t) => text.includes(t))) {
+    if (!nameTokens(s.name).some((t) => text.includes(t))) continue;
+    const paid = convert(pending.amount, pending.currency, s.currency, rates);
+    const amtDiff = Math.abs(paid - s.amount) / s.amount;
+    const dateDiff = Math.abs(diffDays(pending.date, s.nextDue));
+    if (amtDiff <= 0.25 || (!Number.isNaN(dateDiff) && dateDiff <= DATE_WINDOW_DAYS)) {
       return { sub: s, byName: true };
     }
   }
