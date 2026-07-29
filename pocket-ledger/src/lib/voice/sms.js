@@ -8,7 +8,7 @@ import { todayISO, isValidISO, toISO } from "../dates/localDate.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-const INCOME_HINTS = /(ايداع|اضافه|تم اضافه|راتب|حواله وارده|deposit|credited|salary|received|refund|استرداد)/;
+const INCOME_HINTS = /(ايداع|اضافه|تم اضافه|راتب|حواله وارده|عكس قيد|deposit|credited|salary|received|refund|reversal|استرداد)/;
 const EXPENSE_HINTS = /(خصم|شراء|سحب|دفع|عمليه|pos|purchase|debited|withdrawal|payment|spent)/;
 
 /* amount + currency: "AED 95.00" | "95.00 درهم" | "بمبلغ ٢١٤٫٥٠ درهم" */
@@ -39,6 +39,9 @@ function findLast4(norm) {
 
 /* merchant from the RAW text so "CARREFOUR MOE" keeps its casing */
 function findMerchant(raw) {
+  /* Arab Bank English format: "A Trx using Card XXXX3889 from MERCHANT for EGP…" */
+  const en = /\bfrom\s+([A-Za-z0-9&][A-Za-z0-9 &.\-']{1,40}?)\s+for\s+(?:egp|aed|sar|usd)/i.exec(raw);
+  if (en) return en[1].trim();
   const m = /(?:لدى|لدي|عند|من عند|at|@|in)\s+([A-Za-z0-9&\u0600-\u06FF][A-Za-z0-9 &.\-'\u0600-\u06FF]{1,40})/i.exec(raw);
   if (!m) return "";
   return m[1]
@@ -67,6 +70,9 @@ export function parseBankSms(raw, accounts = []) {
   const text = String(raw || "").trim();
   if (!text) return null;
   const norm = normAr(toEnDigits(text));
+  /* Statement-issued notices carry an amount but are NOT transactions —
+     "الرصيد المستخدم 13,660 جنيه" must never queue as a 13k expense. */
+  if (/كشف حساب|statement (?:is|has been|was)? ?(?:issued|generated)/.test(norm)) return null;
   const amount = findAmount(norm);
   if (amount == null) return null; // no amount => not a money alert
   const currency = findCurrency(norm) || "AED";

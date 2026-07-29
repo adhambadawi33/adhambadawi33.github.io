@@ -97,3 +97,26 @@ describe('Egyptian "جم" shorthand (Adham\'s banks)', () => {
     expect(p.currency).toBe("EGP");
   });
 });
+
+describe("Arab Bank real formats (Adham's Jul-26 thread)", () => {
+  const abAccounts = [...accounts, { id: "ab", name: "Arab Bank Card", type: "credit", currency: "EGP", cardDigits: ["3889"] }];
+  it('parses the English "A Trx using Card XXXX3889 from X for EGP Y" format', () => {
+    const p = parseBankSms("A Trx using Card XXXX3889 from APPLE COM BILL for EGP 940.28 on 29-Jul-2026 at 13:40 GMT+3. Available balance is EGP 44814.75.", abAccounts);
+    expect(p).not.toBeNull();
+    expect(p.amount).toBe(940.28);
+    expect(p.currency).toBe("EGP");
+    expect(p.direction).toBe("expense");
+    expect(p.merchant).toBe("APPLE COM BILL");
+    expect(p.accountId).toBe("ab");
+  });
+  it('classifies a reversal "تم عكس قيد حركة" as income (refund)', () => {
+    const p = parseBankSms("تم عكس قيد حركة بمبلغ 51.93 جنيه لبطاقتك #3889 من APPLE.COM/BILL بتاريخ 26-يوليه-2026", abAccounts);
+    expect(p).not.toBeNull();
+    expect(p.direction).toBe("income");
+    expect(p.amount).toBe(51.93);
+  });
+  it("statement-issued notices never queue as transactions", () => {
+    const p = parseBankSms("تم اصدار كشف حساب البطاقة رقم #3889، الرصيد المستخدم 13660.56 جنيه مصري ، و الحد الادنى للسداد 684.00 جنيه مصري .", abAccounts);
+    expect(p).toBeNull();
+  });
+});
