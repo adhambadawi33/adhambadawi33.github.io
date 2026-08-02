@@ -228,3 +228,12 @@ describe("learned-dictionary pollution guard (from a real backup)", () => {
     expect(learnableTokens("You tube family")).toEqual(["tube"]);
   });
 });
+
+describe("EUR in voice input", () => {
+  it("understands يورو and €", () => {
+    const p = parseVoice("فندق ٢٠٠ يورو", []);
+    expect(p.amount).toBe(200);
+    expect(p.currency).toBe("EUR");
+    expect(parseVoice("hotel 50 eur", []).currency).toBe("EUR");
+  });
+});

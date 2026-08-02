@@ -31,6 +31,7 @@ const CUR_SUBSTR = [
   ["SAR", ["ريال", "ريالات", "riyal"]],
   ["EGP", ["جنيه", "جنيهات", "geneh", "pound"]],
   ["USD", ["دولار", "دولارات", "dollar"]],
+  ["EUR", ["يورو", "يوروهات", "euro"]],
 ];
 const CUR_TOKENS = [
   ["AED", ["aed", "dhs", "dh"]],
@@ -39,6 +40,7 @@ const CUR_TOKENS = [
      words like جمعه/جميل can never match). */
   ["EGP", ["egp", "le", "جم"]],
   ["USD", ["usd", "$"]],
+  ["EUR", ["eur", "€"]],
 ];
 
 export function findCurrency(norm) {

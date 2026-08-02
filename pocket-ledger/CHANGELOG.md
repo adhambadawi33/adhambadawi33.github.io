@@ -96,3 +96,11 @@ Retroactive entry grouping the July 18–29 commits by theme.
 - **‹ › month navigation** clamped between the earliest logged month and the current one; every amount converts with each entry's own rate snapshot, so a past month's report never moves when today's rates change (§7.5).
 - **Print layout** (closes §5.5): the Print button turns the sheet into a paper layout — app chrome and controls drop out, the report flows across pages instead of scrolling.
 - 11 new report tests + a full UI flow (open → navigate back → clamp) → **128 total, all passing**. Build clean.
+
+## 2.6.0 — EUR support (2026-08-02)
+
+- **EUR is a fifth first-class currency** (`AED · SAR · EGP · USD · EUR`): account currency, entry pills, base-currency choice, rate editor, CSV/backup — all pick it up from the central list.
+- Live FX auto-refresh fetches EUR daily like the others; default offline rate 0.92/USD; € symbol in money formatting.
+- Voice/quick-add understands يورو / euro / eur / €; bank-SMS parsing inherits the same detection.
+- Rate-change confirmation now derives from the currency list instead of naming currencies (no more forgetting one).
+- 2 new tests → **130 total, all passing**. Build clean.

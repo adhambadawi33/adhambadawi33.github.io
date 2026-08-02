@@ -3,7 +3,7 @@ import { convert, validateRates, sanitizeRates, isValidRate, DEFAULT_RATES } fro
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
 import { netWorth, debtTotals } from "../lib/finance/netWorth.js";
 
-const R = { USD: 1, AED: 3.6725, SAR: 3.75, EGP: 50 };
+const R = { USD: 1, AED: 3.6725, SAR: 3.75, EGP: 50, EUR: 0.92 };
 const snap = { ...R };
 
 describe("currency", () => {
@@ -24,6 +24,12 @@ describe("currency", () => {
     expect(validateRates({ ...R, SAR: NaN })).toBe(false);
     expect(validateRates(R)).toBe(true);
   });
+  it("EUR is a first-class currency: converts via USD and round-trips", () => {
+    // 92 EUR -> USD: 92 / 0.92 = 100 USD -> EGP: 100 * 50 = 5000
+    expect(convert(92, "EUR", "EGP", R)).toBeCloseTo(5000);
+    expect(convert(5000, "EGP", "EUR", R)).toBeCloseTo(92);
+  });
+
   it("sanitizeRates repairs bad values and pins USD to 1", () => {
     const s = sanitizeRates({ USD: 9, EGP: -5, AED: 4 });
     expect(s.USD).toBe(1);

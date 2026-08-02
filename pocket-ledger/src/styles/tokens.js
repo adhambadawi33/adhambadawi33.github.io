@@ -68,7 +68,7 @@ export const catDef = (name) =>
 export const fmtMoney = (n, cur, hide) => {
   if (hide) return "•••••";
   const v = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  return cur === "USD" ? `$${v}` : `${v} ${cur}`;
+  return cur === "USD" ? `$${v}` : cur === "EUR" ? `€${v}` : `${v} ${cur}`;
 };
 export const inputCls = "ui w-full rounded-xl px-3.5 py-3 text-[15px] outline-none";
 export const inputStyle = { background: T.paper, border: `1px solid ${T.line}`, color: T.text };

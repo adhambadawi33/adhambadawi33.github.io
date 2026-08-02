@@ -17,7 +17,7 @@ import { planStats } from "../lib/finance/plans.js";
 import { syncSubscriptionOnTx } from "../lib/finance/subscriptions.js";
 import { computeNudges, pickNudge } from "../lib/nudges.js";
 import { matchPendingToSub, subAfterPayment } from "../lib/finance/subMatch.js";
-import { snapshotRates, convert } from "../lib/finance/currency.js";
+import { snapshotRates, convert, CURRENCIES } from "../lib/finance/currency.js";
 import { fetchLiveRates } from "../lib/finance/fxLive.js";
 import { parseSmsBatch } from "../lib/voice/sms.js";
 import { learnableTokens } from "../lib/voice/parse.js";
@@ -29,7 +29,7 @@ import { makeT, applyDir } from "../i18n/index.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const fmtNet = (n, cur, hide) =>
-  hide ? "•••••" : `${n < 0 ? "−" : ""}${cur === "USD" ? "$" : ""}${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}${cur === "USD" ? "" : ` ${cur}`}`;
+  hide ? "•••••" : `${n < 0 ? "−" : ""}${cur === "USD" ? "$" : cur === "EUR" ? "€" : ""}${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}${["USD", "EUR"].includes(cur) ? "" : ` ${cur}`}`;
 
 export default function App({ storage }) {
   const [data, setData] = useState(null);
@@ -483,7 +483,7 @@ export default function App({ storage }) {
   };
   const setBase = (b) => commit({ ...data, settings: { ...settings, base: b } }, true);
   const saveRates = (rates) => {
-    const changed = ["AED", "SAR", "EGP"].some((c) => rates[c] !== settings.rates[c]);
+    const changed = CURRENCIES.some((c) => c !== "USD" && rates[c] !== settings.rates[c]);
     if (changed && !window.confirm("New rates change live balance totals from now on. Past entries keep their original rates. Continue?")) return;
     commit({ ...data, settings: { ...settings, rates, ratesUpdatedAt: todayISO() } }, true);
   };

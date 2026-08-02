@@ -1,8 +1,8 @@
 /* Currency model (handoff §7.1)
    Rates are stored as units of each currency per 1 USD.
    amountInTarget = amount / rate[from] * rate[to] */
-export const CURRENCIES = ["AED", "SAR", "EGP", "USD"];
-export const DEFAULT_RATES = { USD: 1, AED: 3.6725, SAR: 3.75, EGP: 50 };
+export const CURRENCIES = ["AED", "SAR", "EGP", "USD", "EUR"];
+export const DEFAULT_RATES = { USD: 1, AED: 3.6725, SAR: 3.75, EGP: 50, EUR: 0.92 };
 
 export const isValidRate = (v) => typeof v === "number" && Number.isFinite(v) && v > 0;
 export const validateRates = (rates) =>
