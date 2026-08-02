@@ -56,3 +56,36 @@ A: IOUs excluded from net worth · B: English default · C: manual rates + times
 - Category keyword fix: transactional verbs (شراء) no longer masquerade as Shopping; merchant name takes priority in category guessing; fuel brands added.
 - 9 new tests (8 parser + full inbox UI flow) → **60 total, all passing**. Lint clean, build clean.
 - Honest limitation: iOS offers no direct SMS API to any app — capture relies on the documented Shortcuts automation; first run may ask iOS for confirmation per bank sender.
+
+## 2.3.0 — Planned list syncs with logged subscription expenses (2026-07-22)
+
+- **Logging a "Subscriptions" expense now updates the Planned list** (`lib/finance/subscriptions.js`): a note matching a planned sub (case-insensitive, partial) counts as its renewal — next due moves one billing cycle; an unknown name is auto-added as a new monthly planned subscription (name/amount/currency/account/owner from the transaction, next renewal one month after the transaction date, month-end clamped).
+- Undo toast ("Added to planned: X" / "Renewed: X") reverts only the planned-list change — the logged transaction stays.
+- Paused subs are left alone (no silent resume, no duplicate); installments never match; expenses with no note stay one-off.
+- 9 new tests → **105 total, all passing**.
+
+## 2.4.0 — July polish wave (2026-07-18 → 2026-07-29)
+
+Retroactive entry grouping the July 18–29 commits by theme.
+
+### Editing (closes the §5.1 "no edit flows" limitation for daily use)
+- Transactions are editable — amount, category (header doubles as the picker), and details; subscriptions and installments editable via tap-to-move cards; Undo for accidental "Paid" taps.
+
+### Voice & intake
+- Voice-first entry: hold the gold **+** and just talk; voice page redesigned (compact, sequential); parser learns dates and from user corrections, understands loan phrases, Egyptian car/maintenance words and the "جم" shorthand — but never learns generic tokens (sms/family/kids/...).
+- Spoken dates survive dictation punctuation; date always visible on the entry sheet.
+- Shortcut links consumed even when the app is already open; manual paste box when iOS blocks clipboard reads; approval-inbox icon always reachable.
+
+### Bank SMS & subscription matching
+- Approving a bank SMS ticks the matching planned subscription as paid.
+- Arab Bank's real SMS dialects understood; a Talabat food order no longer claims the Talabat Pro subscription.
+
+### Money model
+- Payment plans: contracts with dated, varying milestones + confirm-payment flow with louder, longer Undo.
+- Live FX rates (auto-refresh daily + manual button); native-currency IOUs; owner tags with per-person filtering of transactions and subscriptions; "bleed" summary; monthly reconciliation nudge.
+- Credit balances shown signed (owed = negative red); credit headroom no longer reads as money you have; real pay-by date on cards.
+
+### Design
+- Calm C+ palette redesign: grouped accounts, hero = banks+cash total, two-color account gradients, bank-brand hues, real brand logos with graceful fallback, cards detail page, "Needs cancelling" watchlist, safe-by-default backup import.
+
+**116 tests total, all passing.**
