@@ -8,6 +8,7 @@ import PlannedScreen from "../components/screens/PlannedScreen.jsx";
 import PeopleScreen from "../components/screens/PeopleScreen.jsx";
 import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet, EditTxSheet } from "../components/sheets/sheets.jsx";
 import VoiceSheet from "../components/sheets/VoiceSheet.jsx";
+import ReportSheet from "../components/sheets/ReportSheet.jsx";
 import { STORAGE_KEY, LEGACY_KEYS } from "../lib/storage/adapter.js";
 import { blankData, normalizeData } from "../lib/validation/schema.js";
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
@@ -538,7 +539,7 @@ export default function App({ storage }) {
         <SaveErrorBanner show={saveError} message={t("saveError")} />
 
         {/* header */}
-        <header className="px-5 pt-5 pb-4" style={{ background: T.ink }}>
+        <header className="app-chrome px-5 pt-5 pb-4" style={{ background: T.ink }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: T.gold }}>
@@ -573,7 +574,7 @@ export default function App({ storage }) {
         </header>
 
         {/* body */}
-        <main className="flex-1 px-4 pt-5" style={{ paddingBottom: "calc(110px + env(safe-area-inset-bottom))" }}>
+        <main className="app-chrome flex-1 px-4 pt-5" style={{ paddingBottom: "calc(110px + env(safe-area-inset-bottom))" }}>
           {tab === "home" && (
             <HomeScreen
               nudge={nudge} onDismissNudge={dismissNudge}
@@ -590,7 +591,7 @@ export default function App({ storage }) {
             />
           )}
           {tab === "activity" && (
-            <ActivityScreen txByDay={txByDay} filter={actFilter} setFilter={setActFilter} accounts={activeAccounts} hide={hide} accName={accName} onDelTx={delTx} onEditTx={(t) => { setEditTxTarget(t); setSheet("edit-tx"); }} onExport={exportCsv} insight={insight} base={base} />
+            <ActivityScreen txByDay={txByDay} filter={actFilter} setFilter={setActFilter} accounts={activeAccounts} hide={hide} accName={accName} onDelTx={delTx} onEditTx={(t) => { setEditTxTarget(t); setSheet("edit-tx"); }} onExport={exportCsv} onOpenReport={() => setSheet("report")} insight={insight} base={base} />
           )}
           {tab === "planned" && (
             <PlannedScreen
@@ -607,7 +608,7 @@ export default function App({ storage }) {
         </main>
 
         {/* tab bar + FAB */}
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30" style={{ background: T.surface, borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Main">
+        <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30" style={{ background: T.surface, borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Main">
           <div className="relative flex items-stretch justify-around px-2 pt-1.5 pb-2">
             {TABS.slice(0, 2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
             <div className="w-16" aria-hidden="true" />
@@ -661,6 +662,7 @@ export default function App({ storage }) {
         <DebtSheet open={sheet === "debt"} onClose={() => { setSheet(null); setDebtDraft(null); }} onSave={saveDebt} initial={debtDraft} />
         <EditTxSheet open={sheet === "edit-tx"} onClose={() => { setSheet(null); setEditTxTarget(null); }} tx={editTxTarget} accounts={activeAccounts} onSave={saveTxEdit} />
         <CardsSheet open={sheet === "cards"} onClose={() => setSheet(null)} cards={activeAccounts.filter((a) => a.type === "credit")} balances={balances} hide={hide} base={base} rates={settings.rates} />
+        <ReportSheet open={sheet === "report"} onClose={() => setSheet(null)} data={data} base={base} hide={hide} accName={accName} />
         <SettingsSheet
           open={sheet === "settings"} onClose={() => setSheet(null)} settings={settings}
           counts={{ tx: data.transactions.length, accounts: data.accounts.length, recurrs: data.recurrs.length, debts: data.debts.length }}

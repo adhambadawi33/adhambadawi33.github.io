@@ -10,7 +10,7 @@ export const Money = ({ n, cur, hide, color, className = "" }) => (
 
 /* Bottom sheet with dialog semantics (handoff §6.3): role=dialog, Escape to
    close, initial focus into the panel, focus restored to the opener. */
-export function Sheet({ open, onClose, title, children, tall }) {
+export function Sheet({ open, onClose, title, children, tall, overlayClass = "", panelClass = "", bodyClass = "" }) {
   const panel = useRef(null);
   const opener = useRef(null);
   useEffect(() => {
@@ -32,7 +32,7 @@ export function Sheet({ open, onClose, title, children, tall }) {
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center"
+      className={`fixed inset-0 z-50 flex items-end justify-center ${overlayClass}`}
       style={{ background: "rgba(15,27,45,0.5)" }}
       onClick={onClose}
     >
@@ -43,16 +43,16 @@ export function Sheet({ open, onClose, title, children, tall }) {
         ref={panel}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-md rounded-t-3xl overflow-hidden slide-up flex flex-col outline-none ${tall ? "h-[94%]" : "max-h-[88%]"}`}
+        className={`w-full max-w-md rounded-t-3xl overflow-hidden slide-up flex flex-col outline-none ${tall ? "h-[94%]" : "max-h-[88%]"} ${panelClass}`}
         style={{ background: T.surface }}
       >
-        <div className="shrink-0 flex items-center justify-between px-5 pt-4 pb-3" style={{ borderBottom: `1px solid ${T.line}` }}>
+        <div className="shrink-0 flex items-center justify-between px-5 pt-4 pb-3 no-print" style={{ borderBottom: `1px solid ${T.line}` }}>
           <h2 className="disp text-lg" style={{ color: T.text }}>{title}</h2>
           <button onClick={onClose} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.paper, color: T.sub }} aria-label="Close">
             <X size={18} />
           </button>
         </div>
-        <div className="overflow-y-auto px-5 py-4" style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom))", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+        <div className={`overflow-y-auto px-5 py-4 ${bodyClass}`} style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom))", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
           {children}
         </div>
       </div>

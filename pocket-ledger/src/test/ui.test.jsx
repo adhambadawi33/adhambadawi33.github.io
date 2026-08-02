@@ -3,6 +3,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import App from "../app/App.jsx";
 import { createStorage, STORAGE_KEY } from "../lib/storage/adapter.js";
+import { todayISO, thisMonthKey, addMonthsClamped } from "../lib/dates/localDate.js";
+import { monthLabel, prevMonthKey } from "../lib/finance/report.js";
 
 const seedV2 = {
   accounts: [{ id: "a1", name: "ADCB Current", type: "bank", currency: "AED", openingBalance: 5000 }],
@@ -126,6 +128,36 @@ describe("Pocket Ledger UI", () => {
     await screen.findByText("ADCB Current");
     fireEvent.click(screen.getByLabelText("Hide amounts"));
     expect((await screen.findAllByText("•••••")).length).toBeGreaterThan(0);
+  });
+
+  it("monthly report: opens on the current month, navigates back, and clamps", async () => {
+    const seeded = {
+      ...seedV2,
+      schemaVersion: 3,
+      transactions: [
+        { id: "t1", type: "expense", date: todayISO(), amount: 200, currency: "AED", accountId: "a1", category: "Groceries", note: "Lulu" },
+        { id: "t2", type: "expense", date: addMonthsClamped(todayISO(), -1), amount: 120, currency: "AED", accountId: "a1", category: "Transport", note: "Fuel" },
+      ],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+    render(<App storage={createStorage()} />);
+    await screen.findByText("ADCB Current");
+    fireEvent.click(screen.getByText("Activity"));
+    fireEvent.click(screen.getByLabelText("Monthly report"));
+
+    // current month: totals + category breakdown + print button
+    expect(await screen.findByText(monthLabel(thisMonthKey()))).toBeInTheDocument();
+    expect(screen.getByText("Where it went")).toBeInTheDocument();
+    expect(screen.getByText("Biggest expenses")).toBeInTheDocument();
+    expect(screen.getByLabelText("Print report")).toBeInTheDocument();
+    expect(screen.getAllByText("200 AED").length).toBeGreaterThan(0);
+
+    // one month back: last month's spending, and the back arrow hits the wall
+    fireEvent.click(screen.getByLabelText("Previous month"));
+    expect(await screen.findByText(monthLabel(prevMonthKey(thisMonthKey())))).toBeInTheDocument();
+    expect(screen.getAllByText("120 AED").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Previous month")).toBeDisabled();
+    expect(screen.getByLabelText("Next month")).not.toBeDisabled();
   });
 
   it("deleting a transaction offers Undo", async () => {

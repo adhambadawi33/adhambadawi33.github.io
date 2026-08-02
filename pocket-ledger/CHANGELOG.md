@@ -89,3 +89,10 @@ Retroactive entry grouping the July 18–29 commits by theme.
 - Calm C+ palette redesign: grouped accounts, hero = banks+cash total, two-color account gradients, bank-brand hues, real brand logos with graceful fallback, cards detail page, "Needs cancelling" watchlist, safe-by-default backup import.
 
 **116 tests total, all passing.**
+
+## 2.5.0 — Monthly report view + print layout (2026-08-02)
+
+- **Monthly report** (`lib/finance/report.js` + `ReportSheet`), opened from the new page icon on Activity: one month on one page — In / Out / Net, whole-month comparison to the previous month, category breakdown with budget over/under coloring, spending split by person and by account, subscriptions (charged this month, plus still-due ones for the running month), and the five biggest expenses.
+- **‹ › month navigation** clamped between the earliest logged month and the current one; every amount converts with each entry's own rate snapshot, so a past month's report never moves when today's rates change (§7.5).
+- **Print layout** (closes §5.5): the Print button turns the sheet into a paper layout — app chrome and controls drop out, the report flows across pages instead of scrolling.
+- 11 new report tests + a full UI flow (open → navigate back → clamp) → **128 total, all passing**. Build clean.

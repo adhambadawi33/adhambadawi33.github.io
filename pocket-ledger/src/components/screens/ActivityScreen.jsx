@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, Download, Receipt, Sparkles } from "lucide-react";
+import { Search, Download, Receipt, Sparkles, FileText } from "lucide-react";
 import { T, fmtMoney } from "../../styles/tokens.js";
 import { CardBox, EmptyHint, ChipRow } from "../common/primitives.jsx";
 import { TxRow } from "../common/rows.jsx";
@@ -31,7 +31,7 @@ function InsightCard({ insight, base, hide }) {
   );
 }
 
-export default function ActivityScreen({ txByDay, filter, setFilter, accounts, hide, accName, onDelTx, onEditTx, onExport, insight, base }) {
+export default function ActivityScreen({ txByDay, filter, setFilter, accounts, hide, accName, onDelTx, onEditTx, onExport, onOpenReport, insight, base }) {
   return (
     <>
       <InsightCard insight={insight} base={base} hide={hide} />
@@ -47,6 +47,9 @@ export default function ActivityScreen({ txByDay, filter, setFilter, accounts, h
             aria-label="Search transactions"
           />
         </div>
+        <button onClick={onOpenReport} className="tap h-[44px] w-[44px] rounded-xl flex items-center justify-center" style={{ background: T.surface, border: `1px solid ${T.line}`, color: T.sub }} aria-label="Monthly report">
+          <FileText size={16} />
+        </button>
         <button onClick={onExport} className="tap h-[44px] w-[44px] rounded-xl flex items-center justify-center" style={{ background: T.surface, border: `1px solid ${T.line}`, color: T.sub }} aria-label="Export CSV">
           <Download size={16} />
         </button>

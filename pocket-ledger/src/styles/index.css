@@ -30,3 +30,17 @@ body { margin: 0; background: #E7EAEF; }
 input::placeholder, textarea::placeholder { color: #93A0AE; }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Monthly report print layout (handoff §5.5). ReportSheet stamps
+   body.report-open while it's up; printing then shows only the report,
+   flowing across pages instead of scrolling inside the sheet. */
+@media print {
+  body.report-open { overflow: visible !important; background: #fff; }
+  body.report-open .app-chrome, .no-print { display: none !important; }
+  body.report-open .print-overlay { position: static !important; background: #fff !important; display: block !important; }
+  body.report-open .print-panel {
+    max-width: none !important; max-height: none !important; height: auto !important;
+    overflow: visible !important; border-radius: 0 !important; animation: none !important;
+  }
+  body.report-open .print-body { overflow: visible !important; padding-bottom: 0 !important; }
+}
