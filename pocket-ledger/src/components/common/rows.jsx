@@ -151,6 +151,30 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
   );
 }
 
+export function GivenCard({ x, hide, onDel, base, rates }) {
+  const eq = base && rates && x.currency !== base ? convert(x.amount, x.currency, base, rates) : null;
+  return (
+    <CardBox className="px-4 py-3.5 mb-3">
+      <div className="flex items-center gap-3">
+        <span className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 ui text-sm font-semibold" style={{ background: T.amberBg, color: T.goldDeep }} aria-hidden="true">
+          {x.person.slice(0, 1).toUpperCase()}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="ui text-sm" style={{ color: T.text }}>{x.person}</div>
+          <div className="ui text-[11px]" style={{ color: T.faint }}>given · {x.note || x.date}</div>
+        </div>
+        <div className="text-right">
+          <Money n={x.amount} cur={x.currency} hide={hide} className="text-base" />
+          {eq != null && <div className="mono text-[10px]" style={{ color: T.faint }}>≈ {hide ? "•••••" : `${Math.round(eq).toLocaleString("en-US")} ${base}`}</div>}
+        </div>
+        <button onClick={() => onDel(x)} className="tap px-1 opacity-40" style={{ color: T.rose }} aria-label={`Delete given entry for ${x.person}`}>
+          <Trash2 size={15} />
+        </button>
+      </div>
+    </CardBox>
+  );
+}
+
 export function DebtCard({ x, hide, onPay, onDel, base, rates }) {
   const [amt, setAmt] = useState("");
   const left = Math.max(0, x.amount - x.repaid);

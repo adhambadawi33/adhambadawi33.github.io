@@ -116,3 +116,12 @@ describe("payment plans (batch 7)", () => {
     expect(report.quarantined.some((q) => q.kind === "plan")).toBe(true);
   });
 });
+
+describe("given (noReturn) debts", () => {
+  it("normalizeDebt keeps the flag and defaults it off", async () => {
+    const { normalizeDebt } = await import("../lib/validation/schema.js");
+    const rep = { quarantined: [], repaired: [] };
+    expect(normalizeDebt({ person: "Ali", amount: 50, noReturn: true }, rep).noReturn).toBe(true);
+    expect(normalizeDebt({ person: "Ali", amount: 50 }, rep).noReturn).toBe(false);
+  });
+});

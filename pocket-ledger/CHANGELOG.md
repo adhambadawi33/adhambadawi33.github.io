@@ -104,3 +104,10 @@ Retroactive entry grouping the July 18–29 commits by theme.
 - Voice/quick-add understands يورو / euro / eur / €; bank-SMS parsing inherits the same detection.
 - Rate-change confirmation now derives from the currency list instead of naming currencies (no more forgetting one).
 - 2 new tests → **130 total, all passing**. Build clean.
+
+## 2.7.0 — Given money: a second ledger on People (2026-08-02)
+
+- **"Given — no return" chip** in the loan sheet: money paid or gifted to someone you're NOT expecting back. Recorded for memory, never counted in "Owed to you".
+- People page splits in two: **Loans & IOUs** (with repayment tracking, as before) and **Given · no return expected** (lean cards, gold avatar, running total in the section header).
+- `noReturn` flag survives schema normalization and backup round-trips; `debtTotals` skips given entries entirely.
+- 2 new tests → **132 total, all passing**. Build clean.

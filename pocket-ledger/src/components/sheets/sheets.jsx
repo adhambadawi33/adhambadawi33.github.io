@@ -651,7 +651,7 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
   const init = React.useCallback(() => {
     setF({
       person: initial?.person || "",
-      direction: initial?.direction === "borrowed" ? "borrowed" : "lent",
+      direction: initial?.direction === "borrowed" ? "borrowed" : initial?.noReturn ? "given" : "lent",
       amount: initial?.amount != null ? String(initial.amount) : "",
       currency: initial?.currency || "AED",
       note: initial?.note || "",
@@ -665,7 +665,7 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
     <Sheet open onClose={onClose} title="New loan / IOU">
       <Field label="Person"><input value={f.person} onChange={(e) => setF({ ...f, person: e.target.value })} placeholder="Name" className={inputCls} style={inputStyle} /></Field>
       <Field label="Direction">
-        <ChipRow value={f.direction} onChange={(v) => setF({ ...f, direction: v })} options={[{ value: "lent", label: "I lent them" }, { value: "borrowed", label: "I borrowed" }]} />
+        <ChipRow value={f.direction} onChange={(v) => setF({ ...f, direction: v })} options={[{ value: "lent", label: "I lent them" }, { value: "borrowed", label: "I borrowed" }, { value: "given", label: "Given — no return" }]} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Amount"><input type="number" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle} /></Field>
@@ -675,7 +675,7 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
       </div>
       <Field label="Note (optional)"><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. till end of month" className={inputCls} style={inputStyle} /></Field>
       <button
-        onClick={() => ok && onSave({ id: uid(), person: f.person.trim(), direction: f.direction, amount: +f.amount, currency: f.currency, repaid: 0, note: f.note.trim(), date: f.date })}
+        onClick={() => ok && onSave({ id: uid(), person: f.person.trim(), direction: f.direction === "borrowed" ? "borrowed" : "lent", noReturn: f.direction === "given", amount: +f.amount, currency: f.currency, repaid: 0, note: f.note.trim(), date: f.date })}
         disabled={!ok}
         className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
         style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}

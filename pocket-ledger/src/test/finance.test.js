@@ -182,3 +182,17 @@ describe("planStats (batch 7)", () => {
     expect(s.next).toBeNull();
   });
 });
+
+describe("given money (no return expected)", () => {
+  it("debtTotals ignores noReturn entries entirely", async () => {
+    const { debtTotals } = await import("../lib/finance/netWorth.js");
+    const debts = [
+      { direction: "lent", amount: 1000, repaid: 0, currency: "EGP", noReturn: false },
+      { direction: "lent", amount: 5000, repaid: 0, currency: "EGP", noReturn: true },
+      { direction: "borrowed", amount: 200, repaid: 0, currency: "EGP" },
+    ];
+    const t = debtTotals(debts, "EGP", R);
+    expect(t.owedToMe).toBeCloseTo(1000);
+    expect(t.iOwe).toBeCloseTo(200);
+  });
+});

@@ -199,6 +199,9 @@ export function normalizeDebt(d, report) {
     id: str(d.id) || uid(),
     person: str(d.person).trim(),
     direction: d.direction === "borrowed" ? "borrowed" : "lent",
+    /* Given, not lent (no repayment expected) — tracked for memory, excluded
+       from receivable totals. */
+    noReturn: bool(d.noReturn),
     amount,
     currency: cur(d.currency),
     repaid: Math.min(amount, Math.max(0, num(d.repaid, 0))),

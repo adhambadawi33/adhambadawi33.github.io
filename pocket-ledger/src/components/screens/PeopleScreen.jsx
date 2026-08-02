@@ -2,9 +2,13 @@ import React from "react";
 import { Plus, Coins } from "lucide-react";
 import { T } from "../../styles/tokens.js";
 import { Section, CardBox, EmptyHint, Money } from "../common/primitives.jsx";
-import { DebtCard } from "../common/rows.jsx";
+import { DebtCard, GivenCard } from "../common/rows.jsx";
+import { convert } from "../../lib/finance/currency.js";
 
 export default function PeopleScreen({ debts, owedToMe, iOwe, base, rates, hide, onAddDebt, onPay, onDelDebt }) {
+  const loans = debts.filter((x) => !x.noReturn);
+  const given = debts.filter((x) => x.noReturn);
+  const givenTotal = given.reduce((s, x) => s + convert(x.amount, x.currency, base, rates), 0);
   return (
     <>
       <div className="grid grid-cols-2 gap-3 mb-5">
@@ -21,12 +25,20 @@ export default function PeopleScreen({ debts, owedToMe, iOwe, base, rates, hide,
         title="Loans & IOUs"
         right={<button onClick={onAddDebt} className="tap ui text-xs flex items-center gap-1 rounded-lg px-2.5 py-2" style={{ background: T.ink, color: "#fff" }}><Plus size={13} aria-hidden="true" />Add</button>}
       >
-        {debts.length === 0 ? (
+        {loans.length === 0 ? (
           <EmptyHint icon={<Coins size={26} />} text="Money you've lent or borrowed lives here — who, how much, and every partial repayment — kept separate from your accounts by default." cta="Add a loan" onClick={onAddDebt} />
         ) : (
-          debts.map((x) => <DebtCard key={x.id} x={x} hide={hide} onPay={onPay} onDel={onDelDebt} base={base} rates={rates} />)
+          loans.map((x) => <DebtCard key={x.id} x={x} hide={hide} onPay={onPay} onDel={onDelDebt} base={base} rates={rates} />)
         )}
       </Section>
+      {given.length > 0 && (
+        <Section
+          title="Given · no return expected"
+          right={<Money n={Math.round(givenTotal)} cur={base} hide={hide} color={T.goldDeep} className="text-sm" />}
+        >
+          {given.map((x) => <GivenCard key={x.id} x={x} hide={hide} onDel={onDelDebt} base={base} rates={rates} />)}
+        </Section>
+      )}
     </>
   );
 }

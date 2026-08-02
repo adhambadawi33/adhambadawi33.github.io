@@ -14,6 +14,7 @@ export function debtTotals(debts, base, rates) {
   let owedToMe = 0;
   let iOwe = 0;
   for (const d of debts) {
+    if (d.noReturn) continue; // given, not lent — never counted as owed
     const left = Math.max(0, d.amount - d.repaid);
     const v = convert(left, d.currency, base, rates);
     if (d.direction === "lent") owedToMe += v;
