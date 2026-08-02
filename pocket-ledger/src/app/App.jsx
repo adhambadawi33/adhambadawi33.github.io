@@ -151,7 +151,7 @@ export default function App({ storage }) {
   const activeAccounts = useMemo(() => sortedAccounts.filter((a) => !a.archived), [sortedAccounts]);
   const balances = useMemo(() => (data ? computeBalances(data.accounts, data.transactions) : {}), [data]);
   /* Hero = money you actually have (banks + debit + cash); credit cards shown
-     separately as an obligation (design decision with Adham — no daily budget). */
+     separately as an obligation (deliberate design — no daily budget). */
   const moneyGroups = useMemo(() => {
     const g = { banks: 0, cash: 0, cardOwed: 0 };
     for (const a of activeAccounts) {
@@ -347,8 +347,8 @@ export default function App({ storage }) {
     const ms = plan?.milestones.find((m) => m.id === msId);
     if (!plan || !ms || ms.paid) return;
     const acct = data.accounts.find((a) => a.id === plan.accountId && !a.archived) || activeAccounts[0];
-    /* Plan payments are huge and rare (villa: ~4/year) — the one place a
-       confirm beats undo-only (design discussion with Adham, Jul 20). */
+    /* Plan payments are huge and rare (a property plan: ~4/year) — the one
+       place a confirm beats undo-only (deliberate design, Jul 20). */
     const label = ms.label ? ` ${ms.label}` : "";
     if (!window.confirm(`${plan.name}${label} — ${fmtNet(ms.amount, plan.currency, false)}\n\nOK = log this payment${acct ? ` from ${acct.name}` : ""}.`)) return;
     const tx = acct
@@ -549,7 +549,7 @@ export default function App({ storage }) {
             </div>
             <div className="flex items-center gap-2">
               {/* Always visible — it's also the only door to "Paste bank SMS",
-                  so hiding it when empty left no way in (Adham got stuck). */}
+                  so hiding it when empty left no way in (the user got stuck). */}
               <button onClick={() => setSheet("inbox")} className="tap relative h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? `Approval inbox: ${data.pending.length} waiting` : "Approval inbox"}>
                 <Inbox size={16} />
                 {data.pending.length > 0 && (

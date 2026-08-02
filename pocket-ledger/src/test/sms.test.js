@@ -81,7 +81,7 @@ describe("SMS batch parsing", () => {
   });
 });
 
-describe('Egyptian "جم" shorthand (Adham\'s banks)', () => {
+describe('Egyptian "جم" shorthand (real bank SMS)', () => {
   const egAccounts = [...accounts, { id: "a5", name: "CIB", type: "debit", currency: "EGP", cardDigits: ["9972"] }];
   it('parses "خصم مبلغ 250.50 جم" as EGP expense and matches the card', () => {
     const p = parseBankSms("تم خصم مبلغ 250.50 جم من بطاقة ****9972 لدى TALABAT", egAccounts);
@@ -98,7 +98,7 @@ describe('Egyptian "جم" shorthand (Adham\'s banks)', () => {
   });
 });
 
-describe("Arab Bank real formats (Adham's Jul-26 thread)", () => {
+describe("Arab Bank real formats", () => {
   const abAccounts = [...accounts, { id: "ab", name: "Arab Bank Card", type: "credit", currency: "EGP", cardDigits: ["3889"] }];
   it('parses the English "A Trx using Card XXXX3889 from X for EGP Y" format', () => {
     const p = parseBankSms("A Trx using Card XXXX3889 from APPLE COM BILL for EGP 940.28 on 29-Jul-2026 at 13:40 GMT+3. Available balance is EGP 44814.75.", abAccounts);

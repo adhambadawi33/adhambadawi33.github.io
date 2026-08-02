@@ -5,7 +5,7 @@ import { CardBox, EmptyHint, ChipRow } from "../common/primitives.jsx";
 import { TxRow } from "../common/rows.jsx";
 import { humanDay } from "../../lib/dates/ui.js";
 
-/* Plain-language month summary — sentences, not charts (Adham's ask). */
+/* Plain-language month summary — sentences, not charts (user preference). */
 function InsightCard({ insight, base, hide }) {
   if (!insight || insight.spent <= 0) return null;
   const money = (n) => fmtMoney(Math.round(n), base, hide);

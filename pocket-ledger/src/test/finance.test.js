@@ -151,7 +151,7 @@ describe("budget thresholds", () => {
 
 describe("planStats (batch 7)", () => {
   const plan = {
-    id: "p", name: "Villa", currency: "EGP",
+    id: "p", name: "Property plan", currency: "EGP",
     milestones: [
       { id: "m1", due: "2026-07-15", amount: 100, paid: true },
       { id: "m2", due: "2026-10-15", amount: 200, paid: false },

@@ -1,6 +1,6 @@
 import { addCycle } from "../dates/localDate.js";
 
-/* Logging a "Subscriptions" expense keeps the Planned list honest (Adham):
+/* Logging a "Subscriptions" expense keeps the Planned list honest:
    a note matching a planned sub counts as its renewal (next due moves one
    cycle); an unknown name becomes a new planned subscription on the spot.
    Returns { recurrs, toast } — recurrs unchanged (same reference) when the

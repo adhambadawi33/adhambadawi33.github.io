@@ -16,7 +16,7 @@ import { humanDay } from "../../lib/dates/ui.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-/* Short account-type tag so pickers make bank vs card obvious (Adham). */
+/* Short account-type tag so pickers make bank vs card obvious. */
 const typeTag = (t) => (t === "credit" ? "card" : t === "debit" ? "debit" : t === "cash" ? "cash" : "bank");
 
 /* Next calendar occurrence of a card's monthly due day (month-end clamped). */
@@ -499,7 +499,7 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
   );
 }
 
-/* ── Cards detail page (batch 2, design w/ Adham): every credit card with
+/* ── Cards detail page (batch 2): every credit card with
    available-in-limit, signed owed, usage bar, due day and min payment. ── */
 export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }) {
   if (!open) return null;

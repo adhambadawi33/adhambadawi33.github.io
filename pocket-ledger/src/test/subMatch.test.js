@@ -43,7 +43,7 @@ describe("SMS → subscription matching (batch 15)", () => {
   });
 });
 
-describe("Talabat food orders must not claim Talabat Pro (Adham's real SMS)", () => {
+describe("Talabat food orders must not claim Talabat Pro (real SMS)", () => {
   const talabatSubs = [
     { id: "s-tpro", kind: "subscription", name: "Talabat Pro", amount: 99, currency: "EGP", cycle: "monthly", nextDue: addDays(today, 30), paused: false },
   ];

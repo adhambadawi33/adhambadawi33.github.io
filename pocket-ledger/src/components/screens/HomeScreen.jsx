@@ -8,7 +8,7 @@ import { subBrandFor } from "../../lib/brands.js";
 import { TxRow } from "../common/rows.jsx";
 import { humanDay } from "../../lib/dates/ui.js";
 
-/* Accounts are shown grouped by kind (design decision with Adham): banks
+/* Accounts are shown grouped by kind (deliberate design): banks
    together, credit cards together, cash alone — each with its own subtotal. */
 const ACCOUNT_GROUPS = [
   { key: "banks", types: ["bank", "debit"], dot: "#4C6350" },
@@ -71,7 +71,7 @@ export default function HomeScreen({
           {ACCOUNT_GROUPS.map((g) => {
             const list = accounts.filter((a) => g.types.includes(a.type));
             if (!list.length) return null;
-            /* Signed by design (Adham): owing on a card is negative, red. */
+            /* Signed by design: owing on a card is negative, red. */
             const subtotal = list.reduce((s, a) => s + convert(balances[a.id] || 0, a.currency, base, rates), 0);
             const fmtSigned = (n, cur) => (hide ? "•••••" : `${n < 0 ? "−" : ""}${fmtMoney(Math.abs(n), cur, false)}`);
             return (
@@ -110,7 +110,7 @@ export default function HomeScreen({
                         <div className="ui text-[12px] truncate" style={{ color: T.sub }}>{a.name}</div>
                         <div className="mono text-[15px] mt-0.5" style={{ color: isCredit && bal < 0 ? T.rose : T.text }}>{fmtSigned(bal, a.currency)}</div>
                         {/* No "available" here — credit headroom reads like money
-                            you own (Adham). Owed state only; details live in Cards. */}
+                            you own. Owed state only; details live in Cards. */}
                         {isCredit && (
                           owed > 0
                             ? <div className="ui text-[10px] mt-0.5" style={{ color: T.rose }}>you owe this ↑</div>

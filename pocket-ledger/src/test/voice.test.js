@@ -145,7 +145,7 @@ describe("voice parser — debt phrases (batch 6)", () => {
   });
 });
 
-describe("Egyptian car & maintenance words (Adham: صيانة عربية landed in Food)", () => {
+describe("Egyptian car & maintenance words (real case: صيانة عربية landed in Food)", () => {
   it('classifies "صيانه عربيه ٥٠٠ جنيه" as Transport', () => {
     const p = parseVoice("صيانه عربيه ٥٠٠ جنيه", accounts, settings);
     expect(p.category).toBe("Transport");
@@ -209,7 +209,7 @@ describe("self-learning categories (batch 13)", () => {
   });
 });
 
-describe("dictation punctuation (Adham: date word swallowed by a trailing period)", () => {
+describe("dictation punctuation (real case: date word swallowed by a trailing period)", () => {
   it('"...امبارح." with iOS-added period still sets yesterday', () => {
     const p = parseVoice("دفعت ٢٠٠ بنزين امبارح.", accounts, settings);
     expect(p.date).toBe(addDays(todayISO(), -1));
@@ -220,7 +220,7 @@ describe("dictation punctuation (Adham: date word swallowed by a trailing period
   });
 });
 
-describe("learned-dictionary pollution guard (from Adham's real backup)", () => {
+describe("learned-dictionary pollution guard (from a real backup)", () => {
   it('never learns generic tokens like "sms" or "family"', () => {
     const t = learnableTokens("CRAVE MOA · SMS");
     expect(t).toContain("crave");

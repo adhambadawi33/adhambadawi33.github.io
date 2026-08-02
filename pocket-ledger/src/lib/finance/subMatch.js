@@ -1,5 +1,5 @@
 /* Match an approved bank-SMS item to the subscription it pays (batch 15).
-   Adham's flow: subscriptions charge via SMS → approving the expense should
+   The real flow: subscriptions charge via SMS → approving the expense should
    also tick the subscription as paid. The SMS doesn't always carry the
    service name, so matching works two ways:
      1. by NAME — a word from the subscription's name appears in the message;

@@ -52,7 +52,7 @@ export function findCurrency(norm) {
 
 const INCOME_WORDS = ["قبضت", "استلمت", "مرتب", "راتب", "دخل", "ايراد", "حصلت", "salary", "received", "income", "paid me", "got paid", "deposit"];
 
-/* Owner detection (batch 5): "…لعبير" tags Abeer, "…للولاد" tags the kids.
+/* Owner detection (batch 5): possessive phrases tag the matching owner.
    Null when no owner is named — the form keeps its current default. */
 const OWNER_WORDS = [
   ["abeer", ["عبير", "لعبير", "مراتي", "لمراتي", "abeer"]],
@@ -112,7 +112,7 @@ const LEARN_STOP = new Set([
   "كاش", "نقدي", "فيزا", "بطاقه", "كارت", "حساب", "بنك",
   "الاحد", "الحد", "الاتنين", "الثلاثاء", "التلات", "الاربعاء", "الاربع", "الخميس", "الجمعه", "السبت", "فات", "فاتت",
   "the", "and", "for", "from", "with", "paid", "bought", "spent", "yesterday", "ago", "days", "last", "aed", "sar", "egp", "usd", "cash", "card", "visa",
-  /* generic words seen polluting Adham's real learned dictionary */
+  /* generic words seen polluting a real learned dictionary */
   "sms", "bill", "kids", "you", "family", "home", "الاولاد",
 ]);
 export function learnableTokens(text) {

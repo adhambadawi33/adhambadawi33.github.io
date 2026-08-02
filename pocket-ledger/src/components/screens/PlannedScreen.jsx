@@ -18,7 +18,7 @@ const AddMini = ({ onClick, label }) => (
 /* Normalize any billing cycle to a monthly figure for the bleed total. */
 const monthlyOf = (r) => (r.cycle === "yearly" ? r.amount / 12 : r.cycle === "weekly" ? r.amount * 4.33 : r.amount);
 
-/* The subscription "bleed monitor" (Adham's biggest pain): one glance =
+/* The subscription "bleed monitor" (the core pain point): one glance =
    what leaks monthly, what that means per year, and whose it is. */
 function BleedSummary({ recurrs, base, rates, hide }) {
   const subs = recurrs.filter((r) => r.kind === "subscription" && !r.paused);
@@ -166,7 +166,7 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
 }
 
 export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onEditRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget, onPayMilestone, onDelPlan }) {
-  /* "Which subscriptions sit on which card / belong to whom?" (Adham) —
+  /* "Which subscriptions sit on which card / belong to whom?" —
      the two chip rows compose, and the bleed summary follows both. */
   const [subAcc, setSubAcc] = useState("all");
   const [subOwner, setSubOwner] = useState("all");

@@ -96,10 +96,10 @@ describe("payment plans (batch 7)", () => {
     accounts: [{ id: "a", name: "CIB", type: "bank", currency: "EGP" }],
     plans: [
       {
-        id: "villa", name: "الفيلا", currency: "EGP", accountId: "a", owner: "me",
+        id: "prop", name: "Property plan", currency: "EGP", accountId: "a", owner: "me",
         milestones: [
-          { id: "m2", due: "2026-10-15", amount: 494788.38, label: "4" },
-          { id: "m1", due: "2026-07-15", amount: 1156008.38, label: "3", paid: true },
+          { id: "m2", due: "2026-10-15", amount: 250000, label: "4" },
+          { id: "m1", due: "2026-07-15", amount: 500000, label: "3", paid: true },
           { due: "bad-date", amount: 100 }, // dropped
           { due: "2026-12-15", amount: -5 }, // dropped
         ],

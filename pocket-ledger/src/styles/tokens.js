@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 
 /* "C+" calm palette: warm paper ground, deep forest header, single clay accent.
-   Chosen with Adham for low visual noise (ADHD-friendly). */
+   Chosen for low visual noise. */
 export const T = {
   ink: "#2C3A2F", inkSoft: "#3A4A3E", paper: "#F1EEE7", surface: "#FBFAF6",
   line: "#E7E2D6", text: "#232A24", sub: "#6E7268", faint: "#A2A498",
@@ -15,7 +15,7 @@ export const T = {
 };
 
 /* Household owners (batch 4): subs, installments and expenses are tagged
-   with whose they are — Adham / Abeer / the kids. */
+   with whose they are. */
 export const OWNERS = [
   { id: "me", label: "Me", c: "#4C6350", bg: "rgba(76,99,80,.13)" },
   { id: "abeer", label: "Abeer", c: "#9E5E77", bg: "rgba(158,94,119,.13)" },
@@ -29,7 +29,7 @@ export const ACCOUNT_TYPE_DEFS = [
   { id: "debit", label: "Debit card", icon: CreditCard },
   { id: "credit", label: "Credit card", icon: CreditCard },
 ];
-/* Second row = bank-brand hues (Adham's real banks) so renamed accounts
+/* Second row = bank-brand hues (common regional banks) so renamed accounts
    can pick their brand color right from the form. */
 export const ACCOUNT_COLORS = [
   "#4C6350", "#5E7189", "#B08D57", "#9E6E6E", "#5E7D67", "#8A6A3B", "#6E4555", "#54606C",

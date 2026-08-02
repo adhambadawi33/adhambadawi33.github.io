@@ -53,7 +53,7 @@ export function BankMark({ name, size = 24, radius = 8 }) {
 }
 
 /* Mini-card chip for credit cards: issuing bank wordmark + network corner.
-   Distinguishes a CARD from a bank ACCOUNT at a glance (design w/ Adham). */
+   Distinguishes a CARD from a bank ACCOUNT at a glance. */
 export function CardChip({ account, width = 38 }) {
   const bank = bankFor(account?.bank || account?.name);
   const net = networkFor(account);

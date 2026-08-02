@@ -7,7 +7,7 @@ import { Money, Bar, CardBox, EmptyHint } from "./primitives.jsx";
 import { daysUntilFromToday, humanDay, monthYear } from "../../lib/dates/ui.js";
 import { addMonthsClamped } from "../../lib/dates/localDate.js";
 
-/* Owner tag — shown only for Abeer/kids to keep "mine" rows quiet (ADHD). */
+/* Owner tag — shown only for non-default owners to keep "mine" rows quiet. */
 export function OwnerPill({ id, size = "text-[10px]" }) {
   if (!id || id === "me") return null;
   const o = ownerDef(id);

@@ -1,6 +1,6 @@
 # Pocket Ledger · دفتر الجيب
 
-Private, single-user personal finance PWA across **AED · SAR · EGP · USD** — accounts, cash, credit cards, subscriptions, installments, personal loans/IOUs and monthly budgets. Built mobile-first for a fast, calm, ADHD-friendly workflow: log a transaction in ~3 taps, see what's coming before it hits, never get punished for coming back after a break.
+Private, single-user personal finance PWA across **AED · SAR · EGP · USD** — accounts, cash, credit cards, subscriptions, installments, personal loans/IOUs and monthly budgets. Built mobile-first for a fast, calm, low-distraction workflow: log a transaction in ~3 taps, see what's coming before it hits, never get punished for coming back after a break.
 
 ## Run it
 
