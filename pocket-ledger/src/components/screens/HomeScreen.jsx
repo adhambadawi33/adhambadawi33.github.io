@@ -12,6 +12,9 @@ import { humanDay } from "../../lib/dates/ui.js";
    together, credit cards together, cash alone — each with its own subtotal. */
 const ACCOUNT_GROUPS = [
   { key: "banks", types: ["bank", "debit"], dot: "#4C6350" },
+  /* أمانة — accounts holding someone else's money live in their own group
+     so the banks subtotal stays "his" money only (matches the hero). */
+  { key: "trust", types: ["bank", "debit", "cash"], custodial: true, dot: "#8C7A50" },
   { key: "cards", types: ["credit"], dot: "#B08D57" },
   { key: "cash", types: ["cash"], dot: "#9E6E6E" },
 ];
@@ -69,7 +72,7 @@ export default function HomeScreen({
           right={<button onClick={onManageAccounts} className="tap ui text-xs flex items-center gap-0.5" style={{ color: T.sub }}>Manage <ChevronRight size={13} /></button>}
         >
           {ACCOUNT_GROUPS.map((g) => {
-            const list = accounts.filter((a) => g.types.includes(a.type));
+            const list = accounts.filter((a) => g.types.includes(a.type) && !!a.custodial === !!g.custodial);
             if (!list.length) return null;
             /* Signed by design: owing on a card is negative, red. */
             const subtotal = list.reduce((s, a) => s + convert(balances[a.id] || 0, a.currency, base, rates), 0);

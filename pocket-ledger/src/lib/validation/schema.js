@@ -80,6 +80,9 @@ export function normalizeAccount(a, report) {
     /* Optional second brand color — keylines render a gradient (batch 11). */
     color2: /^#[0-9A-Fa-f]{6}$/.test(str(a.color2)) ? a.color2 : "",
     archived: bool(a.archived),
+    /* Custodial = money held for someone else (أمانة) — kept out of the
+       hero total so "what you have" stays honest. */
+    custodial: bool(a.custodial),
     sortOrder: num(a.sortOrder, NaN),
   };
 }

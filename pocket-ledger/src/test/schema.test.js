@@ -75,6 +75,20 @@ describe("schema & migration pipeline (handoff §4.4)", () => {
   });
 });
 
+describe("custodial (أمانة) accounts", () => {
+  it("keeps the custodial flag and defaults it to false", () => {
+    const { data } = normalizeData({
+      schemaVersion: SCHEMA_VERSION,
+      accounts: [
+        { id: "haj", name: "HAJ-INV", type: "bank", currency: "EGP", openingBalance: 0, custodial: true },
+        { id: "cib", name: "CIB", type: "debit", currency: "EGP", openingBalance: 100 },
+      ],
+    });
+    expect(data.accounts.find((a) => a.id === "haj").custodial).toBe(true);
+    expect(data.accounts.find((a) => a.id === "cib").custodial).toBe(false);
+  });
+});
+
 describe("account manual ordering", () => {
   it("assigns missing sortOrder by position and sorts accounts by it", () => {
     const { data } = normalizeData({

@@ -400,7 +400,7 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
     setF(
       initial
         ? { ...initial, openingDisplay: String(Math.abs(initial.openingBalance) || ""), cardDigitsText: (initial.cardDigits || []).join(", ") }
-        : { id: uid(), name: "", type: "bank", currency: "AED", openingDisplay: "", creditLimit: "", cardDigitsText: "", bank: "", network: "", dueDay: "", minPayment: "", color: ACCOUNT_COLORS[0], color2: "", archived: false }
+        : { id: uid(), name: "", type: "bank", currency: "AED", openingDisplay: "", creditLimit: "", cardDigitsText: "", bank: "", network: "", dueDay: "", minPayment: "", color: ACCOUNT_COLORS[0], color2: "", archived: false, custodial: false }
     );
   }, [initial]);
   useOpenTransition(open, init);
@@ -445,6 +445,22 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
               <input type="number" inputMode="decimal" value={f.minPayment || ""} onChange={(e) => setF({ ...f, minPayment: e.target.value })} placeholder="e.g. 350" className={`${inputCls} mono`} style={inputStyle} />
             </Field>
           </div>
+        </>
+      )}
+      {!isCredit && (
+        <>
+          <Field label="Whose money is this? · أمانة">
+            <ChipRow
+              value={f.custodial ? "trust" : "mine"}
+              onChange={(v) => setF({ ...f, custodial: v === "trust" })}
+              options={[{ value: "mine", label: "My money" }, { value: "trust", label: "أمانة — held for someone else" }]}
+            />
+          </Field>
+          {f.custodial && (
+            <p className="ui text-[11px] -mt-1 mb-3" style={{ color: T.faint }}>
+              أمانة accounts stay OUT of your big total — they show as their own line, so “what you have” is really yours.
+            </p>
+          )}
         </>
       )}
       <Field label="Card last-4 digits · for bank-SMS matching (optional)">

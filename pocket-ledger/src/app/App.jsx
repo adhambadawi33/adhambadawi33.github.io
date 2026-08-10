@@ -153,10 +153,11 @@ export default function App({ storage }) {
   /* Hero = money you actually have (banks + debit + cash); credit cards shown
      separately as an obligation (deliberate design — no daily budget). */
   const moneyGroups = useMemo(() => {
-    const g = { banks: 0, cash: 0, cardOwed: 0 };
+    const g = { banks: 0, cash: 0, cardOwed: 0, trust: 0 };
     for (const a of activeAccounts) {
       const v = convert(balances[a.id] || 0, a.currency, base, settings.rates);
       if (a.type === "credit") g.cardOwed += Math.max(0, -v);
+      else if (a.custodial) g.trust += v; /* أمانة — not his money */
       else if (a.type === "cash") g.cash += v;
       else g.banks += v;
     }
@@ -566,10 +567,11 @@ export default function App({ storage }) {
           </div>
           <div className="ui text-[11px] uppercase tracking-widest mb-1" style={{ color: "#93A08D" }}>{t("header.total")}</div>
           <div className="mono text-[36px] leading-none" style={{ color: "#fff" }}>{fmtNet(Math.round(moneyGroups.liquid), base, hide)}</div>
-          <div className="flex gap-2 mt-3.5">
+          <div className="flex flex-wrap gap-2 mt-3.5">
             <HeadStat label={t("header.banks")} v={hide ? "•••••" : Math.round(moneyGroups.banks).toLocaleString("en-US")} />
             <HeadStat label={t("header.cash")} v={hide ? "•••••" : Math.round(moneyGroups.cash).toLocaleString("en-US")} />
             {moneyGroups.cardOwed > 0.005 && <HeadStat owe label={t("header.owedCards")} v={hide ? "•••••" : Math.round(moneyGroups.cardOwed).toLocaleString("en-US")} />}
+            {moneyGroups.trust > 0.005 && <HeadStat label={t("header.trust")} v={hide ? "•••••" : Math.round(moneyGroups.trust).toLocaleString("en-US")} />}
           </div>
         </header>
 
@@ -581,7 +583,7 @@ export default function App({ storage }) {
               accounts={activeAccounts} balances={balances} upcoming={upcoming} topCats={topCats}
               monthExpense={monthly.expense} recent={recent} hide={hide} accName={accName} base={base} dueTone={dueTone}
               rates={settings.rates}
-              groupLabels={{ banks: t("groups.banks"), cards: t("groups.cards"), cash: t("groups.cash") }}
+              groupLabels={{ banks: t("groups.banks"), cards: t("groups.cards"), cash: t("groups.cash"), trust: t("groups.trust") }}
               onManageAccounts={() => setSheet("accounts")}
               onOpenCards={() => setSheet("cards")}
               onOpenPlanned={() => setTab("planned")}
@@ -676,7 +678,7 @@ export default function App({ storage }) {
 
 function HeadStat({ label, v, owe }) {
   return (
-    <div className="flex-1 min-w-0 rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)" }}>
+    <div className="flex-1 min-w-0 rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", minWidth: "28%" }}>
       <div className="ui text-[10px] mb-0.5 truncate" style={{ color: "#93A08D" }}>{label}</div>
       <div className="mono text-[13px] truncate" style={{ color: owe ? "#E9B7A0" : "#EEF1E8" }}>{v}</div>
     </div>
