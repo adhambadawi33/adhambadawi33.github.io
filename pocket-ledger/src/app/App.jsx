@@ -6,7 +6,7 @@ import HomeScreen from "../components/screens/HomeScreen.jsx";
 import ActivityScreen from "../components/screens/ActivityScreen.jsx";
 import PlannedScreen from "../components/screens/PlannedScreen.jsx";
 import PeopleScreen from "../components/screens/PeopleScreen.jsx";
-import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet, EditTxSheet } from "../components/sheets/sheets.jsx";
+import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet, EditTxSheet, PayPlanSheet } from "../components/sheets/sheets.jsx";
 import VoiceSheet from "../components/sheets/VoiceSheet.jsx";
 import ReportSheet from "../components/sheets/ReportSheet.jsx";
 import { STORAGE_KEY, LEGACY_KEYS } from "../lib/storage/adapter.js";
@@ -47,6 +47,7 @@ export default function App({ storage }) {
   const [voiceText, setVoiceText] = useState(null);
   const [debtDraft, setDebtDraft] = useState(null);
   const [editTxTarget, setEditTxTarget] = useState(null);
+  const [payPlanTarget, setPayPlanTarget] = useState(null);
   const hashConsumed = useRef(false);
   const importSmsRef = useRef(null);
   const fabPress = useRef({ timer: null, fired: false });
@@ -343,25 +344,33 @@ export default function App({ storage }) {
   };
   /* Mark a plan milestone paid: flips the flag and logs the expense on the
      plan's account — same review-free flow as recurr "Paid". */
+  /* Plan payments are huge and rare (a property plan: ~4/year) — the one
+     place a review step beats undo-only (deliberate design, Jul 20). Tapping
+     Paid opens PayPlanSheet to pick WHICH account (Adham's request, Aug 16:
+     the villa plan had no account and confirm() silently picked the first). */
   const payPlanMilestone = (planId, msId) => {
     const plan = data.plans.find((p) => p.id === planId);
     const ms = plan?.milestones.find((m) => m.id === msId);
     if (!plan || !ms || ms.paid) return;
-    const acct = data.accounts.find((a) => a.id === plan.accountId && !a.archived) || activeAccounts[0];
-    /* Plan payments are huge and rare (a property plan: ~4/year) — the one
-       place a confirm beats undo-only (deliberate design, Jul 20). */
-    const label = ms.label ? ` ${ms.label}` : "";
-    if (!window.confirm(`${plan.name}${label} — ${fmtNet(ms.amount, plan.currency, false)}\n\nOK = log this payment${acct ? ` from ${acct.name}` : ""}.`)) return;
-    const tx = acct
-      ? [{
-          id: uid(), date: todayISO(), type: "expense", amount: ms.amount, currency: plan.currency,
-          accountId: acct.id, category: "Installments",
-          note: `${plan.name}${ms.label ? ` · ${ms.label}` : ""}`, snapshot: snapshotRates(settings.rates),
-        }]
-      : [];
+    setPayPlanTarget({ plan, ms });
+    setSheet("pay-plan");
+  };
+  const confirmPayPlan = (planId, msId, accountId, remember) => {
+    const plan = data.plans.find((p) => p.id === planId);
+    const ms = plan?.milestones.find((m) => m.id === msId);
+    const acct = data.accounts.find((a) => a.id === accountId && !a.archived);
+    if (!plan || !ms || ms.paid || !acct) return;
+    const tx = [{
+      id: uid(), date: todayISO(), type: "expense", amount: ms.amount, currency: plan.currency,
+      accountId: acct.id, category: "Installments",
+      note: `${plan.name}${ms.label ? ` · ${ms.label}` : ""}`, snapshot: snapshotRates(settings.rates),
+    }];
     const plans = data.plans.map((p) =>
-      p.id === planId ? { ...p, milestones: p.milestones.map((m) => (m.id === msId ? { ...m, paid: true } : m)) } : p
+      p.id === planId
+        ? { ...p, ...(remember ? { accountId: acct.id } : {}), milestones: p.milestones.map((m) => (m.id === msId ? { ...m, paid: true } : m)) }
+        : p
     );
+    setSheet(null); setPayPlanTarget(null);
     /* One accidental tap here books a huge payment — undo restores the
        milestone AND the logged transaction together. */
     const prev = data;
@@ -662,6 +671,7 @@ export default function App({ storage }) {
         <RecurrSheet open={sheet === "recurr"} onClose={() => { setSheet(null); setEditRecurr(null); }} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} initial={editRecurr} />
         <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} matches={pendingMatches} onPasteImport={pasteSms} onManualImport={importSmsText} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
         <DebtSheet open={sheet === "debt"} onClose={() => { setSheet(null); setDebtDraft(null); }} onSave={saveDebt} initial={debtDraft} />
+        <PayPlanSheet open={sheet === "pay-plan"} onClose={() => { setSheet(null); setPayPlanTarget(null); }} target={payPlanTarget} accounts={activeAccounts} onConfirm={confirmPayPlan} />
         <EditTxSheet open={sheet === "edit-tx"} onClose={() => { setSheet(null); setEditTxTarget(null); }} tx={editTxTarget} accounts={activeAccounts} onSave={saveTxEdit} />
         <CardsSheet open={sheet === "cards"} onClose={() => setSheet(null)} cards={activeAccounts.filter((a) => a.type === "credit")} balances={balances} hide={hide} base={base} rates={settings.rates} />
         <ReportSheet open={sheet === "report"} onClose={() => setSheet(null)} data={data} base={base} hide={hide} accName={accName} />

@@ -660,6 +660,64 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave, initial }) 
   );
 }
 
+/* ── Pay a plan milestone ──
+   Plan payments are huge and rare (villa ~4/yr), so instead of a bare
+   confirm() they get a small review sheet: what + how much + WHICH account
+   (defaults to the plan's remembered account, else the last one used). */
+export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
+  const [accountId, setAccountId] = useState(null);
+  const [remember, setRemember] = useState(true);
+  const init = React.useCallback(() => {
+    setAccountId(target?.plan?.accountId || accounts[0]?.id || null);
+    setRemember(true);
+  }, [target, accounts]);
+  useOpenTransition(open, init);
+  if (!open || !target) return null;
+  const { plan, ms } = target;
+  const acct = accounts.find((a) => a.id === accountId);
+  const ok = !!acct;
+  return (
+    <Sheet open onClose={onClose} title="Mark payment as paid">
+      <div className="rounded-2xl px-4 py-3 mb-4" style={{ background: T.paper, border: `1px solid ${T.line}` }}>
+        <div className="ui text-[12px]" style={{ color: T.sub }}>{plan.name}{ms.label ? ` · ${ms.label}` : ""}</div>
+        <div className="mono text-[26px] leading-tight mt-0.5" style={{ color: T.text }}>{fmtMoney(ms.amount, plan.currency)}</div>
+        <div className="ui text-[11px] mt-0.5" style={{ color: T.faint }}>Due {ms.due}</div>
+      </div>
+      <Field label="Pay from · which account?">
+        <div className="flex flex-col gap-2">
+          {accounts.map((a) => {
+            const on = a.id === accountId;
+            return (
+              <button
+                key={a.id}
+                onClick={() => setAccountId(a.id)}
+                className="tap flex items-center justify-between rounded-2xl px-4 py-3 text-left"
+                style={{ background: on ? T.ink : T.surface, color: on ? "#fff" : T.text, border: `1px solid ${on ? T.ink : T.line}` }}
+                aria-pressed={on}
+              >
+                <span className="ui text-[14px]">{a.name}</span>
+                <span className="ui text-[11px]" style={{ color: on ? "rgba(255,255,255,0.7)" : T.faint }}>{typeTag(a.type)} · {a.currency}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+      <label className="flex items-center gap-2 mb-4 ui text-[12px]" style={{ color: T.sub }}>
+        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+        Remember this account for “{plan.name}”
+      </label>
+      <button
+        onClick={() => ok && onConfirm(plan.id, ms.id, acct.id, remember)}
+        disabled={!ok}
+        className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold"
+        style={{ background: ok ? T.gold : T.line, color: ok ? T.ink : T.faint }}
+      >
+        Paid ✓ — log from {acct?.name || "…"}
+      </button>
+    </Sheet>
+  );
+}
+
 /* ── Debt ── */
 export function DebtSheet({ open, onClose, onSave, initial }) {
   const [f, setF] = useState(null);
