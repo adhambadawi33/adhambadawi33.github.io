@@ -27,6 +27,7 @@ export function blankData(now = todayISO()) {
     recurrs: [],
     debts: [],
     plans: [],
+    trips: [],
     budgets: {},
     pending: [],
     settings: {
@@ -96,6 +97,12 @@ export function normalizeTransaction(t, report, accountIds, rates) {
   const date = isValidISO(t.date) ? t.date : null;
   const snapshot = snapshotRates(t.snapshot || rates);
   const base = { id: str(t.id) || uid(), date, note: str(t.note), snapshot, owner: ["me", "abeer", "kids"].includes(str(t.owner)) ? t.owner : "me" };
+  /* Trip tag (Aug 2026): a spend logged while travelling carries the trip id
+     and whether it's personal or work (work = the company pays it back). */
+  if (str(t.tripId)) {
+    base.tripId = str(t.tripId);
+    base.tripKind = t.tripKind === "work" ? "work" : "personal";
+  }
 
   if (type === "transfer") {
     const sourceAccountId = str(t.sourceAccountId || t.accountId);
@@ -189,6 +196,26 @@ export function normalizePlan(p, report, accountIds) {
     accountId: accountIds.has(str(p.accountId)) ? p.accountId : null,
     owner: ["me", "abeer", "kids"].includes(str(p.owner)) ? p.owner : "me",
     milestones,
+  };
+}
+
+/* Trips (Aug 2026): a named window of travel. Spends tagged with the trip id
+   roll up into a per-trip card (personal vs work). Not an account — money
+   still leaves the real cards/cash. */
+export function normalizeTrip(tr, report) {
+  if (!tr || typeof tr !== "object" || !str(tr.name).trim()) {
+    report.quarantined.push({ kind: "trip", raw: tr });
+    return null;
+  }
+  return {
+    id: str(tr.id) || uid(),
+    name: str(tr.name).trim(),
+    currency: cur(tr.currency),
+    startDate: isValidISO(tr.startDate) ? tr.startDate : todayISO(),
+    endDate: isValidISO(tr.endDate) ? tr.endDate : null,
+    open: tr.open === undefined ? true : bool(tr.open),
+    /* Set once the work share was turned into a debt on the company. */
+    settledDebtId: str(tr.settledDebtId) || null,
   };
 }
 
@@ -320,6 +347,11 @@ export function normalizeData(raw) {
   out.plans = (Array.isArray(src.plans) ? src.plans : [])
     .map((p) => normalizePlan(p, report, ids))
     .filter(Boolean);
+  out.trips = (Array.isArray(src.trips) ? src.trips : [])
+    .map((x) => normalizeTrip(x, report))
+    .filter(Boolean);
+  const tripIds = new Set(out.trips.map((x) => x.id));
+  out.transactions.forEach((t) => { if (t.tripId && !tripIds.has(t.tripId)) { delete t.tripId; delete t.tripKind; } });
   out.pending = (Array.isArray(src.pending) ? src.pending : [])
     .map((x) => normalizePending(x, report, ids))
     .filter(Boolean);

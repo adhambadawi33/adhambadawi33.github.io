@@ -158,7 +158,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
         accountId: acc.id, category: f.category, owner: f.owner,
       },
       correction,
-      { keepOpen: seq }
+      { keepOpen: seq, voice: true }
     );
     if (seq) {
       setLastSaved(`${(+f.amount).toLocaleString("en-US")} ${f.currency} · ${f.category}`);

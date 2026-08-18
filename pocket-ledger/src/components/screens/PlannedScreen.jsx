@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Plus, Check, Landmark, ChevronDown, Trash2 } from "lucide-react";
+import { Plus, Check, Landmark, ChevronDown, Trash2, Luggage } from "lucide-react";
 import { T, EXP_CATS, OWNERS, inputStyle } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
 import { planStats } from "../../lib/finance/plans.js";
+import { tripStats } from "../../lib/finance/trips.js";
 import { Section, CardBox, Bar, Money, ChipRow } from "../common/primitives.jsx";
 import { RecurrList, OwnerPill } from "../common/rows.jsx";
 import { SubLogo } from "../common/brand.jsx";
@@ -165,7 +166,75 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
   );
 }
 
-export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onEditRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget, onPayMilestone, onDelPlan }) {
+/* Trip card (Aug 2026): everything spent on a trip, personal vs work, in the
+   trip's currency with an ≈ base line. Work share = what the company owes. */
+function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onClose, onDel, onSettle }) {
+  const [open, setOpen] = useState(false);
+  const s = tripStats(trip, transactions, rates);
+  const approx = (n) => (trip.currency === base ? null : `≈ ${fmtMoney(Math.round(convert(n, trip.currency, base, rates)), base, hide)}`);
+  return (
+    <CardBox className="px-4 py-3.5 mb-3">
+      <div className="flex items-center gap-3">
+        <span className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#4E7A9B22", color: "#4E7A9B" }} aria-hidden="true">
+          <Luggage size={17} />
+        </span>
+        <button onClick={() => onEdit(trip)} className="tap min-w-0 flex-1 text-left" aria-label={`Edit trip ${trip.name}`}>
+          <div className="ui text-sm truncate" style={{ color: T.text }}>{trip.name}</div>
+          <div className="ui text-[10px] mt-0.5" style={{ color: trip.open ? T.green : T.faint }}>
+            {trip.open ? "● Open — new expenses ask about this trip" : `Closed · ${trip.startDate}${trip.endDate ? ` → ${trip.endDate}` : ""}`}
+          </div>
+        </button>
+        <button onClick={() => onDel(trip)} className="tap p-2 opacity-40" style={{ color: T.rose }} aria-label={`Delete trip ${trip.name}`}>
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        {[
+          { l: "Total", v: s.total, c: T.text },
+          { l: "Personal · شخصي", v: s.personal, c: T.text },
+          { l: "Work · شغل", v: s.work, c: T.goldDeep },
+        ].map((x) => (
+          <div key={x.l} className="rounded-xl px-3 py-2" style={{ background: T.paper }}>
+            <div className="ui text-[10px] truncate" style={{ color: T.faint }}>{x.l}</div>
+            <div className="mono text-[13px] truncate" style={{ color: x.c }}>{fmtMoney(Math.round(x.v), trip.currency, hide)}</div>
+            {approx(x.v) && <div className="mono text-[9px] truncate" style={{ color: T.faint }}>{approx(x.v)}</div>}
+          </div>
+        ))}
+      </div>
+
+      {s.work > 0 && !trip.settledDebtId && (
+        <button onClick={() => onSettle(trip, s.work)} className="tap ui w-full text-[12px] font-medium rounded-xl px-3 py-2.5 mt-2.5" style={{ background: T.goldBg || "#B08D5722", color: T.goldDeep, border: `1px solid ${T.gold}` }}>
+          Company owes {fmtMoney(Math.round(s.work), trip.currency, hide)} → record as a debt
+        </button>
+      )}
+      {trip.settledDebtId && (
+        <div className="ui text-[11px] mt-2.5 flex items-center gap-1.5" style={{ color: T.green }}><Check size={13} aria-hidden="true" /> Work share recorded as a debt on the company</div>
+      )}
+      {trip.open && (
+        <button onClick={() => onClose(trip)} className="tap ui text-[11px] mt-2.5 underline" style={{ color: T.sub }}>Close trip (back home)</button>
+      )}
+
+      <button onClick={() => setOpen(!open)} className="tap ui text-xs flex items-center gap-1 mt-2.5" style={{ color: T.sub }} aria-expanded={open}>
+        <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+        {open ? "Hide" : `Show all ${s.count} spends`}
+      </button>
+      {open && s.items.length > 0 && (
+        <div className="mt-2 rounded-xl px-3.5 py-1" style={{ background: T.paper }}>
+          {s.items.map((t) => (
+            <div key={t.id} className="flex items-center gap-2 py-1.5" style={{ borderBottom: `1px solid ${T.line}22` }}>
+              <span className="ui text-[10px] shrink-0 rounded px-1" style={{ background: t.tripKind === "work" ? "#B08D5722" : "#4E7A9B22", color: t.tripKind === "work" ? T.goldDeep : "#4E7A9B" }}>{t.tripKind === "work" ? "work" : "me"}</span>
+              <span className="ui text-[11px] flex-1 truncate" style={{ color: T.text }}>{t.note || t.category}<span style={{ color: T.faint }}> · {accName(t.accountId)}</span></span>
+              <span className="mono text-[11px] shrink-0" style={{ color: T.text }}>{fmtMoney(t.amount, t.currency, hide)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardBox>
+  );
+}
+
+export default function PlannedScreen({ recurrs, plans = [], trips = [], transactions = [], budgets, monthByCat, base, rates, hide, accName, onAddRecurr, onEditRecurr, onPaid, onDelRecurr, onToggleCancel, dueTone, setBudget, onPayMilestone, onDelPlan, onAddTrip, onEditTrip, onCloseTrip, onDelTrip, onSettleTrip }) {
   /* "Which subscriptions sit on which card / belong to whom?" —
      the two chip rows compose, and the bleed summary follows both. */
   const [subAcc, setSubAcc] = useState("all");
@@ -190,6 +259,14 @@ export default function PlannedScreen({ recurrs, plans = [], budgets, monthByCat
   return (
     <>
       <CancelWatchlist flagged={flagged} base={base} rates={rates} hide={hide} onDone={onDelRecurr} onKeep={onToggleCancel} />
+      <Section title="Trips" right={<AddMini onClick={onAddTrip} label="New trip" />}>
+        {trips.length === 0 && (
+          <div className="ui text-[12px] mb-3" style={{ color: T.faint }}>Travelling? Start a trip — every expense you log asks “personal or work?” and rolls up here.</div>
+        )}
+        {trips.map((tr) => (
+          <TripCard key={tr.id} trip={tr} transactions={transactions} base={base} rates={rates} hide={hide} accName={accName} onEdit={onEditTrip} onClose={onCloseTrip} onDel={onDelTrip} onSettle={onSettleTrip} />
+        ))}
+      </Section>
       {plans.length > 0 && (
         <Section title="Payment plans">
           {plans.map((p) => (

@@ -40,6 +40,11 @@ export function TxRow({ t, i, hide, accName, onDel, onEdit, compact }) {
         <div className="ui text-sm truncate flex items-center gap-1.5" style={{ color: T.text }}>
           <span className="truncate">{isTr ? "Transfer" : isAdj ? "Balance adjustment" : t.category}</span>
           <OwnerPill id={t.owner} />
+          {t.tripId && (
+            <span className="ui text-[9px] shrink-0 rounded px-1 py-px" style={{ background: t.tripKind === "work" ? "#B08D5722" : "#4E7A9B22", color: t.tripKind === "work" ? T.goldDeep : "#4E7A9B" }} title="Trip spend">
+              🧳 {t.tripKind === "work" ? "work" : "trip"}
+            </span>
+          )}
         </div>
         <div className="ui text-[11px] truncate" style={{ color: T.faint }}>
           {isTr ? `${accName(t.sourceAccountId)} → ${accName(t.destinationAccountId)}` : accName(t.accountId)}

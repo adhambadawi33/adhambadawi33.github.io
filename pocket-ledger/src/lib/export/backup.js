@@ -28,7 +28,7 @@ export function parseBackup(text) {
 export function mergeData(current, incoming) {
   const byId = (arr) => new Set(arr.map((x) => x.id));
   const merged = { ...incoming, meta: current.meta, settings: current.settings };
-  for (const k of ["accounts", "transactions", "recurrs", "debts", "plans"]) {
+  for (const k of ["accounts", "transactions", "recurrs", "debts", "plans", "trips"]) {
     const have = byId(current[k] || []);
     merged[k] = [...(current[k] || []), ...(incoming[k] || []).filter((x) => !have.has(x.id))];
   }

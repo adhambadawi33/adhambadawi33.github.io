@@ -39,8 +39,11 @@ function useOpenTransition(open, init) {
 }
 
 /* ── Add transaction ─────────────────────────────────────────── */
-export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccounts, initialText, onDebtDraft }) {
+export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccounts, initialText, onDebtDraft, trip }) {
   const [type, setType] = useState("expense");
+  /* Trip tag (Aug 2026): while a trip is open, every expense asks "for the
+     trip? personal / work / no" — remembers the last pick in the session. */
+  const [tripKind, setTripKind] = useState("personal");
   const [amount, setAmount] = useState("");
   const [cur, setCur] = useState("AED");
   const [cat, setCat] = useState(EXP_CATS[0].n);
@@ -155,7 +158,10 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
       });
     } else {
       onSave(
-        { id: uid(), type, date, note: note.trim(), snapshot, amount: +amount, currency: cur, accountId: acc.id, category: cat, owner },
+        {
+          id: uid(), type, date, note: note.trim(), snapshot, amount: +amount, currency: cur, accountId: acc.id, category: cat, owner,
+          ...(trip && type === "expense" && tripKind !== "none" ? { tripId: trip.id, tripKind } : {}),
+        },
         /* Quick-add guess corrected by hand? Teach the parser (batch 13). */
         parsedCatRef.current && cat !== parsedCatRef.current ? { note: quick || note, category: cat } : null
       );
@@ -287,6 +293,15 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
         {type !== "transfer" && (
           <Field label="Whose is it?">
             <ChipRow value={owner} onChange={setOwner} options={OWNERS.map((o) => ({ value: o.id, label: o.label }))} />
+          </Field>
+        )}
+        {trip && type === "expense" && (
+          <Field label={`🧳 ${trip.name} — trip spend?`}>
+            <ChipRow
+              value={tripKind}
+              onChange={setTripKind}
+              options={[{ value: "personal", label: "Personal · شخصي" }, { value: "work", label: "Work · شغل" }, { value: "none", label: "Not trip" }]}
+            />
           </Field>
         )}
 
@@ -718,6 +733,43 @@ export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
   );
 }
 
+/* ── Trip (new / edit) ── */
+export function TripSheet({ open, onClose, onSave, initial }) {
+  const [f, setF] = useState(null);
+  const init = React.useCallback(() => {
+    setF(initial
+      ? { name: initial.name, currency: initial.currency, startDate: initial.startDate, endDate: initial.endDate || "", open: initial.open }
+      : { name: "", currency: "AED", startDate: todayISO(), endDate: "", open: true });
+  }, [initial]);
+  useOpenTransition(open, init);
+  if (!open || !f) return null;
+  const ok = f.name.trim().length > 0;
+  return (
+    <Sheet open onClose={onClose} title={initial ? "Edit trip" : "New trip"}>
+      <Field label="Trip name"><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="e.g. Dubai — Aug 2026" className={inputCls} style={inputStyle} /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Trip currency">
+          <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
+        </Field>
+        <Field label="Start"><input type="date" value={f.startDate} onChange={(e) => setF({ ...f, startDate: e.target.value })} className={inputCls} style={inputStyle} /></Field>
+      </div>
+      <Field label="Status">
+        <ChipRow value={f.open ? "open" : "closed"} onChange={(v) => setF({ ...f, open: v === "open" })} options={[{ value: "open", label: "Open · travelling" }, { value: "closed", label: "Closed · back home" }]} />
+      </Field>
+      {!f.open && <Field label="End date"><input type="date" value={f.endDate} onChange={(e) => setF({ ...f, endDate: e.target.value })} className={inputCls} style={inputStyle} /></Field>}
+      <p className="ui text-[11px] -mt-1 mb-3" style={{ color: T.faint }}>While a trip is open, every new expense asks “for this trip? personal / work”. Money still leaves your real cards and cash — the trip just groups it.</p>
+      <button
+        onClick={() => ok && onSave({ id: initial?.id || uid(), name: f.name.trim(), currency: f.currency, startDate: f.startDate, endDate: f.open ? null : (f.endDate || todayISO()), open: f.open, settledDebtId: initial?.settledDebtId || null })}
+        disabled={!ok}
+        className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
+        style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}
+      >
+        Save trip
+      </button>
+    </Sheet>
+  );
+}
+
 /* ── Debt ── */
 export function DebtSheet({ open, onClose, onSave, initial }) {
   const [f, setF] = useState(null);
@@ -762,14 +814,17 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
 
 /* ── Edit a logged transaction (batch 9): fix the note, or move it to the
    right account. Amount/category stay put — delete + re-add for those. ── */
-export function EditTxSheet({ open, onClose, tx, accounts, onSave }) {
+export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] }) {
   const [note, setNote] = useState("");
   const [accId, setAccId] = useState(null);
   const [cat, setCat] = useState(null);
+  /* Trip tag: "<tripId>:<kind>" or "none". */
+  const [tripSel, setTripSel] = useState("none");
   const init = React.useCallback(() => {
     setNote(tx?.note || "");
     setAccId(tx?.accountId || null);
     setCat(tx?.category || null);
+    setTripSel(tx?.tripId ? `${tx.tripId}:${tx.tripKind || "personal"}` : "none");
   }, [tx]);
   useOpenTransition(open, init);
   if (!open || !tx) return null;
@@ -777,8 +832,13 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave }) {
   const movable = !isTr && tx.type !== "adjustment";
   const cats = tx.type === "income" ? INC_CATS : EXP_CATS.filter((c) => c.n !== "Adjustment");
   const save = () => {
-    onSave({ ...tx, note: note.trim(), ...(movable && accId ? { accountId: accId } : {}), ...(movable && cat ? { category: cat } : {}) });
+    const { tripId: _t, tripKind: _k, ...rest } = tx;
+    const [tid, tkind] = tripSel === "none" ? [null, null] : tripSel.split(":");
+    onSave({ ...rest, note: note.trim(), ...(movable && accId ? { accountId: accId } : {}), ...(movable && cat ? { category: cat } : {}), ...(tid && tx.type === "expense" ? { tripId: tid, tripKind: tkind } : {}) });
   };
+  const tripOptions = tx.type === "expense" && trips.length
+    ? [{ value: "none", label: "Not a trip" }, ...trips.flatMap((tr) => [{ value: `${tr.id}:personal`, label: `🧳 ${tr.name} · personal` }, { value: `${tr.id}:work`, label: `🧳 ${tr.name} · work` }])]
+    : null;
   return (
     <Sheet open onClose={onClose} title="Edit transaction">
       {/* The header category is DIRECTLY editable — tap it, pick, done.
@@ -826,6 +886,11 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave }) {
               })}
             </div>
           </div>
+        </Field>
+      )}
+      {tripOptions && (
+        <Field label="Trip">
+          <div className="overflow-x-auto no-scroll -mx-5 px-5"><div className="w-max"><ChipRow value={tripSel} onChange={setTripSel} options={tripOptions} /></div></div>
         </Field>
       )}
       {movable && (

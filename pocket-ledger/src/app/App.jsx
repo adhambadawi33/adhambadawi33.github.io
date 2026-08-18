@@ -6,7 +6,7 @@ import HomeScreen from "../components/screens/HomeScreen.jsx";
 import ActivityScreen from "../components/screens/ActivityScreen.jsx";
 import PlannedScreen from "../components/screens/PlannedScreen.jsx";
 import PeopleScreen from "../components/screens/PeopleScreen.jsx";
-import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet, EditTxSheet, PayPlanSheet } from "../components/sheets/sheets.jsx";
+import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet, EditTxSheet, PayPlanSheet, TripSheet } from "../components/sheets/sheets.jsx";
 import VoiceSheet from "../components/sheets/VoiceSheet.jsx";
 import ReportSheet from "../components/sheets/ReportSheet.jsx";
 import { STORAGE_KEY, LEGACY_KEYS } from "../lib/storage/adapter.js";
@@ -14,6 +14,7 @@ import { blankData, normalizeData } from "../lib/validation/schema.js";
 import { computeBalances, monthlyTotals } from "../lib/finance/balances.js";
 import { debtTotals } from "../lib/finance/netWorth.js";
 import { planStats } from "../lib/finance/plans.js";
+import { openTrip } from "../lib/finance/trips.js";
 import { syncSubscriptionOnTx } from "../lib/finance/subscriptions.js";
 import { computeNudges, pickNudge } from "../lib/nudges.js";
 import { matchPendingToSub, subAfterPayment } from "../lib/finance/subMatch.js";
@@ -41,6 +42,7 @@ export default function App({ storage }) {
   const [editAcc, setEditAcc] = useState(null);
   const [recurrKind, setRecurrKind] = useState("subscription");
   const [editRecurr, setEditRecurr] = useState(null);
+  const [editTrip, setEditTrip] = useState(null);
   const [actFilter, setActFilter] = useState({ q: "", accountId: "all" });
   const [undo, setUndo] = useState(null);
   const [resetOpen, setResetOpen] = useState(false);
@@ -272,6 +274,9 @@ export default function App({ storage }) {
     const learn = correction ? learnEntry(correction.note, correction.category) : null;
     /* A "Subscriptions" expense also updates the Planned list: renews the
        matching sub, or auto-adds a new one (undo removes just the sub). */
+    /* Voice-logged expenses during an open trip default to "personal trip
+       spend" (AddTxSheet asks explicitly; voice has no room to). Fix in Edit. */
+    if (activeTrip && tx.type === "expense" && !tx.tripId && opts.voice) tx = { ...tx, tripId: activeTrip.id, tripKind: "personal" };
     const synced = syncSubscriptionOnTx(data.recurrs, tx, uid);
     const next = { ...data, recurrs: synced.recurrs, transactions: [tx, ...data.transactions], settings: withLearned({ ...settings, lastAccount: tx.accountId }, learn) };
     commit(next, true);
@@ -377,6 +382,28 @@ export default function App({ storage }) {
     commit({ ...data, plans, transactions: [...tx, ...data.transactions] }, true);
     showFlash();
     scheduleUndo(`Paid: ${plan.name}`, () => commit({ ...prev }, true));
+  };
+  /* Trips (Aug 2026): a tag over expenses while travelling — see lib/finance/trips.js. */
+  const activeTrip = useMemo(() => (data ? openTrip(data.trips) : null), [data]);
+  const saveTrip = (tr) => {
+    const exists = (data.trips || []).some((x) => x.id === tr.id);
+    /* Only one trip open at a time — opening this one closes the others. */
+    const trips = (exists ? data.trips.map((x) => (x.id === tr.id ? tr : x)) : [...(data.trips || []), tr])
+      .map((x) => (tr.open && x.id !== tr.id && x.open ? { ...x, open: false, endDate: x.endDate || todayISO() } : x));
+    commit({ ...data, trips }, true); setSheet(null); setEditTrip(null); showFlash();
+  };
+  const closeTrip = (tr) => commit({ ...data, trips: data.trips.map((x) => (x.id === tr.id ? { ...x, open: false, endDate: todayISO() } : x)) }, true);
+  const delTrip = (tr) => {
+    const prev = data;
+    commit({ ...data, trips: data.trips.filter((x) => x.id !== tr.id), transactions: data.transactions.map((t) => (t.tripId === tr.id ? (({ tripId, tripKind, ...rest }) => rest)(t) : t)) }, true);
+    scheduleUndo(`${t("deleted")}: ${tr.name}`, () => commit({ ...prev }, true));
+  };
+  /* Work share → one receivable on the company (the trip remembers it). */
+  const settleTrip = (tr, workAmount) => {
+    if (!(workAmount > 0)) return;
+    const debt = { id: uid(), person: `Paradigm — ${tr.name}`, direction: "lent", noReturn: false, amount: Math.round(workAmount * 100) / 100, currency: tr.currency, repaid: 0, note: "Work expenses on the trip — company pays back", date: todayISO() };
+    commit({ ...data, debts: [...data.debts, debt], trips: data.trips.map((x) => (x.id === tr.id ? { ...x, settledDebtId: debt.id } : x)) }, true);
+    showFlash();
   };
   const delPlan = (p) => {
     const prev = data;
@@ -611,6 +638,9 @@ export default function App({ storage }) {
               onEditRecurr={(r) => { setRecurrKind(r.kind); setEditRecurr(r); setSheet("recurr"); }}
               onPaid={markPaid} onDelRecurr={delRecurr} onToggleCancel={toggleToCancel} dueTone={dueTone} setBudget={setBudget}
               onPayMilestone={payPlanMilestone} onDelPlan={delPlan}
+              trips={data.trips || []} transactions={data.transactions}
+              onAddTrip={() => { setEditTrip(null); setSheet("trip"); }} onEditTrip={(tr) => { setEditTrip(tr); setSheet("trip"); }}
+              onCloseTrip={closeTrip} onDelTrip={delTrip} onSettleTrip={settleTrip}
             />
           )}
           {tab === "people" && (
@@ -657,7 +687,7 @@ export default function App({ storage }) {
         {/* sheets */}
         <AddTxSheet
           open={sheet === "add"} onClose={() => { setSheet(null); setVoiceText(null); }} accounts={activeAccounts} settings={settings}
-          onSave={addTx} goAccounts={() => setSheet("accounts")} initialText={voiceText}
+          onSave={addTx} goAccounts={() => setSheet("accounts")} initialText={voiceText} trip={activeTrip}
           onDebtDraft={(p) => { setDebtDraft(p); setVoiceText(null); setSheet("debt"); }}
         />
         <VoiceSheet
@@ -670,9 +700,10 @@ export default function App({ storage }) {
         <AccountFormSheet open={sheet === "account-form"} onClose={() => setSheet("accounts")} initial={editAcc} onSave={saveAccount} currentBalance={editAcc ? balances[editAcc.id] : 0} />
         <RecurrSheet open={sheet === "recurr"} onClose={() => { setSheet(null); setEditRecurr(null); }} kind={recurrKind} accounts={activeAccounts} onSave={saveRecurr} initial={editRecurr} />
         <InboxSheet open={sheet === "inbox"} onClose={() => setSheet(null)} pending={data.pending} accounts={activeAccounts} matches={pendingMatches} onPasteImport={pasteSms} onManualImport={importSmsText} onApprove={approvePending} onDismiss={dismissPending} onApproveAll={approveAllPending} />
+        <TripSheet open={sheet === "trip"} onClose={() => { setSheet(null); setEditTrip(null); }} onSave={saveTrip} initial={editTrip} />
         <DebtSheet open={sheet === "debt"} onClose={() => { setSheet(null); setDebtDraft(null); }} onSave={saveDebt} initial={debtDraft} />
         <PayPlanSheet open={sheet === "pay-plan"} onClose={() => { setSheet(null); setPayPlanTarget(null); }} target={payPlanTarget} accounts={activeAccounts} onConfirm={confirmPayPlan} />
-        <EditTxSheet open={sheet === "edit-tx"} onClose={() => { setSheet(null); setEditTxTarget(null); }} tx={editTxTarget} accounts={activeAccounts} onSave={saveTxEdit} />
+        <EditTxSheet open={sheet === "edit-tx"} onClose={() => { setSheet(null); setEditTxTarget(null); }} tx={editTxTarget} accounts={activeAccounts} onSave={saveTxEdit} trips={data.trips || []} />
         <CardsSheet open={sheet === "cards"} onClose={() => setSheet(null)} cards={activeAccounts.filter((a) => a.type === "credit")} balances={balances} hide={hide} base={base} rates={settings.rates} />
         <ReportSheet open={sheet === "report"} onClose={() => setSheet(null)} data={data} base={base} hide={hide} accName={accName} />
         <SettingsSheet
