@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.8.0 — "One question per screen" (2026-09-07)
+
+Design pass driven by an ADHD-first brief: every screen answers one question, one big number, the rest folded.
+
+### Changed
+- **Header** — the full money picture (hero + four tiles) now lives on Home only; Activity, Planned and People get a one-line strip ("you have · total") so each screen's own answer sits above the fold.
+- **Planned** — rebuilt: one number ("Leaving your accounts · next 30 days"), a date-sorted **Next up** list (subscriptions, installments and plan milestones together, each with Paid), and everything else folded into summary rows (Subscriptions with its filters and bleed summary, Installments, Payment plans, Budgets, Trips). The cancel watchlist sits behind a single quiet amber line.
+- **People** — loan cards fold the repayment form behind "Record a repayment"; settled loans fold behind "N settled · show"; help and gifts merge into one collapsed **Given away** section with a gift/help tag per row (gifts also collected from expenses tagged `gift` or noted هدية).
+- **Activity** — account chips scroll in one row instead of wrapping; the month comparison line is neutral, never red.
+- **Buttons** — Add/Manage/All become quiet text links (`GhostBtn`); Paid is the only filled button (`PaidBtn`); every control is ≥44px tall.
+- **Tokens** — `faint` darkened from #A2A498 to #858880 for contrast; meaningful second lines use `sub`.
+- **Tab bar** — translucent with backdrop blur so the last row reads through instead of vanishing behind the FAB.
+
+### Added
+- `gift: true` tag on transactions and debts; `lib/finance/gifts.js` collects them for People.
+
 ## 2.0.0 — Phase 1 "Stabilize" (2026-07-17)
 
 Full implementation of the Phase 1 scope from `Pocket-Ledger-Claude-Handoff.md`, refactoring the single-file artifact into a production Vite project while preserving the Pocket Ledger identity (navy/gold, Fraunces/Inter/IBM Plex Mono, 4 tabs + gold FAB, bottom sheets, 3-tap entry).
