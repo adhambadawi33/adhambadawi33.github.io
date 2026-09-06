@@ -5,14 +5,30 @@ import {
 } from "lucide-react";
 
 /* "C+" calm palette: warm paper ground, deep forest header, single clay accent.
-   Chosen for low visual noise. */
-export const T = {
-  ink: "#2C3A2F", inkSoft: "#3A4A3E", paper: "#F1EEE7", surface: "#FBFAF6",
+   Chosen for low visual noise. Two palettes share one shape; `T` is a live
+   view onto whichever is active, so every inline style follows the theme. */
+export const LIGHT = {
+  ink: "#2C3A2F", inkSoft: "#3A4A3E", inkText: "#2C3A2F", paper: "#F1EEE7", surface: "#FBFAF6",
   line: "#E7E2D6", text: "#232A24", sub: "#6E7268", faint: "#858880",
   gold: "#B08D57", goldDeep: "#8A6A3B",
   green: "#3F8F6B", greenBg: "#E6F1EA", rose: "#A65C48", roseBg: "#F7EBE1",
   amber: "#A9853F", amberBg: "#F5EEDB",
+  shell: "#E7EAEF", placeholder: "#93A0AE", navBg: "rgba(251,250,246,0.82)",
 };
+/* Night: the forest becomes the ground, paper becomes ink. Same one accent. */
+export const DARK = {
+  ink: "#33423A", inkSoft: "#465750", inkText: "#ECE9E0", paper: "#151A17", surface: "#1E2520",
+  line: "#2C352F", text: "#ECE9E0", sub: "#ABB0A5", faint: "#82877D",
+  gold: "#C9A96A", goldDeep: "#D6BC86",
+  green: "#6FB994", greenBg: "rgba(111,185,148,0.16)", rose: "#D48F7B", roseBg: "rgba(212,143,123,0.16)",
+  amber: "#D3B26E", amberBg: "rgba(211,178,110,0.16)",
+  shell: "#0E120F", placeholder: "#6F756D", navBg: "rgba(30,37,32,0.84)",
+};
+let active = LIGHT;
+export const THEME_MODES = ["system", "light", "dark"];
+export const setTheme = (mode) => { active = mode === "dark" ? DARK : LIGHT; };
+export const currentTheme = () => (active === DARK ? "dark" : "light");
+export const T = new Proxy({}, { get: (_, k) => active[k], ownKeys: () => Reflect.ownKeys(active), getOwnPropertyDescriptor: (_, k) => ({ value: active[k], enumerable: true, configurable: true }) });
 
 /* Household owners (batch 4): subs, installments and expenses are tagged
    with whose they are. */
@@ -71,4 +87,6 @@ export const fmtMoney = (n, cur, hide) => {
   return cur === "USD" ? `$${v}` : cur === "EUR" ? `€${v}` : `${v} ${cur}`;
 };
 export const inputCls = "ui w-full rounded-xl px-3.5 py-3 text-[15px] outline-none";
-export const inputStyle = { background: T.paper, border: `1px solid ${T.line}`, color: T.text };
+/* Live like T: inputs follow the theme even though callers spread this object. */
+const inputStyleOf = () => ({ background: T.paper, border: `1px solid ${T.line}`, color: T.text });
+export const inputStyle = new Proxy({}, { get: (_, k) => inputStyleOf()[k], ownKeys: () => Object.keys(inputStyleOf()), getOwnPropertyDescriptor: (_, k) => ({ value: inputStyleOf()[k], enumerable: true, configurable: true }) });

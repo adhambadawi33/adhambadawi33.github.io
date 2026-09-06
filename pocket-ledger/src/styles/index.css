@@ -9,6 +9,8 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body { margin: 0; background: #E7EAEF; }
+html[data-theme="dark"] body { background: #0E120F; color-scheme: dark; }
+html[data-theme="dark"] input::placeholder, html[data-theme="dark"] textarea::placeholder { color: #6F756D; }
 *:focus-visible { outline: 2px solid #C9A96A; outline-offset: 1px; }
 
 .tap { transition: transform .08s ease, opacity .15s ease; }

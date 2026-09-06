@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Home, Receipt, CalendarClock, Coins, Plus, Settings as SettingsIcon, Eye, EyeOff, Wallet, CheckCircle2, Inbox } from "lucide-react";
-import { T } from "../styles/tokens.js";
+import { T, setTheme, THEME_MODES } from "../styles/tokens.js";
 import { SaveErrorBanner, UndoToast, TypedConfirm } from "../components/common/primitives.jsx";
 import HomeScreen from "../components/screens/HomeScreen.jsx";
 import ActivityScreen from "../components/screens/ActivityScreen.jsx";
@@ -145,6 +145,24 @@ export default function App({ storage }) {
   const base = settings.base;
   const t = useMemo(() => makeT(settings.language), [settings.language]);
   useEffect(() => applyDir(settings.language), [settings.language]);
+  /* Theme: resolved synchronously so this very render paints with the right
+     palette; the document attribute + meta color follow in an effect. */
+  const [systemDark, setSystemDark] = useState(() => typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches);
+  useEffect(() => {
+    if (typeof matchMedia === "undefined") return;
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    const on = (e) => setSystemDark(e.matches);
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  const themeMode = THEME_MODES.includes(settings.theme) ? settings.theme : "system";
+  const resolvedTheme = themeMode === "system" ? (systemDark ? "dark" : "light") : themeMode;
+  setTheme(resolvedTheme);
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.dataset.theme = resolvedTheme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", T.ink);
+  }, [resolvedTheme]);
 
   /* ── derived ── */
   const sortedAccounts = useMemo(
@@ -395,7 +413,7 @@ export default function App({ storage }) {
   const closeTrip = (tr) => commit({ ...data, trips: data.trips.map((x) => (x.id === tr.id ? { ...x, open: false, endDate: todayISO() } : x)) }, true);
   const delTrip = (tr) => {
     const prev = data;
-    commit({ ...data, trips: data.trips.filter((x) => x.id !== tr.id), transactions: data.transactions.map((t) => (t.tripId === tr.id ? (({ tripId, tripKind, ...rest }) => rest)(t) : t)) }, true);
+    commit({ ...data, trips: data.trips.filter((x) => x.id !== tr.id), transactions: data.transactions.map((t) => (t.tripId === tr.id ? (({ tripId: _tripId, tripKind: _tripKind, ...rest }) => rest)(t) : t)) }, true);
     scheduleUndo(`${t("deleted")}: ${tr.name}`, () => commit({ ...prev }, true));
   };
   /* Work share → one receivable on the company (the trip remembers it). */
@@ -519,6 +537,7 @@ export default function App({ storage }) {
     commit({ ...data, budgets });
   };
   const setBase = (b) => commit({ ...data, settings: { ...settings, base: b } }, true);
+  const setPref = (key, value) => commit({ ...data, settings: { ...settings, [key]: value } }, true);
   const saveRates = (rates) => {
     const changed = CURRENCIES.some((c) => c !== "USD" && rates[c] !== settings.rates[c]);
     if (changed && !window.confirm("New rates change live balance totals from now on. Past entries keep their original rates. Continue?")) return;
@@ -679,7 +698,7 @@ export default function App({ storage }) {
         </main>
 
         {/* tab bar + FAB */}
-        <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30" style={{ background: "rgba(251,250,246,0.82)", backdropFilter: "saturate(1.3) blur(14px)", WebkitBackdropFilter: "saturate(1.3) blur(14px)", borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Main">
+        <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30" style={{ background: T.navBg, backdropFilter: "saturate(1.3) blur(14px)", WebkitBackdropFilter: "saturate(1.3) blur(14px)", borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Main">
           <div className="relative flex items-stretch justify-around px-2 pt-1.5 pb-2">
             {TABS.slice(0, 2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
             <div className="w-16" aria-hidden="true" />
@@ -739,7 +758,7 @@ export default function App({ storage }) {
         <SettingsSheet
           open={sheet === "settings"} onClose={() => setSheet(null)} settings={settings}
           counts={{ tx: data.transactions.length, accounts: data.accounts.length, recurrs: data.recurrs.length, debts: data.debts.length }}
-          onBase={setBase} onSaveRates={saveRates} onFetchRates={fetchRatesNow} onExportCsv={exportCsv} onExportBackup={exportBackup}
+          onBase={setBase} onPref={setPref} onSaveRates={saveRates} onFetchRates={fetchRatesNow} onExportCsv={exportCsv} onExportBackup={exportBackup}
           onImportBackup={importBackup} onResetRequest={() => setResetOpen(true)} backendName={storage.backendName}
         />
       </div>
@@ -758,7 +777,7 @@ function HeadStat({ label, v, owe }) {
 
 function TabBtn({ t, on, set }) {
   return (
-    <button onClick={() => set(t.id)} aria-current={on ? "page" : undefined} className="tap flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-h-[44px]" style={{ color: on ? T.ink : T.sub }}>
+    <button onClick={() => set(t.id)} aria-current={on ? "page" : undefined} className="tap flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-h-[44px]" style={{ color: on ? T.inkText : T.sub }}>
       <t.I size={20} strokeWidth={on ? 2.4 : 2} aria-hidden="true" />
       <span className="ui text-[10px]" style={{ fontWeight: on ? 600 : 400 }}>{t.label}</span>
     </button>

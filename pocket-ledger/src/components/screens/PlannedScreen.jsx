@@ -10,10 +10,6 @@ import { SubLogo } from "../common/brand.jsx";
 import { fmtMoney } from "../../styles/tokens.js";
 import { daysUntilFromToday, humanDay, monthYear } from "../../lib/dates/ui.js";
 
-const AddMini = ({ onClick, label }) => (
-  <GhostBtn onClick={onClick}>{label || "Add"} <span aria-hidden="true">›</span></GhostBtn>
-);
-
 /* Normalize any billing cycle to a monthly figure for the bleed total. */
 const monthlyOf = (r) => (r.cycle === "yearly" ? r.amount / 12 : r.cycle === "weekly" ? r.amount * 4.33 : r.amount);
 

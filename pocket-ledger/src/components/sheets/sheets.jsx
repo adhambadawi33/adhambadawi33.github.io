@@ -561,7 +561,7 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
 
       {rows.length === 0 && <p className="ui text-sm text-center py-8" style={{ color: T.sub }}>No credit cards yet — add one from Accounts.</p>}
 
-      {rows.map(({ a, bal, owed, avail }) => {
+      {rows.map(({ a, owed, avail }) => {
         const bank = bankFor(a.bank || a.name);
         const usedPct = a.creditLimit ? Math.min(100, (owed / a.creditLimit) * 100) : 0;
         return (
@@ -1040,7 +1040,7 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
 
 /* ── Settings: draft-validated rates, backup/restore, typed reset ── */
 export function SettingsSheet({
-  open, onClose, settings, counts, onBase, onSaveRates, onFetchRates, onExportCsv, onExportBackup, onImportBackup, onResetRequest, backendName,
+  open, onClose, settings, counts, onBase, onPref, onSaveRates, onFetchRates, onExportCsv, onExportBackup, onImportBackup, onResetRequest, backendName,
 }) {
   const [drafts, setDrafts] = useState({});
   const [err, setErr] = useState("");
@@ -1066,6 +1066,13 @@ export function SettingsSheet({
 
   return (
     <Sheet open={open} onClose={onClose} title="Settings" tall>
+      <Field label="Appearance">
+        <ChipRow value={settings.theme || "system"} onChange={(v) => onPref?.("theme", v)} options={[{ value: "system", label: "Match device" }, { value: "light", label: "Light" }, { value: "dark", label: "Dark" }]} />
+      </Field>
+      <Field label="Language · اللغة">
+        <ChipRow value={settings.language || "en"} onChange={(v) => onPref?.("language", v)} options={[{ value: "en", label: "English" }, { value: "ar", label: "العربية" }]} />
+      </Field>
+
       <Field label="Base currency (everything rolls up into this)">
         <ChipRow value={settings.base} onChange={onBase} options={CURRENCIES.map((c) => ({ value: c, label: c }))} />
       </Field>
