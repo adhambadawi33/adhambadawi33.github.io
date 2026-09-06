@@ -1,3 +1,4 @@
+import { useT } from "../../i18n/index.js";
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Printer, Repeat, CalendarClock } from "lucide-react";
 import { T, fmtMoney, catDef, ownerDef } from "../../styles/tokens.js";
@@ -21,6 +22,7 @@ function HeroStat({ label, v, color }) {
    The Print button turns the sheet into the print layout (print CSS in
    index.css keyed off body.report-open). */
 export default function ReportSheet({ open, onClose, data, base, hide, accName }) {
+  const tr = useT();
   const [monthKey, setMonthKey] = useState(thisMonthKey());
   useEffect(() => { if (open) setMonthKey(thisMonthKey()); }, [open]);
 
@@ -48,7 +50,7 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
   const maxCat = report.categories[0]?.v || 1;
 
   return (
-    <Sheet open={open} onClose={onClose} title="Monthly report" tall overlayClass="print-overlay" panelClass="print-panel" bodyClass="print-body">
+    <Sheet open={open} onClose={onClose} title={tr("sheets.report.title")} tall overlayClass="print-overlay" panelClass="print-panel" bodyClass="print-body">
       {/* month navigation */}
       <div className="flex items-center justify-between mb-4">
         <button

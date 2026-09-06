@@ -1,3 +1,4 @@
+import { useT } from "../../i18n/index.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Mic, Keyboard, HandCoins, RotateCcw, Repeat, ChevronDown } from "lucide-react";
 import { T, EXP_CATS, INC_CATS, OWNERS, fmtMoney } from "../../styles/tokens.js";
@@ -24,6 +25,7 @@ const EXAMPLES = [
    mode re-opens the mic after every save for end-of-day catch-ups.
    Nothing ever saves without the explicit confirm tap. */
 export default function VoiceSheet({ open, onClose, accounts, settings, onSave, onDebtDraft, onTypeInstead }) {
+  const tr = useT();
   const [phase, setPhase] = useState("listening"); // listening | review | idle
   const [heard, setHeard] = useState("");
   const [err, setErr] = useState("");
@@ -182,7 +184,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
   );
 
   return (
-    <Sheet open onClose={onClose} title="Say it" tall>
+    <Sheet open onClose={onClose} title={tr("sheets.voice.title")} tall>
       {phase === "listening" && (
         <div className="flex flex-col items-center pt-6 pb-6">
           {lastSaved && (

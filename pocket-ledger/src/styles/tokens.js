@@ -81,10 +81,16 @@ export const ADJ_CAT = { n: "Adjustment", I: SlidersHorizontal, c: "#54606C" };
 export const catDef = (name) =>
   [...EXP_CATS, ...INC_CATS, ADJ_CAT].find((c) => c.n === name) || EXP_CATS[EXP_CATS.length - 1];
 
+const AR_CUR = { EGP: "ج.م", AED: "د.إ", SAR: "ر.س" };
+/* Currency label follows the UI language (set by App via setCurrencyLang);
+   digits stay Western everywhere so numbers line up in the mono column. */
+let curLang = "en";
+export const setCurrencyLang = (l) => { curLang = l === "ar" ? "ar" : "en"; };
+export const curLabel = (cur) => (curLang === "ar" && AR_CUR[cur] ? AR_CUR[cur] : cur);
 export const fmtMoney = (n, cur, hide) => {
   if (hide) return "•••••";
   const v = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  return cur === "USD" ? `$${v}` : cur === "EUR" ? `€${v}` : `${v} ${cur}`;
+  return cur === "USD" ? `$${v}` : cur === "EUR" ? `€${v}` : `${v} ${curLabel(cur)}`;
 };
 export const inputCls = "ui w-full rounded-xl px-3.5 py-3 text-[15px] outline-none";
 /* Live like T: inputs follow the theme even though callers spread this object. */

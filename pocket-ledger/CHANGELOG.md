@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.9.0 — Arabic UI, dark mode, lint (2026-09-07)
+
+### Added
+- **Arabic interface** — Settings → Language switches every screen and sheet to Egyptian Arabic with RTL layout: tabs, header, Home/Activity/Planned/People, all sheets (add, accounts, cards, recurring, plans, trips, loans, edit, inbox, settings), empty states, nudges, aria labels. Category and owner names, dates (Arabic weekday/month, Western digits) and currency labels (ج.م · د.إ · ر.س) follow the language. `useT()` + `i18n/{en,ar}.js`; the numeric keypad stays 1-2-3 left-to-right.
+- **Dark mode** — Settings → Appearance: match device / light / dark. Two palettes behind one live token object, translucent tab bar and inputs follow the theme, meta theme-color updates.
+- **ESLint** config (React + hooks), `npm run lint` clean.
+
+### Notes
+- Monthly report and voice sheet bodies remain English for now (titles translated).
+
 ## 2.8.0 — "One question per screen" (2026-09-07)
 
 Design pass driven by an ADHD-first brief: every screen answers one question, one big number, the rest folded.

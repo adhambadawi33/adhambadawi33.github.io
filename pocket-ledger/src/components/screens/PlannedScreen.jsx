@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Check, Landmark, ChevronDown, ChevronRight, Trash2, Luggage, Lightbulb, Repeat, Layers, PiggyBank, CalendarClock } from "lucide-react";
-import { T, EXP_CATS, OWNERS, inputStyle } from "../../styles/tokens.js";
+import { T, EXP_CATS, OWNERS, inputStyle, curLabel } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
 import { planStats } from "../../lib/finance/plans.js";
 import { tripStats } from "../../lib/finance/trips.js";
@@ -9,6 +9,7 @@ import { RecurrList, OwnerPill } from "../common/rows.jsx";
 import { SubLogo } from "../common/brand.jsx";
 import { fmtMoney } from "../../styles/tokens.js";
 import { daysUntilFromToday, humanDay, monthYear } from "../../lib/dates/ui.js";
+import { useT, catLabel, ownerLabel } from "../../i18n/index.js";
 
 /* Normalize any billing cycle to a monthly figure for the bleed total. */
 const monthlyOf = (r) => (r.cycle === "yearly" ? r.amount / 12 : r.cycle === "weekly" ? r.amount * 4.33 : r.amount);
@@ -16,6 +17,7 @@ const monthlyOf = (r) => (r.cycle === "yearly" ? r.amount / 12 : r.cycle === "we
 /* The subscription "bleed monitor" (the core pain point): one glance =
    what leaks monthly, what that means per year, and whose it is. */
 function BleedSummary({ recurrs, base, rates, hide }) {
+  const t = useT();
   const subs = recurrs.filter((r) => r.kind === "subscription" && !r.paused);
   if (!subs.length) return null;
   let total = 0;
@@ -29,13 +31,13 @@ function BleedSummary({ recurrs, base, rates, hide }) {
   return (
     <CardBox className="px-4 py-3.5 mb-3">
       <div className="flex items-baseline justify-between mb-1">
-        <span className="mono text-[22px]" style={{ color: T.text }}>≈ {f(total)} <span className="ui text-[12px]" style={{ color: T.faint }}>{base} / month</span></span>
-        <span className="ui text-[11px]" style={{ color: T.sub }}>= <b className="mono">{f(total * 12)}</b> a year</span>
+        <span className="mono text-[22px]" style={{ color: T.text }}>≈ {f(total)} <span className="ui text-[12px]" style={{ color: T.faint }}>{t("planned.perMonth", { cur: curLabel(base) })}</span></span>
+        <span className="ui text-[11px]" style={{ color: T.sub }}>{t("planned.aYear", { amt: f(total * 12) })}</span>
       </div>
       <div className="flex gap-2 mt-2.5">
         {OWNERS.filter((o) => byOwner[o.id] > 0.005).map((o) => (
           <span key={o.id} className="ui text-[11px] font-medium rounded-lg px-2.5 py-1.5 flex-1 text-center" style={{ background: o.bg, color: o.c }}>
-            {o.label} · <b className="mono">{f(byOwner[o.id])}</b>
+            {ownerLabel(o.id)} · <b className="mono">{f(byOwner[o.id])}</b>
           </span>
         ))}
       </div>
@@ -46,6 +48,7 @@ function BleedSummary({ recurrs, base, rates, hide }) {
 /* "Needs cancelling" watchlist: flagged subs stay loudly in sight until the
    user actually cancels them at the service and confirms here. */
 function CancelWatchlist({ flagged, base, rates, hide, onDone, onKeep }) {
+  const t = useT();
   if (!flagged.length) return null;
   const saving = flagged.reduce((s, r) => s + convert(monthlyOf(r), r.currency, base, rates), 0);
   const f = (n) => (hide ? "•••••" : Math.round(n).toLocaleString("en-US"));
@@ -61,22 +64,22 @@ function CancelWatchlist({ flagged, base, rates, hide, onDone, onKeep }) {
                   <span className="truncate">{r.name}</span>
                   <OwnerPill id={r.owner} />
                 </div>
-                <div className="ui text-[11px]" style={{ color: T.rose }}>cancel it at the service, then confirm here</div>
+                <div className="ui text-[11px]" style={{ color: T.rose }}>{t("planned.cancelAtService")}</div>
               </div>
               <Money n={r.amount} cur={r.currency} hide={hide} className="text-[13px]" />
             </div>
             <div className="flex items-center gap-2 mt-2" style={{ paddingInlineStart: 44 }}>
               <button onClick={() => onDone(r)} className="tap ui text-[12px] font-semibold rounded-lg px-3 min-h-[44px] flex items-center gap-1" style={{ background: T.green, color: "#fff" }}>
-                <Check size={12} aria-hidden="true" /> Cancelled — remove it
+                <Check size={12} aria-hidden="true" /> {t("planned.cancelledRemove")}
               </button>
-              <button onClick={() => onKeep(r)} className="tap ui text-[12px] rounded-lg px-3 min-h-[44px]" style={{ color: T.sub, border: `1px solid ${T.line}`, background: "#fff" }} aria-label={`Keep ${r.name}`}>
-                Keep it
+              <button onClick={() => onKeep(r)} className="tap ui text-[12px] rounded-lg px-3 min-h-[44px]" style={{ color: T.sub, border: `1px solid ${T.line}`, background: "#fff" }} aria-label={t("planned.keepAria", { name: r.name })}>
+                {t("planned.keepIt")}
               </button>
             </div>
           </div>
         ))}
         <p className="ui text-[11px] mt-2 pt-2" style={{ color: T.rose, borderTop: "1px solid rgba(178,114,79,.15)" }}>
-          Stopping these saves ≈ <b className="mono">{f(saving)}</b> {base}/month = <b className="mono">{f(saving * 12)}</b> a year.
+          {t("planned.stoppingSaves", { m: f(saving), cur: curLabel(base), y: f(saving * 12) })}
         </p>
       </div>
     </div>
@@ -87,6 +90,7 @@ function CancelWatchlist({ flagged, base, rates, hide, onDone, onKeep }) {
    top (that's the actionable bit), overall progress under it, and the full
    schedule folded away — surface, don't dig. */
 function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const s = planStats(p);
   const tone = s.next ? dueTone(daysUntilFromToday(s.next.due)) : null;
@@ -103,10 +107,10 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
             <OwnerPill id={p.owner} />
           </div>
           {accName && p.accountId && (
-            <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.sub }}>from {accName(p.accountId)}</div>
+            <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.sub }}>{t("common.from", { name: accName(p.accountId) })}</div>
           )}
         </div>
-        <button onClick={() => onDel(p)} className="tap p-3.5 -m-2 opacity-40" style={{ color: T.rose }} aria-label={`Delete ${p.name}`}>
+        <button onClick={() => onDel(p)} className="tap p-3.5 -m-2 opacity-40" style={{ color: T.rose }} aria-label={t("planned.deletePlan", { name: p.name })}>
           <Trash2 size={14} />
         </button>
       </div>
@@ -114,7 +118,7 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
       {s.next ? (
         <div className="flex items-center gap-3 mt-3 rounded-xl px-3.5 py-3" style={{ background: T.paper }}>
           <div className="min-w-0 flex-1">
-            <div className="ui text-[11px]" style={{ color: T.faint }}>Next payment · {s.paidCount + 1} of {s.count}</div>
+            <div className="ui text-[11px]" style={{ color: T.faint }}>{t("planned.nextPayment", { i: s.paidCount + 1, n: s.count })}</div>
             <Money n={s.next.amount} cur={p.currency} hide={hide} className="text-[17px]" />
             <div className="ui text-[11px] mt-0.5" style={{ color: tone.c }}>{tone.t} · {humanDay(s.next.due)}</div>
           </div>
@@ -122,19 +126,19 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
         </div>
       ) : (
         <div className="ui text-[12px] mt-3 flex items-center gap-1.5" style={{ color: T.green }}>
-          <Check size={14} aria-hidden="true" /> Fully paid ✓
+          <Check size={14} aria-hidden="true" /> {t("planned.fullyPaid")}
         </div>
       )}
 
       <div className="mt-3"><Bar pct={pct} color={s.done ? T.green : T.gold} /></div>
       <div className="mono text-[10px] mt-1" style={{ color: T.sub }}>
-        {fmtMoney(Math.round(s.paidSum), p.currency, hide)} of {fmtMoney(Math.round(s.totalSum), p.currency, hide)} paid · {Math.round(pct)}%
-        {!s.done && ` · ends ${monthYear(s.endDue)}`}
+        {t("planned.paidOf", { paid: fmtMoney(Math.round(s.paidSum), p.currency, hide), total: fmtMoney(Math.round(s.totalSum), p.currency, hide), pct: Math.round(pct) })}
+        {!s.done && t("planned.ends", { date: monthYear(s.endDue) })}
       </div>
 
       <button onClick={() => setOpen(!open)} className="tap ui text-xs flex items-center gap-1 mt-1 min-h-[44px]" style={{ color: T.sub }} aria-expanded={open}>
         <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-        {open ? "Hide schedule" : `Show all ${s.count} payments`}
+        {open ? t("planned.hideSchedule") : t("planned.showAll", { n: s.count })}
       </button>
       {open && (
         <div className="mt-2 rounded-xl px-3.5 py-1" style={{ background: T.paper }}>
@@ -143,7 +147,7 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
             return (
               <div key={m.id} className="flex items-center gap-2 py-1.5" style={{ borderBottom: `1px solid ${T.line}22` }}>
                 <span className="ui text-[10px] w-10 shrink-0" style={{ color: m.paid ? T.green : isNext ? T.goldDeep : T.faint }}>
-                  {m.paid ? "✓" : isNext ? "next" : ""} {m.label}
+                  {m.paid ? "✓" : isNext ? t("planned.nextTag") : ""} {m.label}
                 </span>
                 <span className="mono text-[10px] flex-1" style={{ color: m.paid ? T.faint : T.sub }}>{m.due}</span>
                 <span className="mono text-[11px]" style={{ color: m.paid ? T.faint : T.text, textDecoration: m.paid ? "line-through" : "none" }}>
@@ -161,6 +165,7 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
 /* Trip card (Aug 2026): everything spent on a trip, personal vs work, in the
    trip's currency with an ≈ base line. Work share = what the company owes. */
 function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onClose, onDel, onSettle }) {
+  const tr = useT();
   const [open, setOpen] = useState(false);
   const s = tripStats(trip, transactions, rates);
   const approx = (n) => (trip.currency === base ? null : `≈ ${fmtMoney(Math.round(convert(n, trip.currency, base, rates)), base, hide)}`);
@@ -170,22 +175,22 @@ function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onCl
         <span className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#4E7A9B22", color: "#4E7A9B" }} aria-hidden="true">
           <Luggage size={17} />
         </span>
-        <button onClick={() => onEdit(trip)} className="tap min-w-0 flex-1 text-left" aria-label={`Edit trip ${trip.name}`}>
+        <button onClick={() => onEdit(trip)} className="tap min-w-0 flex-1 text-left" aria-label={tr("planned.editTrip", { name: trip.name })}>
           <div className="ui text-sm truncate" style={{ color: T.text }}>{trip.name}</div>
           <div className="ui text-[10px] mt-0.5" style={{ color: trip.open ? T.green : T.faint }}>
-            {trip.open ? "● Open — new expenses ask about this trip" : `Closed · ${trip.startDate}${trip.endDate ? ` → ${trip.endDate}` : ""}`}
+            {trip.open ? tr("planned.tripOpenLine") : tr("planned.tripClosedLine", { from: trip.startDate, to: trip.endDate ? ` → ${trip.endDate}` : "" })}
           </div>
         </button>
-        <button onClick={() => onDel(trip)} className="tap p-3.5 -m-2 opacity-40" style={{ color: T.rose }} aria-label={`Delete trip ${trip.name}`}>
+        <button onClick={() => onDel(trip)} className="tap p-3.5 -m-2 opacity-40" style={{ color: T.rose }} aria-label={tr("planned.deleteTrip", { name: trip.name })}>
           <Trash2 size={14} />
         </button>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mt-3">
         {[
-          { l: "Total", v: s.total, c: T.text },
-          { l: "Personal · شخصي", v: s.personal, c: T.text },
-          { l: "Work · شغل", v: s.work, c: T.goldDeep },
+          { l: tr("planned.total"), v: s.total, c: T.text },
+          { l: tr("planned.personal"), v: s.personal, c: T.text },
+          { l: tr("planned.work"), v: s.work, c: T.goldDeep },
         ].map((x) => (
           <div key={x.l} className="rounded-xl px-3 py-2" style={{ background: T.paper }}>
             <div className="ui text-[10px] truncate" style={{ color: T.faint }}>{x.l}</div>
@@ -197,26 +202,26 @@ function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onCl
 
       {s.work > 0 && !trip.settledDebtId && (
         <button onClick={() => onSettle(trip, s.work)} className="tap ui w-full text-[12px] font-medium rounded-xl px-3 py-2.5 mt-2.5" style={{ background: T.goldBg || "#B08D5722", color: T.goldDeep, border: `1px solid ${T.gold}` }}>
-          Company owes {fmtMoney(Math.round(s.work), trip.currency, hide)} → record as a debt
+          {tr("planned.companyOwes", { amt: fmtMoney(Math.round(s.work), trip.currency, hide) })}
         </button>
       )}
       {trip.settledDebtId && (
-        <div className="ui text-[11px] mt-2.5 flex items-center gap-1.5" style={{ color: T.green }}><Check size={13} aria-hidden="true" /> Work share recorded as a debt on the company</div>
+        <div className="ui text-[11px] mt-2.5 flex items-center gap-1.5" style={{ color: T.green }}><Check size={13} aria-hidden="true" /> {tr("planned.workRecorded")}</div>
       )}
       {trip.open && (
-        <button onClick={() => onClose(trip)} className="tap ui text-[12px] mt-1 min-h-[44px] underline" style={{ color: T.sub }}>Close trip (back home)</button>
+        <button onClick={() => onClose(trip)} className="tap ui text-[12px] mt-1 min-h-[44px] underline" style={{ color: T.sub }}>{tr("planned.closeTrip")}</button>
       )}
 
       <button onClick={() => setOpen(!open)} className="tap ui text-xs flex items-center gap-1 mt-1 min-h-[44px]" style={{ color: T.sub }} aria-expanded={open}>
         <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-        {open ? "Hide" : `Show all ${s.count} spends`}
+        {open ? tr("planned.hide") : tr("planned.showSpends", { n: s.count })}
       </button>
       {open && s.items.length > 0 && (
         <div className="mt-2 rounded-xl px-3.5 py-1" style={{ background: T.paper }}>
           {s.items.map((t) => (
             <div key={t.id} className="flex items-center gap-2 py-1.5" style={{ borderBottom: `1px solid ${T.line}22` }}>
-              <span className="ui text-[10px] shrink-0 rounded px-1" style={{ background: t.tripKind === "work" ? "#B08D5722" : "#4E7A9B22", color: t.tripKind === "work" ? T.goldDeep : "#4E7A9B" }}>{t.tripKind === "work" ? "work" : "me"}</span>
-              <span className="ui text-[11px] flex-1 truncate" style={{ color: T.text }}>{t.note || t.category}<span style={{ color: T.faint }}> · {accName(t.accountId)}</span></span>
+              <span className="ui text-[10px] shrink-0 rounded px-1" style={{ background: t.tripKind === "work" ? "#B08D5722" : "#4E7A9B22", color: t.tripKind === "work" ? T.goldDeep : "#4E7A9B" }}>{t.tripKind === "work" ? tr("planned.workTag") : tr("planned.me")}</span>
+              <span className="ui text-[11px] flex-1 truncate" style={{ color: T.text }}>{t.note || catLabel(t.category)}<span style={{ color: T.faint }}> · {accName(t.accountId)}</span></span>
               <span className="mono text-[11px] shrink-0" style={{ color: T.text }}>{fmtMoney(t.amount, t.currency, hide)}</span>
             </div>
           ))}
@@ -252,6 +257,7 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
      the two chip rows compose, and the bleed summary follows both. */
   const [subAcc, setSubAcc] = useState("all");
   const [subOwner, setSubOwner] = useState("all");
+  const t = useT();
   const [openGroup, setOpenGroup] = useState(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const toggle = (id) => setOpenGroup(openGroup === id ? null : id);
@@ -260,14 +266,14 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
   const subsOnly = active.filter((r) => r.kind === "subscription");
   const subAccIds = [...new Set(subsOnly.map((r) => r.accountId || "none"))];
   const accFilterOptions = [
-    { value: "all", label: "All" },
+    { value: "all", label: t("planned.allChip") },
     ...subAccIds.filter((id) => id !== "none").map((id) => ({ value: id, label: accName(id) })),
-    ...(subAccIds.includes("none") ? [{ value: "none", label: "No card" }] : []),
+    ...(subAccIds.includes("none") ? [{ value: "none", label: t("planned.noCard") }] : []),
   ];
   const subOwnerIds = [...new Set(subsOnly.map((r) => r.owner || "me"))];
   const ownerFilterOptions = [
-    { value: "all", label: "Everyone" },
-    ...OWNERS.filter((o) => subOwnerIds.includes(o.id)).map((o) => ({ value: o.id, label: o.label })),
+    { value: "all", label: t("planned.everyone") },
+    ...OWNERS.filter((o) => subOwnerIds.includes(o.id)).map((o) => ({ value: o.id, label: ownerLabel(o.id) })),
   ];
   const bySubAcc = (r) => subAcc === "all" || (r.accountId || "none") === subAcc;
   const bySubOwner = (r) => subOwner === "all" || (r.owner || "me") === subOwner;
@@ -283,24 +289,24 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
   const liveSubs = subsOnly.filter((r) => !r.paused);
   const subMonthly = liveSubs.reduce((s, r) => s + convert(monthlyOf(r), r.currency, base, rates), 0);
   const insts = recurrs.filter((r) => r.kind === "installment" && r.monthsPaid < r.monthsTotal);
-  const instSummary = insts.length === 0 ? "none running" : insts.length === 1 ? `${insts[0].name} · ${insts[0].monthsTotal - insts[0].monthsPaid} months left` : `${insts.length} running`;
+  const instSummary = insts.length === 0 ? t("planned.instNone") : insts.length === 1 ? t("planned.instOne", { name: insts[0].name, n: insts[0].monthsTotal - insts[0].monthsPaid }) : t("planned.running", { n: insts.length });
   const openPlans = plans.filter((p) => !planStats(p).done);
-  const planSummary = plans.length === 0 ? "none" : openPlans.length === 1 ? (() => { const st = planStats(openPlans[0]); return `${openPlans[0].name} · ${Math.round((st.paidSum / st.totalSum) * 100)}% paid · ends ${monthYear(st.endDue)}`; })() : openPlans.length === 0 ? "all paid" : `${openPlans.length} running`;
+  const planSummary = plans.length === 0 ? t("planned.none") : openPlans.length === 1 ? (() => { const st = planStats(openPlans[0]); return t("planned.plansOne", { name: openPlans[0].name, pct: Math.round((st.paidSum / st.totalSum) * 100), date: monthYear(st.endDue) }); })() : openPlans.length === 0 ? t("planned.plansAllPaid") : t("planned.running", { n: openPlans.length });
   const budgetCats = EXP_CATS.filter((c) => !["Subscriptions", "Installments", "Adjustment"].includes(c.n));
   const setBudgets = budgetCats.filter((c) => (budgets[c.n] || 0) > 0);
   const overBudget = setBudgets.filter((c) => (monthByCat[c.n] || 0) > budgets[c.n]);
-  const budgetSummary = setBudgets.length === 0 ? "none set" : overBudget.length === 0 ? `${setBudgets.length} set · all on track this month` : `${overBudget.length} over: ${overBudget.map((c) => c.n).join(", ")}`;
+  const budgetSummary = setBudgets.length === 0 ? t("planned.budgetsNone") : overBudget.length === 0 ? t("planned.budgetsOk", { n: setBudgets.length }) : t("planned.budgetsOver", { n: overBudget.length, names: overBudget.map((c) => catLabel(c.n)).join("، ") });
   const openTrips = trips.filter((t) => t.open);
-  const tripSummary = openTrips.length ? `${openTrips[0].name} · open` : trips.length ? `${trips.length} closed` : "none open";
+  const tripSummary = openTrips.length ? t("planned.tripsOpen", { name: openTrips[0].name }) : trips.length ? t("planned.tripsClosed", { n: trips.length }) : t("planned.tripsNone");
   const groupAdd = (label, onClick) => <GhostBtn onClick={onClick} className="shrink-0">{label} <span aria-hidden="true">›</span></GhostBtn>;
 
   return (
     <>
       <div className="px-0.5 pb-4">
-        <div className="ui text-[11px] uppercase tracking-wider" style={{ color: T.sub }}>Leaving your accounts · next 30 days</div>
-        <div className="mono text-[34px] leading-tight mt-1" style={{ color: T.text }}>{f(soonTotal)} {base}</div>
+        <div className="ui text-[11px] uppercase tracking-wider" style={{ color: T.sub }}>{t("planned.leaving")}</div>
+        <div className="mono text-[34px] leading-tight mt-1" style={{ color: T.text }}>{f(soonTotal)} {curLabel(base)}</div>
         <div className="ui text-[13px] mt-1" style={{ color: T.sub }}>
-          {soon.length === 0 ? "Nothing due in the next 30 days." : `${soon.length} ${soon.length === 1 ? "payment" : "payments"}${biggest ? ` · biggest: ${biggest.name} on ${humanDay(biggest.nextDue)}` : ""}`}
+          {soon.length === 0 ? t("planned.nothingDue") : `${soon.length === 1 ? t("planned.payment") : t("planned.payments", { n: soon.length })}${biggest ? t("planned.biggest", { name: biggest.name, date: humanDay(biggest.nextDue) }) : ""}`}
         </div>
       </div>
 
@@ -309,8 +315,8 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
           <button onClick={() => setCancelOpen(!cancelOpen)} aria-expanded={cancelOpen} className="tap w-full flex items-center gap-3 rounded-xl px-3.5 min-h-[44px] mb-3 text-left" style={{ background: T.amberBg, border: `1px solid ${T.amber}` }}>
             <Lightbulb size={16} style={{ color: T.goldDeep }} className="shrink-0" aria-hidden="true" />
             <span className="ui text-[12px] flex-1" style={{ color: T.text }}>
-              {flagged.length === 1 ? `${flagged[0].name} is still waiting to be cancelled` : `${flagged.length} subscriptions are waiting to be cancelled`}
-              {" · saves "}{f(flagged.reduce((s, r) => s + convert(monthlyOf(r), r.currency, base, rates), 0))} {base} a month
+              {flagged.length === 1 ? t("planned.cancelOne", { name: flagged[0].name }) : t("planned.cancelMany", { n: flagged.length })}
+              {t("planned.saves", { amt: f(flagged.reduce((s, r) => s + convert(monthlyOf(r), r.currency, base, rates), 0)), cur: curLabel(base) })}
             </span>
             <ChevronRight size={14} style={{ color: T.goldDeep, transform: cancelOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }} aria-hidden="true" />
           </button>
@@ -318,9 +324,9 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
         </>
       )}
 
-      <Section title="Next up">
+      <Section title={t("planned.nextUp")}>
         {soon.length === 0 ? (
-          <EmptyHint icon={<CalendarClock size={24} />} text="Subscriptions, installments and plan payments show up here as they come due." />
+          <EmptyHint icon={<CalendarClock size={24} />} text={t("planned.emptyNext")} />
         ) : (
           <CardBox>
             {soon.map((r, i) => {
@@ -348,9 +354,9 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
         )}
       </Section>
 
-      <Section title="Everything planned">
+      <Section title={t("planned.everything")}>
         <CardBox>
-          <Group id="subs" icon={Repeat} name="Subscriptions" summary={liveSubs.length ? `≈ ${f(subMonthly)} ${base} a month · ${liveSubs.length} active` : "none"} open={openGroup === "subs"} onToggle={toggle} first right={groupAdd("Add", () => onAddRecurr("subscription"))}>
+          <Group id="subs" icon={Repeat} name={t("planned.subscriptions")} summary={liveSubs.length ? t("planned.subsSummary", { amt: f(subMonthly), cur: curLabel(base), n: liveSubs.length }) : t("planned.none")} open={openGroup === "subs"} onToggle={toggle} first right={groupAdd(t("actions.add"), () => onAddRecurr("subscription"))}>
             {accFilterOptions.length > 2 && (
               <div className="overflow-x-auto no-scroll -mx-4 px-4 mb-2">
                 <div className="w-max"><ChipRow value={subAcc} onChange={setSubAcc} options={accFilterOptions} /></div>
@@ -364,17 +370,17 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
             <BleedSummary recurrs={filteredSubs} base={base} rates={rates} hide={hide} />
             <RecurrList kind="subscription" recurrs={filteredSubs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} onToggleCancel={onToggleCancel} dueTone={dueTone} accName={accName} onEdit={onEditRecurr} />
           </Group>
-          <Group id="inst" icon={Layers} name="Installments" summary={instSummary} open={openGroup === "inst"} onToggle={toggle} right={groupAdd("Add", () => onAddRecurr("installment"))}>
+          <Group id="inst" icon={Layers} name={t("planned.installments")} summary={instSummary} open={openGroup === "inst"} onToggle={toggle} right={groupAdd(t("actions.add"), () => onAddRecurr("installment"))}>
             <RecurrList kind="installment" recurrs={recurrs} hide={hide} onPaid={onPaid} onDel={onDelRecurr} dueTone={dueTone} accName={accName} onEdit={onEditRecurr} />
           </Group>
-          <Group id="plans" icon={Landmark} name="Payment plans" summary={planSummary} open={openGroup === "plans"} onToggle={toggle}>
+          <Group id="plans" icon={Landmark} name={t("planned.plans")} summary={planSummary} open={openGroup === "plans"} onToggle={toggle}>
             {plans.length === 0 ? (
-              <div className="ui text-[12px]" style={{ color: T.sub }}>A payment plan is a fixed schedule of dated payments — a property contract, for example. Add one from Settings.</div>
+              <div className="ui text-[12px]" style={{ color: T.sub }}>{t("planned.plansHint")}</div>
             ) : (
               plans.map((p) => <PlanCard key={p.id} p={p} hide={hide} accName={accName} dueTone={dueTone} onPayNext={onPayMilestone} onDel={onDelPlan} />)
             )}
           </Group>
-          <Group id="budgets" icon={PiggyBank} name={`Budgets · ${base}`} summary={budgetSummary} open={openGroup === "budgets"} onToggle={toggle}>
+          <Group id="budgets" icon={PiggyBank} name={t("planned.budgets", { cur: curLabel(base) })} summary={budgetSummary} open={openGroup === "budgets"} onToggle={toggle}>
             <div className="rounded-xl px-4 py-1" style={{ background: T.paper }}>
               {budgetCats.map((c) => {
                 const b = budgets[c.n] || 0;
@@ -385,12 +391,12 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
                   <div key={c.n} className="flex items-center gap-3 py-2.5" style={{ borderBottom: `1px solid ${T.line}` }}>
                     <c.I size={15} style={{ color: c.c }} className="shrink-0" aria-hidden="true" />
                     <div className="flex-1 min-w-0">
-                      <div className="ui text-[13px]" style={{ color: T.text }}>{c.n}</div>
+                      <div className="ui text-[13px]" style={{ color: T.text }}>{catLabel(c.n)}</div>
                       {b > 0 && (
                         <>
                           <div className="mt-1"><Bar pct={(spent / b) * 100} color={over ? T.rose : warn ? T.gold : T.green} /></div>
                           <div className="mono text-[10px] mt-0.5" style={{ color: over ? T.rose : T.sub }}>
-                            {fmtMoney(spent, base, hide)} spent · {over ? `${fmtMoney(spent - b, base, hide)} over` : `${fmtMoney(b - spent, base, hide)} left`}
+                            {over ? t("planned.spentOver", { spent: fmtMoney(spent, base, hide), over: fmtMoney(spent - b, base, hide) }) : t("planned.spentLeft", { spent: fmtMoney(spent, base, hide), left: fmtMoney(b - spent, base, hide) })}
                           </div>
                         </>
                       )}
@@ -399,19 +405,19 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
                       type="number" inputMode="decimal" value={b || ""} placeholder="—"
                       onChange={(e) => setBudget(c.n, e.target.value)}
                       className="mono w-24 rounded-lg px-2.5 min-h-[44px] text-sm text-right outline-none" style={{ ...inputStyle, background: T.surface }}
-                      aria-label={`Monthly budget for ${c.n} in ${base}`}
+                      aria-label={`${catLabel(c.n)} · ${base}`}
                     />
                   </div>
                 );
               })}
               <p className="ui text-[10px] py-2" style={{ color: T.sub }}>
-                Subscriptions &amp; installments are fixed commitments — they post to their own categories when paid.
+                {t("planned.budgetsFoot")}
               </p>
             </div>
           </Group>
-          <Group id="trips" icon={Luggage} name="Trips" summary={tripSummary} open={openGroup === "trips"} onToggle={toggle} right={groupAdd("New trip", onAddTrip)}>
+          <Group id="trips" icon={Luggage} name={t("planned.trips")} summary={tripSummary} open={openGroup === "trips"} onToggle={toggle} right={groupAdd(t("planned.newTrip"), onAddTrip)}>
             {trips.length === 0 && (
-              <div className="ui text-[12px] mb-2" style={{ color: T.sub }}>Travelling? Start a trip — every expense you log asks “personal or work?” and rolls up here.</div>
+              <div className="ui text-[12px] mb-2" style={{ color: T.sub }}>{t("planned.tripsHint")}</div>
             )}
             {trips.map((tr) => (
               <TripCard key={tr.id} trip={tr} transactions={transactions} base={base} rates={rates} hide={hide} accName={accName} onEdit={onEditTrip} onClose={onCloseTrip} onDel={onDelTrip} onSettle={onSettleTrip} />

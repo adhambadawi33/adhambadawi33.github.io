@@ -13,11 +13,13 @@ import { CURRENCIES, convert, isValidRate, DEFAULT_RATES } from "../../lib/finan
 import { parseVoice } from "../../lib/voice/parse.js";
 import { todayISO, toISO, daysInMonth } from "../../lib/dates/localDate.js";
 import { humanDay } from "../../lib/dates/ui.js";
+import { useT, catLabel, ownerLabel } from "../../i18n/index.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 /* Short account-type tag so pickers make bank vs card obvious. */
 const typeTag = (t) => (t === "credit" ? "card" : t === "debit" ? "debit" : t === "cash" ? "cash" : "bank");
+const tagOf = (tr, ty) => tr(`typeTag.${typeTag(ty)}`);
 
 /* Next calendar occurrence of a card's monthly due day (month-end clamped). */
 function nextDueISO(dueDay) {
@@ -40,6 +42,7 @@ function useOpenTransition(open, init) {
 
 /* ── Add transaction ─────────────────────────────────────────── */
 export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccounts, initialText, onDebtDraft, trip }) {
+  const tr = useT();
   const [type, setType] = useState("expense");
   /* Trip tag (Aug 2026): while a trip is open, every expense asks "for the
      trip? personal / work / no" — remembers the last pick in the session. */
@@ -86,15 +89,15 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
     if (p.note) { setNote(p.note); }
     if (p.owner) setOwner(p.owner);
     const bits = [
-      p.type, p.amount != null ? `${p.amount} ${p.currency || accCur || ""}`.trim() : null,
+      ["expense", "income", "transfer"].includes(p.type) ? tr(`sheets.addTx.${p.type}`) : p.type, p.amount != null ? `${p.amount} ${p.currency || accCur || ""}`.trim() : null,
       p.type === "transfer"
         ? `${accounts.find((a) => a.id === p.accountId)?.name || "?"} → ${accounts.find((a) => a.id === p.toAccountId)?.name || "?"}`
-        : p.category,
+        : catLabel(p.category),
       p.type !== "transfer" && p.accountId ? accounts.find((a) => a.id === p.accountId)?.name : null,
-      p.owner === "abeer" ? "Abeer" : p.owner === "kids" ? "Kids" : null,
+      p.owner && p.owner !== "me" ? ownerLabel(p.owner) : null,
     ].filter(Boolean);
     setParsedHint(bits.join(" · "));
-  }, [accounts, settings]);
+  }, [accounts, settings, tr]);
 
   const init = React.useCallback(() => {
     setAmount(""); setNote(""); setDate(todayISO()); setType("expense"); setCat(EXP_CATS[0].n); setOwner("me"); setMore(false);
@@ -112,7 +115,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
       const t = await navigator.clipboard.readText();
       if (t) { setQuick(t); applyParse(t); }
     } catch {
-      window.alert("Clipboard access was blocked — paste into the field manually.");
+      window.alert(tr("sheets.addTx.clipboardBlocked"));
     }
   };
 
@@ -120,7 +123,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
      same parser as typed text. Nothing is saved without the user's Save tap. */
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { window.alert("Voice capture isn't supported in this browser — use the keyboard mic on the field instead."); return; }
+    if (!SR) { window.alert(tr("sheets.addTx.voiceUnsupported")); return; }
     if (listening) { try { recRef.current?.stop(); } catch { /* noop */ } return; }
     const rec = new SR();
     rec.lang = settings.language === "ar" ? "ar-EG" : "ar-EG";
@@ -180,13 +183,13 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
 
   if (accounts.length === 0)
     return (
-      <Sheet open onClose={onClose} title="Add transaction">
-        <EmptyHint icon={<Landmark size={24} />} text="Add at least one account first — then logging takes three taps." cta="Add accounts" onClick={goAccounts} />
+      <Sheet open onClose={onClose} title={tr("sheets.addTx.title")}>
+        <EmptyHint icon={<Landmark size={24} />} text={tr("sheets.addTx.emptyText")} cta={tr("sheets.addTx.addAccounts")} onClick={goAccounts} />
       </Sheet>
     );
 
   return (
-    <Sheet open onClose={onClose} title="Add transaction" tall>
+    <Sheet open onClose={onClose} title={tr("sheets.addTx.title")} tall>
       <div onKeyDown={onKey}>
         {/* Quick add — type or use the keyboard mic; parser prefills the form */}
         <div className="mb-3">
@@ -195,53 +198,53 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
               value={quick}
               onChange={(e) => setQuick(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); applyParse(quick); } }}
-              placeholder='🎙️ اكتب أو أملِ… "غدا 120 درهم كاش"'
+              placeholder={tr("sheets.addTx.quickPh")}
               className="ui flex-1 rounded-xl px-3.5 py-3 text-[15px] outline-none"
               style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.text }}
-              aria-label="Quick add by voice or text"
+              aria-label={tr("sheets.addTx.quickAria")}
             />
             <button
               onClick={startVoice}
               className={`tap h-[46px] w-[46px] rounded-xl flex items-center justify-center shrink-0 ${listening ? "pop" : ""}`}
               style={listening ? { background: T.rose, color: "#fff", border: `1px solid ${T.rose}` } : { background: T.ink, color: "#fff" }}
-              aria-label={listening ? "Stop listening" : "Speak a transaction"}
+              aria-label={listening ? tr("sheets.addTx.stop") : tr("sheets.addTx.speak")}
               aria-pressed={listening}
             >
               <Mic size={17} />
             </button>
-            <button onClick={pasteQuick} className="tap h-[46px] w-[46px] rounded-xl flex items-center justify-center shrink-0" style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.sub }} aria-label="Paste from clipboard">
+            <button onClick={pasteQuick} className="tap h-[46px] w-[46px] rounded-xl flex items-center justify-center shrink-0" style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.sub }} aria-label={tr("sheets.addTx.paste")}>
               <ClipboardPaste size={17} />
             </button>
-            <button onClick={() => applyParse(quick)} disabled={!quick.trim()} className="tap h-[46px] w-[46px] rounded-xl flex items-center justify-center shrink-0" style={{ background: quick.trim() ? T.gold : T.line, color: quick.trim() ? T.ink : T.faint }} aria-label="Understand and fill the form">
+            <button onClick={() => applyParse(quick)} disabled={!quick.trim()} className="tap h-[46px] w-[46px] rounded-xl flex items-center justify-center shrink-0" style={{ background: quick.trim() ? T.gold : T.line, color: quick.trim() ? T.ink : T.faint }} aria-label={tr("sheets.addTx.understand")}>
               <Wand2 size={17} />
             </button>
           </div>
           {parsedHint && (
             <p className="ui text-[11px] mt-1.5 flex items-center gap-1" style={{ color: T.goldDeep }} aria-live="polite">
-              <Sparkles size={12} aria-hidden="true" /> {parsedHint} — review below, then Save
+              <Sparkles size={12} aria-hidden="true" /> {parsedHint}{tr("sheets.addTx.reviewThen")}
             </p>
           )}
           {!parsedHint && !debtDraft && (
             <p className="ui text-[11px] mt-1.5" style={{ color: T.faint }}>
-              💡 اختصار: دوس مطوّلًا على زرار <b>+</b> الدهبي وقول جملتك على طول
+              {tr("sheets.addTx.tip")}
             </p>
           )}
           {debtDraft && (
             <div className="rounded-xl px-3.5 py-3 mt-2 flex items-center gap-3" style={{ background: T.goldBg || T.paper, border: `1px solid ${T.gold}` }} aria-live="polite">
               <HandCoins size={18} style={{ color: T.goldDeep }} aria-hidden="true" />
               <div className="ui text-[12px] flex-1 min-w-0" style={{ color: T.text }}>
-                Sounds like a loan — {debtDraft.direction === "lent" ? "you lent" : "you borrowed"}
+                {tr("sheets.addTx.soundsLoan")}{debtDraft.direction === "lent" ? tr("sheets.addTx.youLent") : tr("sheets.addTx.youBorrowed")}
                 {debtDraft.person ? ` ${debtDraft.person}` : ""}{debtDraft.amount != null ? ` · ${debtDraft.amount} ${debtDraft.currency || ""}`.trimEnd() : ""}
               </div>
               <button onClick={() => onDebtDraft?.(debtDraft)} className="tap ui text-[12px] font-semibold rounded-lg px-3 py-2 shrink-0" style={{ background: T.gold, color: T.ink }}>
-                Open loan form
+                {tr("sheets.addTx.openLoanForm")}
               </button>
             </div>
           )}
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-4">
-          {[["expense", "Expense"], ["income", "Income"], ["transfer", "Transfer"]].map(([v, l]) => (
+          {[["expense", tr("sheets.addTx.expense")], ["income", tr("sheets.addTx.income")], ["transfer", tr("sheets.addTx.transfer")]].map(([v, l]) => (
             <button
               key={v}
               onClick={() => { setType(v); if (v !== "transfer") setCat(v === "income" ? INC_CATS[0].n : EXP_CATS[0].n); }}
@@ -269,20 +272,20 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
         </div>
         {acc && cur !== acc.currency && +amount > 0 && (
           <p className="ui text-[11px] text-center mb-2" style={{ color: T.faint }}>
-            ≈ {fmtMoney(convert(+amount, cur, acc.currency, settings.rates), acc.currency)} from {acc.name}
+            {tr("sheets.addTx.approxFrom", { amt: fmtMoney(convert(+amount, cur, acc.currency, settings.rates), acc.currency), name: acc.name })}
           </p>
         )}
         <div className="mb-4"><Numpad value={amount} onChange={setAmount} /></div>
 
         {type !== "transfer" && (
-          <Field label="Category">
+          <Field label={tr("sheets.addTx.category")}>
             <div className="grid grid-cols-4 gap-2">
               {cats.map((c) => {
                 const on = cat === c.n;
                 return (
                   <button key={c.n} onClick={() => setCat(c.n)} aria-pressed={on} className="tap rounded-xl px-1 py-2.5 flex flex-col items-center gap-1" style={on ? { background: `${c.c}1A`, border: `1.5px solid ${c.c}` } : { background: T.paper, border: `1px solid ${T.line}` }}>
                     <c.I size={17} style={{ color: c.c }} aria-hidden="true" />
-                    <span className="ui text-[10px] leading-tight text-center" style={{ color: on ? T.text : T.sub }}>{c.n.split(" ")[0]}</span>
+                    <span className="ui text-[10px] leading-tight text-center" style={{ color: on ? T.text : T.sub }}>{catLabel(c.n).split(" ")[0]}</span>
                   </button>
                 );
               })}
@@ -291,45 +294,45 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
         )}
 
         {type !== "transfer" && (
-          <Field label="Whose is it?">
-            <ChipRow value={owner} onChange={setOwner} options={OWNERS.map((o) => ({ value: o.id, label: o.label }))} />
+          <Field label={tr("sheets.addTx.whose")}>
+            <ChipRow value={owner} onChange={setOwner} options={OWNERS.map((o) => ({ value: o.id, label: ownerLabel(o.id) }))} />
           </Field>
         )}
         {trip && type === "expense" && (
-          <Field label={`🧳 ${trip.name} — trip spend?`}>
+          <Field label={tr("sheets.addTx.tripSpend", { name: trip.name })}>
             <ChipRow
               value={tripKind}
               onChange={setTripKind}
-              options={[{ value: "personal", label: "Personal · شخصي" }, { value: "work", label: "Work · شغل" }, { value: "none", label: "Not trip" }]}
+              options={[{ value: "personal", label: tr("sheets.addTx.personal") }, { value: "work", label: tr("sheets.addTx.work") }, { value: "none", label: tr("sheets.addTx.notTrip") }]}
             />
           </Field>
         )}
 
-        <Field label={type === "transfer" ? "From account" : "Account"}>
+        <Field label={type === "transfer" ? tr("sheets.addTx.fromAccount") : tr("sheets.addTx.account")}>
           <ChipRow
             value={accId}
             onChange={(v) => { setAccId(v); const na = accounts.find((a) => a.id === v); if (na) setCur(na.currency); }}
-            options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${typeTag(a.type)} · ${a.currency}` }))}
+            options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${tagOf(tr, a.type)} · ${a.currency}` }))}
           />
         </Field>
         {type === "transfer" && (
-          <Field label="To account">
-            <ChipRow value={toId} onChange={setToId} options={accounts.filter((a) => a.id !== accId).map((a) => ({ value: a.id, label: `${a.name} · ${typeTag(a.type)} · ${a.currency}` }))} />
+          <Field label={tr("sheets.addTx.toAccount")}>
+            <ChipRow value={toId} onChange={setToId} options={accounts.filter((a) => a.id !== accId).map((a) => ({ value: a.id, label: `${a.name} · ${tagOf(tr, a.type)} · ${a.currency}` }))} />
           </Field>
         )}
 
         <button onClick={() => setMore(!more)} className="tap ui text-xs flex items-center gap-1 mb-3" style={{ color: T.sub }} aria-expanded={more}>
-          <ChevronDown size={14} style={{ transform: more ? "rotate(180deg)" : "none", transition: "transform .15s" }} /> Date & note
+          <ChevronDown size={14} style={{ transform: more ? "rotate(180deg)" : "none", transition: "transform .15s" }} /> {tr("sheets.addTx.dateNote")}
         </button>
         {more && (
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Date"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} style={inputStyle} /></Field>
-            <Field label="Note (optional)"><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Carrefour" className={inputCls} style={inputStyle} /></Field>
+            <Field label={tr("sheets.addTx.date")}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} style={inputStyle} /></Field>
+            <Field label={tr("sheets.addTx.note")}><input value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr("sheets.addTx.notePh")} className={inputCls} style={inputStyle} /></Field>
           </div>
         )}
 
         <button onClick={save} disabled={!ok} className="tap ui w-full rounded-2xl py-4 text-[15px] font-semibold" style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}>
-          Save {type}
+          {tr("sheets.addTx.save", { type: tr(`sheets.addTx.${type}`) })}
         </button>
       </div>
     </Sheet>
@@ -338,15 +341,16 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
 
 /* ── Accounts list + safe balance adjustment (handoff §4.6 / §5.2) ── */
 export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, onEdit, onArchive, onAdjust, onMove }) {
+  const tr = useT();
   const [adjustFor, setAdjustFor] = useState(null);
   const [actual, setActual] = useState("");
   useEffect(() => { if (!open) { setAdjustFor(null); setActual(""); } }, [open]);
   return (
-    <Sheet open={open} onClose={onClose} title="Accounts">
+    <Sheet open={open} onClose={onClose} title={tr("sheets.accounts.title")}>
       <button onClick={onNew} className="tap ui w-full rounded-xl py-3 text-sm font-medium mb-4 flex items-center justify-center gap-1.5" style={{ background: T.ink, color: "#fff" }}>
-        <Plus size={16} aria-hidden="true" />New account
+        <Plus size={16} aria-hidden="true" />{tr("sheets.accounts.new")}
       </button>
-      {accounts.length === 0 && <p className="ui text-sm text-center py-6" style={{ color: T.faint }}>Add each bank, card and your cash wallet.</p>}
+      {accounts.length === 0 && <p className="ui text-sm text-center py-6" style={{ color: T.faint }}>{tr("sheets.accounts.hint")}</p>}
       {accounts.map((a, idx) => {
         const Ico = (ACCOUNT_TYPE_DEFS.find((t) => t.id === a.type) || ACCOUNT_TYPE_DEFS[0]).icon;
         const bal = balances[a.id] || 0;
@@ -354,35 +358,35 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
         return (
           <div key={a.id} style={{ borderBottom: `1px solid ${T.paper}`, opacity: a.archived ? 0.45 : 1 }}>
             <div className="flex items-center gap-3 py-3">
-              <div className="flex flex-col -my-1" aria-label={`Reorder ${a.name}`}>
-                <button onClick={() => onMove(a, -1)} disabled={idx === 0} className="tap p-1 disabled:opacity-20" style={{ color: T.sub }} aria-label={`Move ${a.name} up`}>
+              <div className="flex flex-col -my-1" aria-label={tr("sheets.accounts.reorder", { name: a.name })}>
+                <button onClick={() => onMove(a, -1)} disabled={idx === 0} className="tap p-1 disabled:opacity-20" style={{ color: T.sub }} aria-label={tr("sheets.accounts.moveUp", { name: a.name })}>
                   <ChevronUp size={15} />
                 </button>
-                <button onClick={() => onMove(a, 1)} disabled={idx === accounts.length - 1} className="tap p-1 disabled:opacity-20" style={{ color: T.sub }} aria-label={`Move ${a.name} down`}>
+                <button onClick={() => onMove(a, 1)} disabled={idx === accounts.length - 1} className="tap p-1 disabled:opacity-20" style={{ color: T.sub }} aria-label={tr("sheets.accounts.moveDown", { name: a.name })}>
                   <ChevronDown size={15} />
                 </button>
               </div>
               <span className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: accountStripe(a, 135), color: "#fff" }} aria-hidden="true"><Ico size={17} /></span>
               <div className="flex-1 min-w-0">
-                <div className="ui text-sm" style={{ color: T.text }}>{a.name}{a.archived ? " (hidden)" : ""}</div>
-                <div className="ui text-[11px] capitalize" style={{ color: T.faint }}>{a.type} · {a.currency}</div>
+                <div className="ui text-sm" style={{ color: T.text }}>{a.name}{a.archived ? tr("sheets.accounts.hidden") : ""}</div>
+                <div className="ui text-[11px]" style={{ color: T.faint }}>{tr(`accountTypes.${a.type}`)} · {a.currency}</div>
               </div>
               <Money n={a.type === "credit" && bal < 0 ? -bal : bal} cur={a.currency} hide={hide} className="text-sm" />
               <button onClick={() => { setAdjustFor(isAdj ? null : a.id); setActual(""); }} className="tap ui text-[10px] px-2 py-1.5 rounded-lg" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
-                Adjust
+                {tr("sheets.accounts.adjust")}
               </button>
-              <button onClick={() => onEdit(a)} className="tap p-2" style={{ color: T.sub }} aria-label={`Edit ${a.name}`}><Pencil size={15} /></button>
-              <button onClick={() => onArchive(a)} className="tap p-2" style={{ color: T.faint }} aria-label={a.archived ? `Show ${a.name}` : `Hide ${a.name}`}>
+              <button onClick={() => onEdit(a)} className="tap p-2" style={{ color: T.sub }} aria-label={tr("sheets.accounts.edit", { name: a.name })}><Pencil size={15} /></button>
+              <button onClick={() => onArchive(a)} className="tap p-2" style={{ color: T.faint }} aria-label={a.archived ? tr("sheets.accounts.show", { name: a.name }) : tr("sheets.accounts.hide", { name: a.name })}>
                 {a.archived ? <Eye size={15} /> : <EyeOff size={15} />}
               </button>
             </div>
             {isAdj && (
               <div className="pb-3 pl-13" style={{ paddingLeft: 52 }}>
                 <p className="ui text-[11px] mb-1.5" style={{ color: T.faint }}>
-                  Enter the {a.type === "credit" ? "amount you actually owe" : "actual balance"} shown by the bank — the difference is recorded as an adjustment, history stays intact.
+                  {a.type === "credit" ? tr("sheets.accounts.adjustOwed") : tr("sheets.accounts.adjustBal")}
                 </p>
                 <div className="flex gap-2">
-                  <input type="number" inputMode="decimal" value={actual} onChange={(e) => setActual(e.target.value)} placeholder={a.currency} className="mono flex-1 rounded-lg px-3 py-2 text-sm outline-none" style={inputStyle} aria-label={`Actual balance for ${a.name}`} />
+                  <input type="number" inputMode="decimal" value={actual} onChange={(e) => setActual(e.target.value)} placeholder={a.currency} className="mono flex-1 rounded-lg px-3 py-2 text-sm outline-none" style={inputStyle} aria-label={tr("sheets.accounts.actualAria", { name: a.name })} />
                   <button
                     onClick={() => {
                       const v = +actual;
@@ -396,7 +400,7 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
                     className="tap ui text-xs font-medium rounded-lg px-3"
                     style={{ background: T.ink, color: "#fff" }}
                   >
-                    Reconcile
+                    {tr("sheets.accounts.reconcile")}
                   </button>
                 </div>
               </div>
@@ -410,6 +414,7 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
 
 /* ── Account form (credit owed shown positive — handoff §4.6) ── */
 export function AccountFormSheet({ open, onClose, initial, onSave, currentBalance }) {
+  const tr = useT();
   const [f, setF] = useState(null);
   const init = React.useCallback(() => {
     setF(
@@ -423,40 +428,40 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
   const ok = f.name.trim().length > 0;
   const isCredit = f.type === "credit";
   return (
-    <Sheet open onClose={onClose} title={initial ? "Edit account" : "New account"}>
-      <Field label="Name"><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="e.g. ADCB Current" className={inputCls} style={inputStyle} /></Field>
-      <Field label="Type"><ChipRow value={f.type} onChange={(v) => setF({ ...f, type: v })} options={ACCOUNT_TYPE_DEFS.map((t) => ({ value: t.id, label: t.label }))} /></Field>
+    <Sheet open onClose={onClose} title={initial ? tr("sheets.accountForm.edit") : tr("sheets.accountForm.new")}>
+      <Field label={tr("sheets.accountForm.name")}><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={tr("sheets.accountForm.namePh")} className={inputCls} style={inputStyle} /></Field>
+      <Field label={tr("sheets.accountForm.type")}><ChipRow value={f.type} onChange={(v) => setF({ ...f, type: v })} options={ACCOUNT_TYPE_DEFS.map((d) => ({ value: d.id, label: tr(`accountTypes.${d.id}`) }))} /></Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Currency">
+        <Field label={tr("sheets.accountForm.currency")}>
           <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle}>
             {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
           </select>
         </Field>
-        <Field label={isCredit ? "Starting amount owed" : "Starting balance"}>
+        <Field label={isCredit ? tr("sheets.accountForm.startOwed") : tr("sheets.accountForm.startBal")}>
           <input type="number" inputMode="decimal" value={f.openingDisplay} onChange={(e) => setF({ ...f, openingDisplay: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle} />
         </Field>
       </div>
       {initial && (
         <p className="ui text-[11px] -mt-1 mb-3" style={{ color: T.faint }}>
-          Starting {isCredit ? "owed" : "balance"} is the opening figure only. Current calculated balance: <b className="mono">{fmtMoney(Math.abs(currentBalance ?? 0), f.currency)}</b>{isCredit && (currentBalance ?? 0) < 0 ? " owed" : ""}. To match the bank, use “Adjust” in the accounts list instead of editing this.
+          {tr("sheets.accountForm.startNoteA", { what: isCredit ? tr("sheets.accountForm.owedWord") : tr("sheets.accountForm.balWord") })}<b className="mono">{fmtMoney(Math.abs(currentBalance ?? 0), f.currency)}</b>{tr("sheets.accountForm.startNoteB")}
         </p>
       )}
       {isCredit && (
         <>
-          <Field label="Credit limit (optional)">
+          <Field label={tr("sheets.accountForm.creditLimit")}>
             <input type="number" inputMode="decimal" value={f.creditLimit} onChange={(e) => setF({ ...f, creditLimit: e.target.value })} placeholder="e.g. 50000" className={`${inputCls} mono`} style={inputStyle} />
           </Field>
-          <Field label="Card network">
-            <ChipRow value={f.network || ""} onChange={(v) => setF({ ...f, network: v })} options={[{ value: "visa", label: "Visa" }, { value: "mastercard", label: "Mastercard" }, { value: "", label: "Other" }]} />
+          <Field label={tr("sheets.accountForm.network")}>
+            <ChipRow value={f.network || ""} onChange={(v) => setF({ ...f, network: v })} options={[{ value: "visa", label: "Visa" }, { value: "mastercard", label: "Mastercard" }, { value: "", label: tr("sheets.accountForm.other") }]} />
           </Field>
-          <Field label="Issuing bank (optional)">
-            <input value={f.bank || ""} onChange={(e) => setF({ ...f, bank: e.target.value })} placeholder="e.g. Emirates NBD, CIB" className={inputCls} style={inputStyle} />
+          <Field label={tr("sheets.accountForm.bank")}>
+            <input value={f.bank || ""} onChange={(e) => setF({ ...f, bank: e.target.value })} placeholder={tr("sheets.accountForm.bankPh")} className={inputCls} style={inputStyle} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Payment due day (1–31)">
+            <Field label={tr("sheets.accountForm.dueDay")}>
               <input type="number" inputMode="numeric" min="1" max="31" value={f.dueDay || ""} onChange={(e) => setF({ ...f, dueDay: e.target.value })} placeholder="e.g. 5" className={`${inputCls} mono`} style={inputStyle} />
             </Field>
-            <Field label="Min payment (optional)">
+            <Field label={tr("sheets.accountForm.minPayment")}>
               <input type="number" inputMode="decimal" value={f.minPayment || ""} onChange={(e) => setF({ ...f, minPayment: e.target.value })} placeholder="e.g. 350" className={`${inputCls} mono`} style={inputStyle} />
             </Field>
           </div>
@@ -464,47 +469,47 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
       )}
       {!isCredit && (
         <>
-          <Field label="Whose money is this? · أمانة">
+          <Field label={tr("sheets.accountForm.whose")}>
             <ChipRow
               value={f.custodial ? "trust" : "mine"}
               onChange={(v) => setF({ ...f, custodial: v === "trust" })}
-              options={[{ value: "mine", label: "My money" }, { value: "trust", label: "أمانة — held for someone else" }]}
+              options={[{ value: "mine", label: tr("sheets.accountForm.mine") }, { value: "trust", label: tr("sheets.accountForm.trust") }]}
             />
           </Field>
           {f.custodial && (
             <p className="ui text-[11px] -mt-1 mb-3" style={{ color: T.faint }}>
-              أمانة accounts stay OUT of your big total — they show as their own line, so “what you have” is really yours.
+              {tr("sheets.accountForm.trustHint")}
             </p>
           )}
         </>
       )}
-      <Field label="Card last-4 digits · for bank-SMS matching (optional)">
+      <Field label={tr("sheets.accountForm.last4")}>
         <input
           value={f.cardDigitsText ?? ""}
           onChange={(e) => setF({ ...f, cardDigitsText: e.target.value })}
-          placeholder="e.g. 4523, 8891"
+          placeholder={tr("sheets.accountForm.last4Ph")}
           inputMode="numeric"
           className={`${inputCls} mono`}
           style={inputStyle}
-          aria-label="Card last four digits, comma separated"
+          aria-label={tr("sheets.accountForm.last4Aria")}
         />
       </Field>
-      <Field label="Card color">
+      <Field label={tr("sheets.accountForm.color")}>
         <div className="flex gap-2 flex-wrap">
           {ACCOUNT_COLORS.map((c) => (
-            <button key={c} onClick={() => setF({ ...f, color: c })} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: c }} aria-label={`Color ${c}`} aria-pressed={f.color === c}>
+            <button key={c} onClick={() => setF({ ...f, color: c })} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: c }} aria-label={tr("sheets.accountForm.colorAria", { c })} aria-pressed={f.color === c}>
               {f.color === c && <Check size={15} style={{ color: "#fff" }} aria-hidden="true" />}
             </button>
           ))}
         </div>
       </Field>
-      <Field label="Second color (optional) · blends into a gradient">
+      <Field label={tr("sheets.accountForm.color2")}>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setF({ ...f, color2: "" })} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.faint }} aria-label="No second color" aria-pressed={!f.color2}>
+          <button onClick={() => setF({ ...f, color2: "" })} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.faint }} aria-label={tr("sheets.accountForm.noColor2")} aria-pressed={!f.color2}>
             {!f.color2 ? <Check size={15} style={{ color: T.sub }} aria-hidden="true" /> : "—"}
           </button>
           {ACCOUNT_COLORS.map((c) => (
-            <button key={c} onClick={() => setF({ ...f, color2: c })} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${f.color}, ${c})` }} aria-label={`Second color ${c}`} aria-pressed={f.color2 === c}>
+            <button key={c} onClick={() => setF({ ...f, color2: c })} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${f.color}, ${c})` }} aria-label={tr("sheets.accountForm.color2Aria", { c })} aria-pressed={f.color2 === c}>
               {f.color2 === c && <Check size={15} style={{ color: "#fff" }} aria-hidden="true" />}
             </button>
           ))}
@@ -524,7 +529,7 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
         className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
         style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}
       >
-        Save account
+        {tr("sheets.accountForm.save")}
       </button>
     </Sheet>
   );
@@ -533,6 +538,7 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
 /* ── Cards detail page (batch 2): every credit card with
    available-in-limit, signed owed, usage bar, due day and min payment. ── */
 export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }) {
+  const tr = useT();
   if (!open) return null;
   const rows = cards.map((a) => {
     const bal = balances[a.id] || 0;
@@ -543,23 +549,23 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
   const totAvail = rows.reduce((s, r) => s + (r.avail != null ? convert(r.avail, r.a.currency, base, rates) : 0), 0);
   const totOwed = rows.reduce((s, r) => s + convert(r.owed, r.a.currency, base, rates), 0);
   return (
-    <Sheet open onClose={onClose} title="Cards" tall>
+    <Sheet open onClose={onClose} title={tr("sheets.cards.title")} tall>
       <div className="flex gap-2 mb-4">
         <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.paper }}>
-          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>Limit left · borrowing room</div>
+          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.limitLeftRoom")}</div>
           <div className="mono text-[17px]" style={{ color: T.sub }}>{hide ? "•••••" : `${Math.round(totAvail).toLocaleString("en-US")} ${base}`}</div>
         </div>
         <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.roseBg }}>
-          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>Total owed</div>
+          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.totalOwed")}</div>
           <div className="mono text-[17px]" style={{ color: totOwed > 0.005 ? T.rose : T.green }}>{hide ? "•••••" : `${totOwed > 0.005 ? "−" : ""}${Math.round(totOwed).toLocaleString("en-US")} ${base}`}</div>
         </div>
       </div>
 
       <p className="ui text-[11px] mb-4" style={{ color: T.faint }}>
-        "Limit left" is how much the bank still lets you borrow — it is not money you own, and it never counts in your totals.
+        {tr("sheets.cards.note")}
       </p>
 
-      {rows.length === 0 && <p className="ui text-sm text-center py-8" style={{ color: T.sub }}>No credit cards yet — add one from Accounts.</p>}
+      {rows.length === 0 && <p className="ui text-sm text-center py-8" style={{ color: T.sub }}>{tr("sheets.cards.none")}</p>}
 
       {rows.map(({ a, owed, avail }) => {
         const bank = bankFor(a.bank || a.name);
@@ -577,17 +583,17 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
               </div>
               {a.dueDay > 0 && (
                 <span className="ui text-[11px] font-semibold rounded-full px-2.5 py-1 shrink-0" style={{ background: owed > 0 ? T.amberBg : T.greenBg, color: owed > 0 ? T.amber : T.green }}>
-                  {owed > 0 ? `Pay by ${humanDay(nextDueISO(a.dueDay))}` : "Nothing owed ✓"}
+                  {owed > 0 ? tr("sheets.cards.payBy", { date: humanDay(nextDueISO(a.dueDay)) }) : tr("sheets.cards.nothingOwed")}
                 </span>
               )}
             </div>
             <div className="flex gap-2.5 mb-3">
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
-                <div className="ui text-[10px] mb-0.5" style={{ color: T.faint }}>Limit left</div>
+                <div className="ui text-[10px] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.limitLeft")}</div>
                 <div className="mono text-[17px]" style={{ color: T.sub }}>{avail != null ? fmtMoney(avail, a.currency, hide) : "—"}</div>
               </div>
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
-                <div className="ui text-[10px] mb-0.5" style={{ color: T.faint }}>Owed</div>
+                <div className="ui text-[10px] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.owed")}</div>
                 <div className="mono text-[17px]" style={{ color: owed > 0 ? T.rose : T.green }}>{hide ? "•••••" : owed > 0 ? `−${fmtMoney(owed, a.currency, false)}` : "0"}</div>
               </div>
             </div>
@@ -597,8 +603,8 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
                   <div className="h-full rounded-full" style={{ width: `${usedPct}%`, background: a.color, transition: "width .4s ease" }} />
                 </div>
                 <div className="flex justify-between ui text-[11px]" style={{ color: T.sub }}>
-                  <span>used <b className="mono">{fmtMoney(owed, a.currency, hide)}</b> of <b className="mono">{fmtMoney(a.creditLimit, a.currency, hide)}</b></span>
-                  {a.minPayment > 0 && owed > 0 && <span>min payment <b className="mono">{fmtMoney(a.minPayment, a.currency, hide)}</b></span>}
+                  <span>{tr("sheets.cards.used")} <b className="mono">{fmtMoney(owed, a.currency, hide)}</b> {tr("sheets.cards.ofWord")} <b className="mono">{fmtMoney(a.creditLimit, a.currency, hide)}</b></span>
+                  {a.minPayment > 0 && owed > 0 && <span>{tr("sheets.cards.minPayment")} <b className="mono">{fmtMoney(a.minPayment, a.currency, hide)}</b></span>}
                 </div>
               </>
             )}
@@ -611,6 +617,7 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
 
 /* ── Recurring ── */
 export function RecurrSheet({ open, onClose, kind, accounts, onSave, initial }) {
+  const tr = useT();
   const [f, setF] = useState(null);
   /* `initial` = edit mode (batch 12): tap a subscription/installment row to
      move it to another card, fix the amount, date — anything. */
@@ -632,34 +639,34 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave, initial }) 
   const sub = kind === "subscription";
   const ok = f.name.trim() && +f.amount > 0 && (sub || +f.monthsTotal > 0);
   return (
-    <Sheet open onClose={onClose} title={initial ? (sub ? "Edit subscription" : "Edit installment") : (sub ? "New subscription" : "New installment")}>
-      <Field label="Name"><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={sub ? "e.g. Netflix" : "e.g. Car loan"} className={inputCls} style={inputStyle} /></Field>
-      <Field label="Whose is it?">
-        <ChipRow value={f.owner} onChange={(v) => setF({ ...f, owner: v })} options={OWNERS.map((o) => ({ value: o.id, label: o.label }))} />
+    <Sheet open onClose={onClose} title={initial ? (sub ? tr("sheets.recurr.editSub") : tr("sheets.recurr.editInst")) : (sub ? tr("sheets.recurr.newSub") : tr("sheets.recurr.newInst"))}>
+      <Field label={tr("sheets.recurr.name")}><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={sub ? tr("sheets.recurr.subPh") : tr("sheets.recurr.instPh")} className={inputCls} style={inputStyle} /></Field>
+      <Field label={tr("sheets.recurr.whose")}>
+        <ChipRow value={f.owner} onChange={(v) => setF({ ...f, owner: v })} options={OWNERS.map((o) => ({ value: o.id, label: ownerLabel(o.id) }))} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label={sub ? "Amount / cycle" : "Monthly amount"}>
+        <Field label={sub ? tr("sheets.recurr.amountCycle") : tr("sheets.recurr.monthlyAmount")}>
           <input type="number" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle} />
         </Field>
-        <Field label="Currency">
+        <Field label={tr("sheets.recurr.currency")}>
           <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
         </Field>
       </div>
       {sub ? (
-        <Field label="Billing cycle">
-          <ChipRow value={f.cycle} onChange={(v) => setF({ ...f, cycle: v })} options={[{ value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }, { value: "yearly", label: "Yearly" }]} />
+        <Field label={tr("sheets.recurr.cycle")}>
+          <ChipRow value={f.cycle} onChange={(v) => setF({ ...f, cycle: v })} options={[{ value: "weekly", label: tr("sheets.recurr.weekly") }, { value: "monthly", label: tr("sheets.recurr.monthly") }, { value: "yearly", label: tr("sheets.recurr.yearly") }]} />
         </Field>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Total months"><input type="number" inputMode="numeric" value={f.monthsTotal} onChange={(e) => setF({ ...f, monthsTotal: e.target.value })} placeholder="12" className={`${inputCls} mono`} style={inputStyle} /></Field>
-          <Field label="Already paid"><input type="number" inputMode="numeric" value={f.monthsPaid} onChange={(e) => setF({ ...f, monthsPaid: e.target.value })} className={`${inputCls} mono`} style={inputStyle} /></Field>
+          <Field label={tr("sheets.recurr.totalMonths")}><input type="number" inputMode="numeric" value={f.monthsTotal} onChange={(e) => setF({ ...f, monthsTotal: e.target.value })} placeholder="12" className={`${inputCls} mono`} style={inputStyle} /></Field>
+          <Field label={tr("sheets.recurr.alreadyPaid")}><input type="number" inputMode="numeric" value={f.monthsPaid} onChange={(e) => setF({ ...f, monthsPaid: e.target.value })} className={`${inputCls} mono`} style={inputStyle} /></Field>
         </div>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <Field label={sub ? "Next renewal" : "Next payment"}><input type="date" value={f.nextDue} onChange={(e) => setF({ ...f, nextDue: e.target.value })} className={inputCls} style={inputStyle} /></Field>
-        <Field label="Pay from">
+        <Field label={sub ? tr("sheets.recurr.nextRenewal") : tr("sheets.recurr.nextPayment")}><input type="date" value={f.nextDue} onChange={(e) => setF({ ...f, nextDue: e.target.value })} className={inputCls} style={inputStyle} /></Field>
+        <Field label={tr("sheets.recurr.payFrom")}>
           <select value={f.accountId || ""} onChange={(e) => setF({ ...f, accountId: e.target.value })} className={inputCls} style={inputStyle}>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{`${a.name} · ${typeTag(a.type)}`}</option>)}
+            {accounts.map((a) => <option key={a.id} value={a.id}>{`${a.name} · ${tagOf(tr, a.type)}`}</option>)}
           </select>
         </Field>
       </div>
@@ -669,7 +676,7 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave, initial }) 
         className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
         style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}
       >
-        Save {sub ? "subscription" : "installment"}
+        {sub ? tr("sheets.recurr.saveSub") : tr("sheets.recurr.saveInst")}
       </button>
     </Sheet>
   );
@@ -680,6 +687,7 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave, initial }) 
    confirm() they get a small review sheet: what + how much + WHICH account
    (defaults to the plan's remembered account, else the last one used). */
 export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
+  const tr = useT();
   const [accountId, setAccountId] = useState(null);
   const [remember, setRemember] = useState(true);
   const init = React.useCallback(() => {
@@ -692,13 +700,13 @@ export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
   const acct = accounts.find((a) => a.id === accountId);
   const ok = !!acct;
   return (
-    <Sheet open onClose={onClose} title="Mark payment as paid">
+    <Sheet open onClose={onClose} title={tr("sheets.payPlan.title")}>
       <div className="rounded-2xl px-4 py-3 mb-4" style={{ background: T.paper, border: `1px solid ${T.line}` }}>
         <div className="ui text-[12px]" style={{ color: T.sub }}>{plan.name}{ms.label ? ` · ${ms.label}` : ""}</div>
         <div className="mono text-[26px] leading-tight mt-0.5" style={{ color: T.text }}>{fmtMoney(ms.amount, plan.currency)}</div>
-        <div className="ui text-[11px] mt-0.5" style={{ color: T.faint }}>Due {ms.due}</div>
+        <div className="ui text-[11px] mt-0.5" style={{ color: T.faint }}>{tr("sheets.payPlan.due", { date: humanDay(ms.due) })}</div>
       </div>
-      <Field label="Pay from · which account?">
+      <Field label={tr("sheets.payPlan.payFrom")}>
         <div className="flex flex-col gap-2">
           {accounts.map((a) => {
             const on = a.id === accountId;
@@ -711,7 +719,7 @@ export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
                 aria-pressed={on}
               >
                 <span className="ui text-[14px]">{a.name}</span>
-                <span className="ui text-[11px]" style={{ color: on ? "rgba(255,255,255,0.7)" : T.faint }}>{typeTag(a.type)} · {a.currency}</span>
+                <span className="ui text-[11px]" style={{ color: on ? "rgba(255,255,255,0.7)" : T.faint }}>{tagOf(tr, a.type)} · {a.currency}</span>
               </button>
             );
           })}
@@ -719,7 +727,7 @@ export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
       </Field>
       <label className="flex items-center gap-2 mb-4 ui text-[12px]" style={{ color: T.sub }}>
         <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-        Remember this account for “{plan.name}”
+        {tr("sheets.payPlan.remember", { name: plan.name })}
       </label>
       <button
         onClick={() => ok && onConfirm(plan.id, ms.id, acct.id, remember)}
@@ -727,7 +735,7 @@ export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
         className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold"
         style={{ background: ok ? T.gold : T.line, color: ok ? T.ink : T.faint }}
       >
-        Paid ✓ — log from {acct?.name || "…"}
+        {tr("sheets.payPlan.confirm", { name: acct?.name || "…" })}
       </button>
     </Sheet>
   );
@@ -735,6 +743,7 @@ export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
 
 /* ── Trip (new / edit) ── */
 export function TripSheet({ open, onClose, onSave, initial }) {
+  const tr = useT();
   const [f, setF] = useState(null);
   const init = React.useCallback(() => {
     setF(initial
@@ -745,26 +754,26 @@ export function TripSheet({ open, onClose, onSave, initial }) {
   if (!open || !f) return null;
   const ok = f.name.trim().length > 0;
   return (
-    <Sheet open onClose={onClose} title={initial ? "Edit trip" : "New trip"}>
-      <Field label="Trip name"><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="e.g. Dubai — Aug 2026" className={inputCls} style={inputStyle} /></Field>
+    <Sheet open onClose={onClose} title={initial ? tr("sheets.trip.edit") : tr("sheets.trip.new")}>
+      <Field label={tr("sheets.trip.name")}><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={tr("sheets.trip.namePh")} className={inputCls} style={inputStyle} /></Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Trip currency">
+        <Field label={tr("sheets.trip.currency")}>
           <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
         </Field>
-        <Field label="Start"><input type="date" value={f.startDate} onChange={(e) => setF({ ...f, startDate: e.target.value })} className={inputCls} style={inputStyle} /></Field>
+        <Field label={tr("sheets.trip.start")}><input type="date" value={f.startDate} onChange={(e) => setF({ ...f, startDate: e.target.value })} className={inputCls} style={inputStyle} /></Field>
       </div>
-      <Field label="Status">
-        <ChipRow value={f.open ? "open" : "closed"} onChange={(v) => setF({ ...f, open: v === "open" })} options={[{ value: "open", label: "Open · travelling" }, { value: "closed", label: "Closed · back home" }]} />
+      <Field label={tr("sheets.trip.status")}>
+        <ChipRow value={f.open ? "open" : "closed"} onChange={(v) => setF({ ...f, open: v === "open" })} options={[{ value: "open", label: tr("sheets.trip.open") }, { value: "closed", label: tr("sheets.trip.closed") }]} />
       </Field>
-      {!f.open && <Field label="End date"><input type="date" value={f.endDate} onChange={(e) => setF({ ...f, endDate: e.target.value })} className={inputCls} style={inputStyle} /></Field>}
-      <p className="ui text-[11px] -mt-1 mb-3" style={{ color: T.faint }}>While a trip is open, every new expense asks “for this trip? personal / work”. Money still leaves your real cards and cash — the trip just groups it.</p>
+      {!f.open && <Field label={tr("sheets.trip.end")}><input type="date" value={f.endDate} onChange={(e) => setF({ ...f, endDate: e.target.value })} className={inputCls} style={inputStyle} /></Field>}
+      <p className="ui text-[11px] -mt-1 mb-3" style={{ color: T.faint }}>{tr("sheets.trip.hint")}</p>
       <button
         onClick={() => ok && onSave({ id: initial?.id || uid(), name: f.name.trim(), currency: f.currency, startDate: f.startDate, endDate: f.open ? null : (f.endDate || todayISO()), open: f.open, settledDebtId: initial?.settledDebtId || null })}
         disabled={!ok}
         className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
         style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}
       >
-        Save trip
+        {tr("sheets.trip.save")}
       </button>
     </Sheet>
   );
@@ -772,6 +781,7 @@ export function TripSheet({ open, onClose, onSave, initial }) {
 
 /* ── Debt ── */
 export function DebtSheet({ open, onClose, onSave, initial }) {
+  const tr = useT();
   const [f, setF] = useState(null);
   /* `initial` = prefill from a spoken loan phrase — user still reviews and Saves. */
   const init = React.useCallback(() => {
@@ -788,25 +798,25 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
   if (!open || !f) return null;
   const ok = f.person.trim() && +f.amount > 0;
   return (
-    <Sheet open onClose={onClose} title="New loan / IOU">
-      <Field label="Person"><input value={f.person} onChange={(e) => setF({ ...f, person: e.target.value })} placeholder="Name" className={inputCls} style={inputStyle} /></Field>
-      <Field label="Direction">
-        <ChipRow value={f.direction} onChange={(v) => setF({ ...f, direction: v })} options={[{ value: "lent", label: "I lent them" }, { value: "borrowed", label: "I borrowed" }, { value: "given", label: "Given — no return" }]} />
+    <Sheet open onClose={onClose} title={tr("sheets.debt.title")}>
+      <Field label={tr("sheets.debt.person")}><input value={f.person} onChange={(e) => setF({ ...f, person: e.target.value })} placeholder={tr("sheets.debt.personPh")} className={inputCls} style={inputStyle} /></Field>
+      <Field label={tr("sheets.debt.direction")}>
+        <ChipRow value={f.direction} onChange={(v) => setF({ ...f, direction: v })} options={[{ value: "lent", label: tr("sheets.debt.lent") }, { value: "borrowed", label: tr("sheets.debt.borrowed") }, { value: "given", label: tr("sheets.debt.given") }]} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Amount"><input type="number" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle} /></Field>
-        <Field label="Currency">
+        <Field label={tr("sheets.debt.amount")}><input type="number" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle} /></Field>
+        <Field label={tr("sheets.debt.currency")}>
           <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
         </Field>
       </div>
-      <Field label="Note (optional)"><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. till end of month" className={inputCls} style={inputStyle} /></Field>
+      <Field label={tr("sheets.debt.note")}><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder={tr("sheets.debt.notePh")} className={inputCls} style={inputStyle} /></Field>
       <button
         onClick={() => ok && onSave({ id: uid(), person: f.person.trim(), direction: f.direction === "borrowed" ? "borrowed" : "lent", noReturn: f.direction === "given", amount: +f.amount, currency: f.currency, repaid: 0, note: f.note.trim(), date: f.date })}
         disabled={!ok}
         className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
         style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}
       >
-        Save
+        {tr("sheets.debt.save")}
       </button>
     </Sheet>
   );
@@ -815,6 +825,7 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
 /* ── Edit a logged transaction (batch 9): fix the note, or move it to the
    right account. Amount/category stay put — delete + re-add for those. ── */
 export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] }) {
+  const tr = useT();
   const [note, setNote] = useState("");
   const [accId, setAccId] = useState(null);
   const [cat, setCat] = useState(null);
@@ -837,10 +848,10 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] })
     onSave({ ...rest, note: note.trim(), ...(movable && accId ? { accountId: accId } : {}), ...(movable && cat ? { category: cat } : {}), ...(tid && tx.type === "expense" ? { tripId: tid, tripKind: tkind } : {}) });
   };
   const tripOptions = tx.type === "expense" && trips.length
-    ? [{ value: "none", label: "Not a trip" }, ...trips.flatMap((tr) => [{ value: `${tr.id}:personal`, label: `🧳 ${tr.name} · personal` }, { value: `${tr.id}:work`, label: `🧳 ${tr.name} · work` }])]
+    ? [{ value: "none", label: tr("sheets.editTx.notTrip") }, ...trips.flatMap((x) => [{ value: `${x.id}:personal`, label: `🧳 ${x.name} · ${tr("sheets.editTx.personal")}` }, { value: `${x.id}:work`, label: `🧳 ${x.name} · ${tr("sheets.editTx.work")}` }])]
     : null;
   return (
-    <Sheet open onClose={onClose} title="Edit transaction">
+    <Sheet open onClose={onClose} title={tr("sheets.editTx.title")}>
       {/* The header category is DIRECTLY editable — tap it, pick, done.
           (The chip row below stays in sync as a visual alternative.) */}
       <div className="rounded-xl px-3.5 py-3 mb-4 flex items-center justify-between" style={{ background: T.paper }}>
@@ -856,31 +867,31 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] })
                 onChange={(e) => setCat(e.target.value)}
                 className="ui text-[13px] font-semibold bg-transparent outline-none"
                 style={{ color: T.text, WebkitAppearance: "none", appearance: "none", border: "none", padding: 0 }}
-                aria-label="Category — tap to change"
+                aria-label={tr("sheets.editTx.catAria")}
               >
-                {cats.map((c) => <option key={c.n} value={c.n}>{c.n}</option>)}
+                {cats.map((c) => <option key={c.n} value={c.n}>{catLabel(c.n)}</option>)}
               </select>
               <ChevronDown size={13} className="shrink-0" style={{ color: T.goldDeep }} aria-hidden="true" />
             </>
           ) : (
-            <span>{isTr ? "Transfer" : "Balance adjustment"}</span>
+            <span>{isTr ? tr("sheets.editTx.transfer") : tr("sheets.editTx.adjustment")}</span>
           )}
           <span className="ui text-[11px] shrink-0" style={{ color: T.faint }}>{tx.date}</span>
         </div>
         <Money n={isTr ? tx.sourceAmount : tx.amount} cur={isTr ? tx.sourceCurrency : tx.currency} hide={false} className="text-[15px]" />
       </div>
-      <Field label="Note">
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Carrefour weekly groceries" className={inputCls} style={inputStyle} />
+      <Field label={tr("sheets.editTx.note")}>
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr("sheets.editTx.notePh")} className={inputCls} style={inputStyle} />
       </Field>
       {movable && (
-        <Field label="Category">
+        <Field label={tr("sheets.editTx.category")}>
           <div className="overflow-x-auto no-scroll -mx-5 px-5">
             <div className="flex gap-2 w-max">
               {cats.map((c) => {
                 const on = cat === c.n;
                 return (
                   <button key={c.n} onClick={() => setCat(c.n)} aria-pressed={on} className="tap ui rounded-xl px-3.5 py-2.5 text-sm flex items-center gap-1.5 whitespace-nowrap" style={on ? { background: `${c.c}1A`, border: `1.5px solid ${c.c}`, color: T.text } : { background: T.paper, color: T.sub, border: `1px solid ${T.line}` }}>
-                    <c.I size={14} style={{ color: c.c }} aria-hidden="true" />{c.n}
+                    <c.I size={14} style={{ color: c.c }} aria-hidden="true" />{catLabel(c.n)}
                   </button>
                 );
               })}
@@ -889,26 +900,26 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] })
         </Field>
       )}
       {tripOptions && (
-        <Field label="Trip">
+        <Field label={tr("sheets.editTx.trip")}>
           <div className="overflow-x-auto no-scroll -mx-5 px-5"><div className="w-max"><ChipRow value={tripSel} onChange={setTripSel} options={tripOptions} /></div></div>
         </Field>
       )}
       {movable && (
-        <Field label="Paid from · move it if it's on the wrong account">
+        <Field label={tr("sheets.editTx.paidFrom")}>
           <ChipRow
             value={accId}
             onChange={setAccId}
-            options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${typeTag(a.type)}` }))}
+            options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${tagOf(tr, a.type)}` }))}
           />
         </Field>
       )}
       {!movable && (
         <p className="ui text-[11px] mb-3" style={{ color: T.faint }}>
-          {isTr ? "Transfers keep their two accounts — delete and re-add to change them." : "Adjustments stay on their account to keep reconciliation honest."}
+          {isTr ? tr("sheets.editTx.trNote") : tr("sheets.editTx.adjNote")}
         </p>
       )}
       <button onClick={save} className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2" style={{ background: T.ink, color: "#fff" }}>
-        Save changes
+        {tr("sheets.editTx.save")}
       </button>
     </Sheet>
   );
@@ -916,6 +927,7 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] })
 
 /* ── SMS approval inbox (nothing posts without explicit approval) ── */
 export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onPasteImport, onManualImport, onApprove, onDismiss, onApproveAll }) {
+  const tr = useT();
   /* SMS↔subscription links the user chose to break (per item, batch 15). */
   const [unlinked, setUnlinked] = useState({});
   const [sel, setSel] = useState({});
@@ -936,13 +948,13 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
     setManual(false);
   };
   return (
-    <Sheet open={open} onClose={onClose} title="Approval inbox" tall>
+    <Sheet open={open} onClose={onClose} title={tr("sheets.inbox.title")} tall>
       <button
         onClick={async () => { const ok = await onPasteImport(); if (!ok) setManual(true); }}
         className="tap ui w-full rounded-xl py-3 text-sm font-medium mb-2 flex items-center justify-center gap-1.5"
         style={{ background: T.ink, color: "#fff" }}
       >
-        <ClipboardPaste size={16} aria-hidden="true" />الصق رسائل البنك · Paste bank SMS
+        <ClipboardPaste size={16} aria-hidden="true" />{tr("sheets.inbox.paste")}
       </button>
       {manual && (
         <div className="rounded-xl px-3.5 py-3 mb-2" style={{ background: T.paper, border: `1px solid ${T.gold}` }}>
@@ -967,16 +979,16 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
         </div>
       )}
       <p className="ui text-[11px] mb-4" style={{ color: T.faint }}>
-        Withdrawals wait here and post <b>only after you approve them</b>. The source account is matched from the card last-4 digits — confirm or change it per item.
+        {tr("sheets.inbox.note")}
       </p>
 
       {pending.length === 0 ? (
-        <EmptyHint icon={<Landmark size={24} />} text="Nothing awaiting approval. Bank alerts you paste (or send via the Shortcut) will queue up here until you confirm each one." />
+        <EmptyHint icon={<Landmark size={24} />} text={tr("sheets.inbox.empty")} />
       ) : (
         <>
           {ready.length > 1 && (
             <button onClick={() => onApproveAll(ready.map((p) => ({ p, accountId: accFor(p), subId: !unlinked[p.id] ? matches[p.id]?.subId : undefined })))} className="tap ui w-full rounded-xl py-2.5 text-sm font-medium mb-3" style={{ background: T.greenBg, color: T.green, border: `1px solid ${T.green}` }}>
-              ✓ Approve all matched ({ready.length})
+              {tr("sheets.inbox.approveAll", { n: ready.length })}
             </button>
           )}
           {pending.map((p) => {
@@ -985,8 +997,8 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
               <div key={p.id} className="rounded-2xl mb-3 px-4 py-3.5" style={{ background: T.surface, border: `1px solid ${T.line}` }}>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="ui text-sm truncate" style={{ color: T.text }}>{p.merchant || (p.direction === "income" ? "Deposit" : "Bank withdrawal")}</div>
-                    <div className="ui text-[11px]" style={{ color: T.faint }}>{p.date}{p.category ? ` · ${p.category}` : ""}{p.cardLast4 ? ` · ****${p.cardLast4}` : ""}</div>
+                    <div className="ui text-sm truncate" style={{ color: T.text }}>{p.merchant || (p.direction === "income" ? tr("sheets.inbox.deposit") : tr("sheets.inbox.withdrawal"))}</div>
+                    <div className="ui text-[11px]" style={{ color: T.faint }}>{humanDay(p.date)}{p.category ? ` · ${catLabel(p.category)}` : ""}{p.cardLast4 ? ` · ****${p.cardLast4}` : ""}</div>
                   </div>
                   <Money n={p.amount} cur={p.currency} color={p.direction === "income" ? T.green : T.text} className="text-base" />
                 </div>
@@ -1006,9 +1018,9 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
                     onChange={(e) => setSel({ ...sel, [p.id]: e.target.value })}
                     className="ui flex-1 rounded-lg px-2.5 py-2 text-[13px] outline-none"
                     style={{ background: matched && !sel[p.id] ? T.greenBg : T.paper, border: `1px solid ${matched && !sel[p.id] ? T.green : T.line}`, color: T.text }}
-                    aria-label="Source account for this withdrawal"
+                    aria-label={tr("sheets.inbox.sourceAria")}
                   >
-                    <option value="">— اختر الحساب / pick account —</option>
+                    <option value="">{tr("sheets.inbox.pick")}</option>
                     {accounts.map((a) => (
                       <option key={a.id} value={a.id}>{a.name} · {a.currency}{matched && a.id === p.accountId ? " ✓" : ""}</option>
                     ))}
@@ -1019,14 +1031,14 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
                     className="tap ui text-xs font-semibold rounded-lg px-3.5 py-2.5"
                     style={{ background: accFor(p) ? T.ink : T.line, color: accFor(p) ? "#fff" : T.faint }}
                   >
-                    ✓ Approve
+                    {tr("sheets.inbox.approve")}
                   </button>
-                  <button onClick={() => onDismiss(p)} className="tap p-2 opacity-50" style={{ color: T.rose }} aria-label={`Dismiss ${p.merchant || "item"}`}>
+                  <button onClick={() => onDismiss(p)} className="tap p-2 opacity-50" style={{ color: T.rose }} aria-label={tr("sheets.inbox.dismiss", { name: p.merchant || tr("sheets.inbox.item") })}>
                     <Trash2 size={15} />
                   </button>
                 </div>
                 <details className="mt-2">
-                  <summary className="ui text-[10px] cursor-pointer" style={{ color: T.faint }}>Original message</summary>
+                  <summary className="ui text-[10px] cursor-pointer" style={{ color: T.faint }}>{tr("sheets.inbox.original")}</summary>
                   <p className="ui text-[11px] mt-1" style={{ color: T.sub }} dir="auto">{p.rawText}</p>
                 </details>
               </div>
@@ -1042,6 +1054,7 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
 export function SettingsSheet({
   open, onClose, settings, counts, onBase, onPref, onSaveRates, onFetchRates, onExportCsv, onExportBackup, onImportBackup, onResetRequest, backendName,
 }) {
+  const tr = useT();
   const [drafts, setDrafts] = useState({});
   const [err, setErr] = useState("");
   const [fx, setFx] = useState("");
@@ -1057,7 +1070,7 @@ export function SettingsSheet({
     const next = {};
     for (const c of CURRENCIES) {
       const v = c === "USD" ? 1 : parseFloat(drafts[c]);
-      if (!isValidRate(v)) { setErr(`Rate for ${c} must be a positive number.`); return; }
+      if (!isValidRate(v)) { setErr(tr("sheets.settings.rateErr", { c })); return; }
       next[c] = v;
     }
     setErr("");
@@ -1065,23 +1078,23 @@ export function SettingsSheet({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Settings" tall>
-      <Field label="Appearance">
-        <ChipRow value={settings.theme || "system"} onChange={(v) => onPref?.("theme", v)} options={[{ value: "system", label: "Match device" }, { value: "light", label: "Light" }, { value: "dark", label: "Dark" }]} />
+    <Sheet open={open} onClose={onClose} title={tr("sheets.settings.title")} tall>
+      <Field label={tr("sheets.settings.appearance")}>
+        <ChipRow value={settings.theme || "system"} onChange={(v) => onPref?.("theme", v)} options={[{ value: "system", label: tr("sheets.settings.system") }, { value: "light", label: tr("sheets.settings.light") }, { value: "dark", label: tr("sheets.settings.dark") }]} />
       </Field>
-      <Field label="Language · اللغة">
+      <Field label={tr("sheets.settings.language")}>
         <ChipRow value={settings.language || "en"} onChange={(v) => onPref?.("language", v)} options={[{ value: "en", label: "English" }, { value: "ar", label: "العربية" }]} />
       </Field>
 
-      <Field label="Base currency (everything rolls up into this)">
+      <Field label={tr("sheets.settings.base")}>
         <ChipRow value={settings.base} onChange={onBase} options={CURRENCIES.map((c) => ({ value: c, label: c }))} />
       </Field>
 
-      <Field label="Exchange rates · units per 1 USD">
+      <Field label={tr("sheets.settings.rates")}>
         <div className="flex items-center gap-2.5 rounded-xl px-3.5 py-3 mb-3" style={{ background: T.greenBg }}>
           <span className="h-2 w-2 rounded-full shrink-0" style={{ background: T.green }} aria-hidden="true" />
           <span className="ui text-[12px] flex-1" style={{ color: T.text }}>
-            Rates refresh automatically once a day.{settings.ratesUpdatedAt ? ` Last updated ${settings.ratesUpdatedAt}.` : ""}
+            {tr("sheets.settings.autoRefresh")}{settings.ratesUpdatedAt ? tr("sheets.settings.lastUpdated", { date: settings.ratesUpdatedAt }) : ""}
           </span>
           <button
             onClick={() => {
@@ -1094,11 +1107,11 @@ export function SettingsSheet({
             className="tap ui text-[12px] font-semibold rounded-lg px-3 py-1.5 shrink-0"
             style={{ background: T.ink, color: "#fff", opacity: fx === "loading" ? 0.6 : 1 }}
           >
-            {fx === "loading" ? "Updating…" : "↻ Update now"}
+            {fx === "loading" ? tr("sheets.settings.updating") : tr("sheets.settings.updateNow")}
           </button>
         </div>
-        {fx === "ok" && <p role="status" className="ui text-[11px] mb-2" style={{ color: T.green }}>Rates updated ✓</p>}
-        {fx === "err" && <p role="alert" className="ui text-[11px] mb-2" style={{ color: T.rose }}>Couldn't reach the rates service — using the last saved rates.</p>}
+        {fx === "ok" && <p role="status" className="ui text-[11px] mb-2" style={{ color: T.green }}>{tr("sheets.settings.updated")}</p>}
+        {fx === "err" && <p role="alert" className="ui text-[11px] mb-2" style={{ color: T.rose }}>{tr("sheets.settings.fetchErr")}</p>}
         {CURRENCIES.map((c) => (
           <div key={c} className="flex items-center gap-3 mb-2">
             <span className="mono text-sm w-10" style={{ color: T.text }}>{c}</span>
@@ -1108,42 +1121,42 @@ export function SettingsSheet({
               onChange={(e) => setDrafts({ ...drafts, [c]: e.target.value })}
               className="mono flex-1 rounded-xl px-3 py-2 text-sm outline-none"
               style={{ ...inputStyle, opacity: c === "USD" ? 0.55 : 1 }}
-              aria-label={`Rate for ${c} per 1 USD`}
+              aria-label={tr("sheets.settings.rateAria", { c })}
             />
           </div>
         ))}
         {err && <p role="alert" className="ui text-[12px] mb-2" style={{ color: T.rose }}>{err}</p>}
         <div className="flex gap-2 items-center">
-          <button onClick={saveRates} className="tap ui text-sm font-medium rounded-xl px-4 py-2.5" style={{ background: T.ink, color: "#fff" }}>Save rates</button>
-          <button onClick={() => { setDrafts(Object.fromEntries(CURRENCIES.map((c) => [c, String(DEFAULT_RATES[c])]))); setErr(""); }} className="tap ui text-sm rounded-xl px-4 py-2.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>Reset defaults</button>
+          <button onClick={saveRates} className="tap ui text-sm font-medium rounded-xl px-4 py-2.5" style={{ background: T.ink, color: "#fff" }}>{tr("sheets.settings.saveRates")}</button>
+          <button onClick={() => { setDrafts(Object.fromEntries(CURRENCIES.map((c) => [c, String(DEFAULT_RATES[c])]))); setErr(""); }} className="tap ui text-sm rounded-xl px-4 py-2.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>{tr("sheets.settings.resetDefaults")}</button>
         </div>
         <p className="ui text-[11px] mt-2" style={{ color: T.faint }}>
-          Manual editing is a fallback for when you're offline. Past entries always keep their original rates.
+          {tr("sheets.settings.manualNote")}
         </p>
       </Field>
 
-      <Field label="Backup & restore">
+      <Field label={tr("sheets.settings.backup")}>
         <div className="flex flex-wrap gap-2">
-          <button onClick={onExportBackup} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ background: T.ink, color: "#fff" }}><Download size={15} aria-hidden="true" />Export JSON backup</button>
-          <button onClick={() => fileRef.current?.click()} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}><Upload size={15} aria-hidden="true" />Restore from file</button>
+          <button onClick={onExportBackup} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ background: T.ink, color: "#fff" }}><Download size={15} aria-hidden="true" />{tr("sheets.settings.exportJson")}</button>
+          <button onClick={() => fileRef.current?.click()} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}><Upload size={15} aria-hidden="true" />{tr("sheets.settings.restore")}</button>
           <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" aria-hidden="true" onChange={(e) => { const file = e.target.files?.[0]; if (file) onImportBackup(file); e.target.value = ""; }} />
-          <button onClick={onExportCsv} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}><Download size={15} aria-hidden="true" />CSV</button>
+          <button onClick={onExportCsv} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}><Download size={15} aria-hidden="true" />{tr("sheets.settings.csv")}</button>
         </div>
-        <p className="ui text-[11px] mt-2" style={{ color: T.faint }}>Backup files contain your private financial data — store them somewhere safe.</p>
+        <p className="ui text-[11px] mt-2" style={{ color: T.faint }}>{tr("sheets.settings.backupNote")}</p>
       </Field>
 
-      <Field label="Your data">
+      <Field label={tr("sheets.settings.yourData")}>
         <p className="mono text-xs mb-3" style={{ color: T.sub }}>
-          {counts.tx} transactions · {counts.accounts} accounts · {counts.recurrs} recurring · {counts.debts} loans · storage: {backendName}
+          {tr("sheets.settings.counts", { tx: counts.tx, a: counts.accounts, r: counts.recurrs, d: counts.debts, s: backendName })}
         </p>
         <button onClick={onResetRequest} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ border: `1px solid ${T.rose}`, color: T.rose }}>
-          <Trash2 size={15} aria-hidden="true" />Reset all data
+          <Trash2 size={15} aria-hidden="true" />{tr("sheets.settings.reset")}
         </button>
       </Field>
 
       <p className="ui text-[11px] flex items-start gap-1.5 mt-1" style={{ color: T.faint }}>
         <Sparkles size={13} className="shrink-0 mt-0.5" style={{ color: T.gold }} aria-hidden="true" />
-        Data is stored privately on this device (or your Claude account inside Claude) and never sent to any external service.
+        {tr("sheets.settings.privacy")}
       </p>
     </Sheet>
   );

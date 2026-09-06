@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { X, Delete, AlertTriangle, RotateCcw } from "lucide-react";
 import { T, fmtMoney, inputCls, inputStyle } from "../../styles/tokens.js";
+import { useT, makeT, uiLang } from "../../i18n/index.js";
 
 export const Money = ({ n, cur, hide, color, className = "" }) => (
   <span className={`mono ${className}`} style={{ color: color || T.text }}>
@@ -11,6 +12,7 @@ export const Money = ({ n, cur, hide, color, className = "" }) => (
 /* Bottom sheet with dialog semantics (handoff §6.3): role=dialog, Escape to
    close, initial focus into the panel, focus restored to the opener. */
 export function Sheet({ open, onClose, title, children, tall, overlayClass = "", panelClass = "", bodyClass = "" }) {
+  const t = useT();
   const panel = useRef(null);
   const opener = useRef(null);
   useEffect(() => {
@@ -48,7 +50,7 @@ export function Sheet({ open, onClose, title, children, tall, overlayClass = "",
       >
         <div className="shrink-0 flex items-center justify-between px-5 pt-4 pb-3 no-print" style={{ borderBottom: `1px solid ${T.line}` }}>
           <h2 className="disp text-lg" style={{ color: T.text }}>{title}</h2>
-          <button onClick={onClose} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.paper, color: T.sub }} aria-label="Close">
+          <button onClick={onClose} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.paper, color: T.sub }} aria-label={t("prim.close")}>
             <X size={18} />
           </button>
         </div>
@@ -113,11 +115,14 @@ export const GhostBtn = ({ onClick, children, className = "", ariaLabel, ariaExp
   </button>
 );
 
-export const PaidBtn = ({ onClick, label = "Paid" }) => (
-  <button onClick={onClick} className="tap ui text-[11px] font-medium rounded-lg px-3 min-h-[44px]" style={{ background: T.ink, color: "#fff" }}>
-    {label}
-  </button>
-);
+export const PaidBtn = ({ onClick, label }) => {
+  const t = useT();
+  return (
+    <button onClick={onClick} className="tap ui text-[11px] font-medium rounded-lg px-3 min-h-[44px]" style={{ background: T.ink, color: "#fff" }}>
+      {label || t("actions.paid")}
+    </button>
+  );
+};
 
 export const CardBox = ({ children, className = "", style = {} }) => (
   <div className={`rounded-2xl ${className}`} style={{ background: T.surface, border: `1px solid ${T.line}`, ...style }}>
@@ -138,6 +143,7 @@ export const EmptyHint = ({ icon, text, cta, onClick }) => (
 );
 
 export function Numpad({ value, onChange }) {
+  const t = useT();
   const press = (k) => {
     if (k === "back") return onChange(value.slice(0, -1));
     if (k === "." && value.includes(".")) return;
@@ -147,14 +153,14 @@ export function Numpad({ value, onChange }) {
   };
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "back"];
   return (
-    <div className="grid grid-cols-3 gap-2" role="group" aria-label="Amount keypad">
+    <div className="grid grid-cols-3 gap-2" role="group" dir="ltr" aria-label={t("prim.keypad")}>
       {keys.map((k) => (
         <button
           key={k}
           onClick={() => press(k)}
           className="tap mono rounded-2xl py-3.5 text-xl flex items-center justify-center select-none"
           style={{ background: T.paper, color: T.text, border: `1px solid ${T.line}` }}
-          aria-label={k === "back" ? "Delete last digit" : k}
+          aria-label={k === "back" ? t("prim.deleteDigit") : k}
         >
           {k === "back" ? <Delete size={20} /> : k}
         </button>
@@ -166,13 +172,14 @@ export function Numpad({ value, onChange }) {
 /* Undo toast for safe deletion & paid taps (handoff §4.8) — loud enough
    to catch the eye: gold-bordered, big Undo button, 10s window. */
 export function UndoToast({ toast, onUndo }) {
+  const t = useT();
   if (!toast) return null;
   return (
     <div className="fixed left-1/2 -translate-x-1/2 z-[70] w-[92%] max-w-md" style={{ bottom: "calc(88px + env(safe-area-inset-bottom))" }} role="status" aria-live="polite">
       <div className="pop flex items-center gap-3 rounded-2xl px-4 py-3.5" style={{ background: T.ink, color: "#fff", border: `1.5px solid ${T.gold}`, boxShadow: "0 8px 24px rgba(15,27,45,0.35)" }}>
         <span className="ui text-sm flex-1">{toast.label}</span>
         <button onClick={onUndo} className="tap ui text-sm font-bold rounded-xl px-3.5 py-2 flex items-center gap-1.5 shrink-0" style={{ background: T.gold, color: T.ink }}>
-          <RotateCcw size={15} /> Undo
+          <RotateCcw size={15} /> {t("prim.undo")}
         </button>
       </div>
     </div>
@@ -192,26 +199,27 @@ export function SaveErrorBanner({ show, message }) {
 
 /* Typed confirmation for full reset (handoff §4.8). */
 export function TypedConfirm({ open, word, onCancel, onConfirm }) {
+  const t = useT();
   const [val, setVal] = React.useState("");
   useEffect(() => { if (open) setVal(""); }, [open]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-6" style={{ background: "rgba(15,27,45,0.6)" }} role="dialog" aria-modal="true" aria-label="Confirm reset">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-6" style={{ background: "rgba(15,27,45,0.6)" }} role="dialog" aria-modal="true" aria-label={t("prim.eraseTitle")}>
       <div className="pop w-full max-w-sm rounded-2xl p-5" style={{ background: T.surface }}>
-        <h3 className="disp text-lg mb-1" style={{ color: T.text }}>Erase everything?</h3>
+        <h3 className="disp text-lg mb-1" style={{ color: T.text }}>{t("prim.eraseTitle")}</h3>
         <p className="ui text-sm mb-3" style={{ color: T.sub }}>
-          This deletes all accounts, transactions, plans and debts. Export a backup first if unsure. Type <b>{word}</b> to confirm.
+          {t("prim.eraseBody")}<b>{word}</b>{t("prim.eraseToConfirm")}
         </p>
-        <input value={val} onChange={(e) => setVal(e.target.value)} className={inputCls} style={inputStyle} aria-label={`Type ${word} to confirm`} autoFocus />
+        <input value={val} onChange={(e) => setVal(e.target.value)} className={inputCls} style={inputStyle} aria-label={t("prim.eraseAria", { word })} autoFocus />
         <div className="flex gap-2 mt-4">
-          <button onClick={onCancel} className="tap ui flex-1 rounded-xl py-2.5 text-sm" style={{ border: `1px solid ${T.line}`, color: T.sub }}>Cancel</button>
+          <button onClick={onCancel} className="tap ui flex-1 rounded-xl py-2.5 text-sm" style={{ border: `1px solid ${T.line}`, color: T.sub }}>{t("actions.cancel")}</button>
           <button
             onClick={onConfirm}
             disabled={val !== word}
             className="tap ui flex-1 rounded-xl py-2.5 text-sm font-semibold"
             style={{ background: val === word ? T.rose : T.line, color: val === word ? "#fff" : T.faint }}
           >
-            Erase all data
+            {t("prim.eraseBtn")}
           </button>
         </div>
       </div>
@@ -229,17 +237,18 @@ export class ErrorBoundary extends React.Component {
   componentDidCatch(error, info) { console.error("Pocket Ledger crashed:", error, info?.componentStack); }
   render() {
     if (!this.state.error) return this.props.children;
+    const t = makeT(uiLang());
     return (
       <div className="min-h-screen flex items-center justify-center p-6 ui" style={{ background: T.paper }}>
         <div className="w-full max-w-sm rounded-2xl p-6 text-center" style={{ background: T.surface, border: `1px solid ${T.line}` }}>
-          <h2 className="disp text-xl mb-2" style={{ color: T.text }}>Something went wrong</h2>
-          <p className="text-sm mb-4" style={{ color: T.sub }}>Your data is safe in storage. Reload to continue, or export a recovery copy first.</p>
+          <h2 className="disp text-xl mb-2" style={{ color: T.text }}>{t("prim.crashTitle")}</h2>
+          <p className="text-sm mb-4" style={{ color: T.sub }}>{t("prim.crashBody")}</p>
           <div className="flex flex-col gap-2">
-            <button onClick={() => location.reload()} className="tap rounded-xl py-3 text-sm font-semibold" style={{ background: T.ink, color: "#fff" }}>Reload app</button>
-            <button onClick={() => this.props.onExportRecovery?.()} className="tap rounded-xl py-3 text-sm" style={{ border: `1px solid ${T.line}`, color: T.sub }}>Export recovery data</button>
+            <button onClick={() => location.reload()} className="tap rounded-xl py-3 text-sm font-semibold" style={{ background: T.ink, color: "#fff" }}>{t("prim.reload")}</button>
+            <button onClick={() => this.props.onExportRecovery?.()} className="tap rounded-xl py-3 text-sm" style={{ border: `1px solid ${T.line}`, color: T.sub }}>{t("prim.exportRecovery")}</button>
           </div>
           <details className="mt-4 text-left">
-            <summary className="text-xs cursor-pointer" style={{ color: T.faint }}>Technical details</summary>
+            <summary className="text-xs cursor-pointer" style={{ color: T.faint }}>{t("prim.tech")}</summary>
             <pre className="text-[10px] mt-2 overflow-auto max-h-32" style={{ color: T.sub }}>{String(this.state.error?.stack || this.state.error)}</pre>
           </details>
         </div>

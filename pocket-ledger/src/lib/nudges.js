@@ -6,6 +6,8 @@ import { convert } from "./finance/currency.js";
 import { daysUntilFromToday, humanDay } from "./dates/ui.js";
 import { todayISO, toISO, daysInMonth, diffDays } from "./dates/localDate.js";
 import { planStats } from "./finance/plans.js";
+import { uiLang } from "../i18n/index.js";
+import { curLabel } from "../styles/tokens.js";
 
 const HEAVY_WEEK_BASE = 5000; // in base currency
 
@@ -18,7 +20,27 @@ function nextDueISO(dueDay) {
   return toISO(yy, mm, Math.min(dueDay, daysInMonth(yy, mm)));
 }
 
-const fmt = (n, cur) => `${Math.round(n).toLocaleString("en-US")} ${cur}`;
+const fmt = (n, cur) => `${Math.round(n).toLocaleString("en-US")} ${curLabel(cur)}`;
+/* Copy in both languages; the nudge is rebuilt whenever settings change. */
+const AR = {
+  cardDue: (a, owed, due) => `${a} محتاج ${owed} قبل ${due} — ادفعه وريّح دماغك.`,
+  low: (a, bal, due) => `${a} فيه ${bal} بس هيتخصم منه ${due} خلال 10 أيام — زوّده عشان مفيش حاجة ترتد.`,
+  heavy: (n, total) => `خلّي بالك: ${n} تجديدات هتتخصم خلال 7 أيام — حوالي ${total} إجمالي.`,
+  reconcileFirst: "مراجعة شهرية: هات كشوف البنك وطابق كل رصيد — استخدم «طابق» على الحساب، أو ادّي الكشوف لـ Claude.",
+  reconcile: (d) => `${d} يوم من آخر مطابقة أرصدة — هات كشوف جديدة وطابقها («طابق»، أو ادّيها لـ Claude).`,
+  backupFirst: "بياناتك على الجهاز ده بس — خد 10 ثواني: الإعدادات ← تصدير نسخة احتياطية.",
+  backup: (d) => `آخر نسخة احتياطية من ${d} يوم — الإعدادات ← تصدير نسخة احتياطية تحمي أرقامك.`,
+};
+const EN = {
+  cardDue: (a, owed, due) => `${a} needs ${owed} by ${due} — pay it and it's off your mind.`,
+  low: (a, bal, due) => `${a} holds ${bal} but ${due} in charges land within 10 days — top it up so nothing bounces.`,
+  heavy: (n, total) => `Heads up: ${n} renewals land within 7 days — about ${total} total.`,
+  reconcileFirst: "Monthly check-up: pull your bank statements and match each balance — use Adjust on the account, or hand the statements to Claude.",
+  reconcile: (d) => `${d} days since the last balance check — pull fresh bank statements and match them (Adjust, or hand them to Claude).`,
+  backupFirst: "Your data lives only on this device — take 10 seconds: Settings → Export backup.",
+  backup: (d) => `Last backup was ${d} days ago — Settings → Export backup keeps your numbers safe.`,
+};
+const copy = () => (uiLang() === "ar" ? AR : EN);
 
 export function computeNudges({ accounts, recurrs, plans = [], balances, settings }) {
   const nudges = [];
@@ -58,7 +80,7 @@ export function computeNudges({ accounts, recurrs, plans = [], balances, setting
       nudges.push({
         key: `card-due-${a.id}`,
         tone: "amber",
-        text: `${a.name} needs ${fmt(owed, a.currency)} by ${humanDay(due)} — pay it and it's off your mind.`,
+        text: copy().cardDue(a.name, fmt(owed, a.currency), humanDay(due)),
       });
     }
   }
@@ -72,7 +94,7 @@ export function computeNudges({ accounts, recurrs, plans = [], balances, setting
       nudges.push({
         key: `low-${a.id}`,
         tone: "amber",
-        text: `${a.name} holds ${fmt(bal, a.currency)} but ${fmt(due, a.currency)} in charges land within 10 days — top it up so nothing bounces.`,
+        text: copy().low(a.name, fmt(bal, a.currency), fmt(due, a.currency)),
       });
     }
   }
@@ -84,7 +106,7 @@ export function computeNudges({ accounts, recurrs, plans = [], balances, setting
     nudges.push({
       key: "heavy-week",
       tone: "info",
-      text: `Heads up: ${week.length} renewals land within 7 days — about ${fmt(weekTotal, base)} total.`,
+      text: copy().heavy(week.length, fmt(weekTotal, base)),
     });
   }
 
@@ -95,9 +117,7 @@ export function computeNudges({ accounts, recurrs, plans = [], balances, setting
     nudges.push({
       key: "reconcile",
       tone: "info",
-      text: recAge === null
-        ? "Monthly check-up: pull your bank statements and match each balance — use Adjust on the account, or hand the statements to Claude."
-        : `${recAge} days since the last balance check — pull fresh bank statements and match them (Adjust, or hand them to Claude).`,
+      text: recAge === null ? copy().reconcileFirst : copy().reconcile(recAge),
     });
   }
 
@@ -108,9 +128,7 @@ export function computeNudges({ accounts, recurrs, plans = [], balances, setting
     nudges.push({
       key: "backup",
       tone: "info",
-      text: backupAge === null
-        ? "Your data lives only on this device — take 10 seconds: Settings → Export backup."
-        : `Last backup was ${backupAge} days ago — Settings → Export backup keeps your numbers safe.`,
+      text: backupAge === null ? copy().backupFirst : copy().backup(backupAge),
     });
   }
 

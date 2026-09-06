@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Home, Receipt, CalendarClock, Coins, Plus, Settings as SettingsIcon, Eye, EyeOff, Wallet, CheckCircle2, Inbox } from "lucide-react";
-import { T, setTheme, THEME_MODES } from "../styles/tokens.js";
+import { T, setTheme, THEME_MODES, setCurrencyLang, curLabel } from "../styles/tokens.js";
 import { SaveErrorBanner, UndoToast, TypedConfirm } from "../components/common/primitives.jsx";
 import HomeScreen from "../components/screens/HomeScreen.jsx";
 import ActivityScreen from "../components/screens/ActivityScreen.jsx";
@@ -26,11 +26,11 @@ import { todayISO, addCycle, thisMonthKey } from "../lib/dates/localDate.js";
 import { daysUntilFromToday } from "../lib/dates/ui.js";
 import { buildCsv, downloadText, stampedName } from "../lib/export/csv.js";
 import { buildBackup, parseBackup, mergeData } from "../lib/export/backup.js";
-import { makeT, applyDir } from "../i18n/index.js";
+import { makeT, applyDir, setUiLang, I18nContext } from "../i18n/index.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const fmtNet = (n, cur, hide) =>
-  hide ? "•••••" : `${n < 0 ? "−" : ""}${cur === "USD" ? "$" : cur === "EUR" ? "€" : ""}${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}${["USD", "EUR"].includes(cur) ? "" : ` ${cur}`}`;
+  hide ? "•••••" : `${n < 0 ? "−" : ""}${cur === "USD" ? "$" : cur === "EUR" ? "€" : ""}${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}${["USD", "EUR"].includes(cur) ? "" : ` ${curLabel(cur)}`}`;
 
 export default function App({ storage }) {
   const [data, setData] = useState(null);
@@ -143,6 +143,8 @@ export default function App({ storage }) {
     return rates;
   }, [data, commit]);
   const base = settings.base;
+  setUiLang(settings.language);
+  setCurrencyLang(settings.language);
   const t = useMemo(() => makeT(settings.language), [settings.language]);
   useEffect(() => applyDir(settings.language), [settings.language]);
   /* Theme: resolved synchronously so this very render paints with the right
@@ -399,7 +401,7 @@ export default function App({ storage }) {
     const prev = data;
     commit({ ...data, plans, transactions: [...tx, ...data.transactions] }, true);
     showFlash();
-    scheduleUndo(`Paid: ${plan.name}`, () => commit({ ...prev }, true));
+    scheduleUndo(t("common.paidUndo", { name: plan.name }), () => commit({ ...prev }, true));
   };
   /* Trips (Aug 2026): a tag over expenses while travelling — see lib/finance/trips.js. */
   const activeTrip = useMemo(() => (data ? openTrip(data.trips) : null), [data]);
@@ -449,7 +451,7 @@ export default function App({ storage }) {
     const prev = data;
     commit({ ...data, recurrs, transactions: [...tx, ...data.transactions] }, true);
     showFlash();
-    scheduleUndo(`Paid: ${r.name}`, () => commit({ ...prev }, true));
+    scheduleUndo(t("common.paidUndo", { name: r.name }), () => commit({ ...prev }, true));
   };
   const importSmsText = (text) => {
     const { items, skipped } = parseSmsBatch(text, data.accounts);
@@ -573,7 +575,7 @@ export default function App({ storage }) {
   if (!data)
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: T.paper }}>
-        <span className="ui text-sm animate-pulse" style={{ color: T.faint }}>Opening your ledger…</span>
+        <span className="ui text-sm animate-pulse" style={{ color: T.faint }}>{makeT(settings.language)("common.loading")}</span>
       </div>
     );
 
@@ -584,12 +586,13 @@ export default function App({ storage }) {
     { id: "people", label: t("tabs.people"), I: Coins },
   ];
   const dueTone = (d) =>
-    d < 0 ? { c: T.rose, bg: T.roseBg, t: `${-d}d overdue` }
-      : d === 0 ? { c: T.amber, bg: T.amberBg, t: "Due today" }
-      : d <= 3 ? { c: T.amber, bg: T.amberBg, t: `In ${d}d` }
-      : { c: T.sub, bg: T.paper, t: `In ${d}d` };
+    d < 0 ? { c: T.rose, bg: T.roseBg, t: t("common.overdue", { d: -d }) }
+      : d === 0 ? { c: T.amber, bg: T.amberBg, t: t("common.dueToday") }
+      : d <= 3 ? { c: T.amber, bg: T.amberBg, t: t("common.inDays", { d }) }
+      : { c: T.sub, bg: T.paper, t: t("common.inDays", { d }) };
 
   return (
+    <I18nContext.Provider value={t}>
     <div className="min-h-screen flex justify-center">
       <div className="relative w-full max-w-md min-h-screen flex flex-col" style={{ background: T.paper }}>
         <SaveErrorBanner show={saveError} message={t("saveError")} />
@@ -599,7 +602,7 @@ export default function App({ storage }) {
             strip so the screen's own answer sits above the fold. */}
         {tab !== "home" ? (
           <header className="app-chrome px-5 py-2.5 flex items-center justify-between gap-3" style={{ background: T.ink }}>
-            <button onClick={() => setTab("home")} className="tap flex items-center gap-2.5 min-w-0 min-h-[44px]" aria-label="Go to Home">
+            <button onClick={() => setTab("home")} className="tap flex items-center gap-2.5 min-w-0 min-h-[44px]" aria-label={t("common.goHome")}>
               <span className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: T.gold }}>
                 <Wallet size={14} style={{ color: T.ink }} aria-hidden="true" />
               </span>
@@ -609,16 +612,16 @@ export default function App({ storage }) {
               </span>
             </button>
             <div className="flex items-center gap-1.5 shrink-0">
-              <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? `Approval inbox: ${data.pending.length} waiting` : "Approval inbox"}>
+              <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
                 <Inbox size={16} />
                 {data.pending.length > 0 && (
                   <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
                 )}
               </button>
-              <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? "Show amounts" : "Hide amounts"} aria-pressed={hide}>
+              <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? t("common.showAmounts") : t("common.hideAmounts")} aria-pressed={hide}>
                 {hide ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              <button onClick={() => setSheet("settings")} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label="Settings">
+              <button onClick={() => setSheet("settings")} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={t("common.settings")}>
                 <SettingsIcon size={16} />
               </button>
             </div>
@@ -635,16 +638,16 @@ export default function App({ storage }) {
             <div className="flex items-center gap-2">
               {/* Always visible — it's also the only door to "Paste bank SMS",
                   so hiding it when empty left no way in (the user got stuck). */}
-              <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? `Approval inbox: ${data.pending.length} waiting` : "Approval inbox"}>
+              <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
                 <Inbox size={16} />
                 {data.pending.length > 0 && (
                   <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
                 )}
               </button>
-              <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? "Show amounts" : "Hide amounts"} aria-pressed={hide}>
+              <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? t("common.showAmounts") : t("common.hideAmounts")} aria-pressed={hide}>
                 {hide ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              <button onClick={() => setSheet("settings")} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label="Settings">
+              <button onClick={() => setSheet("settings")} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={t("common.settings")}>
                 <SettingsIcon size={16} />
               </button>
             </div>
@@ -698,7 +701,7 @@ export default function App({ storage }) {
         </main>
 
         {/* tab bar + FAB */}
-        <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30" style={{ background: T.navBg, backdropFilter: "saturate(1.3) blur(14px)", WebkitBackdropFilter: "saturate(1.3) blur(14px)", borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Main">
+        <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30" style={{ background: T.navBg, backdropFilter: "saturate(1.3) blur(14px)", WebkitBackdropFilter: "saturate(1.3) blur(14px)", borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label={t("common.mainNav")}>
           <div className="relative flex items-stretch justify-around px-2 pt-1.5 pb-2">
             {TABS.slice(0, 2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
             <div className="w-16" aria-hidden="true" />
@@ -713,7 +716,7 @@ export default function App({ storage }) {
               onPointerLeave={() => clearTimeout(fabPress.current.timer)}
               onContextMenu={(e) => e.preventDefault()}
               onClick={() => { if (!fabPress.current.fired) setSheet("add"); }}
-              aria-label="Add transaction — hold to speak"
+              aria-label={t("common.addTx")}
               className="tap absolute left-1/2 -translate-x-1/2 -top-6 h-14 w-14 rounded-full flex items-center justify-center"
               style={{ background: `linear-gradient(145deg, ${T.gold}, ${T.goldDeep})`, color: T.ink, boxShadow: "0 6px 18px rgba(169,133,63,0.45)", WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "manipulation" }}
             >
@@ -726,7 +729,7 @@ export default function App({ storage }) {
           <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none" aria-hidden="true">
             <div className="pop rounded-3xl px-8 py-6 flex flex-col items-center gap-2" style={{ background: "rgba(15,27,45,0.92)" }}>
               <CheckCircle2 size={40} style={{ color: T.gold }} />
-              <span className="ui text-sm" style={{ color: "#fff" }}>Logged</span>
+              <span className="ui text-sm" style={{ color: "#fff" }}>{t("common.logged")}</span>
             </div>
           </div>
         )}
@@ -763,6 +766,7 @@ export default function App({ storage }) {
         />
       </div>
     </div>
+    </I18nContext.Provider>
   );
 }
 

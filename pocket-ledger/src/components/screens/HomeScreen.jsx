@@ -7,6 +7,7 @@ import { BankMark, CardChip, SubLogo } from "../common/brand.jsx";
 import { subBrandFor } from "../../lib/brands.js";
 import { TxRow } from "../common/rows.jsx";
 import { humanDay } from "../../lib/dates/ui.js";
+import { useT, catLabel } from "../../i18n/index.js";
 
 /* Accounts are shown grouped by kind (deliberate design): banks
    together, credit cards together, cash alone — each with its own subtotal. */
@@ -35,13 +36,14 @@ function AccountBadge({ a, Ico, isCredit }) {
 /* One gentle nudge, tops (batch 10) — calm colors, plain words, easy to
    dismiss. Never a stack of warnings. */
 function NudgeCard({ nudge, onDismiss }) {
+  const t = useT();
   if (!nudge) return null;
   const amber = nudge.tone === "amber";
   return (
     <div className="rounded-2xl px-4 py-3 mb-4 flex items-start gap-3" style={{ background: amber ? T.amberBg : T.surface, border: `1px solid ${amber ? T.amber : T.line}` }}>
       <Lightbulb size={16} className="shrink-0 mt-0.5" style={{ color: amber ? T.amber : T.goldDeep }} aria-hidden="true" />
       <p className="ui text-[12px] leading-relaxed flex-1" style={{ color: T.text }}>{nudge.text}</p>
-      <button onClick={() => onDismiss(nudge.key)} className="tap p-3 -m-3 shrink-0 opacity-50" style={{ color: T.sub }} aria-label="Dismiss hint">
+      <button onClick={() => onDismiss(nudge.key)} className="tap p-3 -m-3 shrink-0 opacity-50" style={{ color: T.sub }} aria-label={t("common.dismissHint")}>
         <X size={14} />
       </button>
     </div>
@@ -54,22 +56,23 @@ export default function HomeScreen({
   hide, accName, base, dueTone, rates, groupLabels,
   onManageAccounts, onOpenPlanned, onOpenActivity, onOpenCards, onDelTx, onPaid, onAccountTap,
 }) {
+  const t = useT();
   return (
     <>
       <NudgeCard nudge={nudge} onDismiss={onDismissNudge} />
       {accounts.length === 0 && (
         <EmptyHint
           icon={<Landmark size={26} />}
-          text="Your money picture starts with accounts — each bank, card and your cash wallet, with a rough balance. Two minutes, no precision needed."
-          cta="Add accounts"
+          text={t("home.emptyAccounts")}
+          cta={t("home.addAccounts")}
           onClick={onManageAccounts}
         />
       )}
 
       {accounts.length > 0 && (
         <Section
-          title="Accounts"
-          right={<button onClick={onManageAccounts} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>Manage <ChevronRight size={13} /></button>}
+          title={t("home.accounts")}
+          right={<button onClick={onManageAccounts} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>{t("actions.manage")} <ChevronRight size={13} /></button>}
         >
           {ACCOUNT_GROUPS.map((g) => {
             const list = accounts.filter((a) => g.types.includes(a.type) && !!a.custodial === !!g.custodial);
@@ -108,7 +111,7 @@ export default function HomeScreen({
                         <span aria-hidden="true" className="absolute inset-y-0 w-1" style={{ insetInlineStart: 0, background: accountStripe(a) }} />
                         <div className="flex items-center gap-2 mb-3">
                           <AccountBadge a={a} Ico={Ico} isCredit={isCredit} />
-                          <span className="ui text-[10px] uppercase tracking-wider" style={{ color: T.faint }}>{a.type}</span>
+                          <span className="ui text-[10px] uppercase tracking-wider" style={{ color: T.faint }}>{t(`accountTypes.${a.type}`)}</span>
                         </div>
                         <div className="ui text-[12px] truncate" style={{ color: T.sub }}>{a.name}</div>
                         <div className="mono text-[15px] mt-0.5" style={{ color: isCredit && bal < 0 ? T.rose : T.text }}>{fmtSigned(bal, a.currency)}</div>
@@ -116,8 +119,8 @@ export default function HomeScreen({
                             you own. Owed state only; details live in Cards. */}
                         {isCredit && (
                           owed > 0
-                            ? <div className="ui text-[10px] mt-0.5" style={{ color: T.rose }}>you owe this ↑</div>
-                            : <div className="ui text-[10px] mt-0.5" style={{ color: T.green }}>nothing owed ✓</div>
+                            ? <div className="ui text-[10px] mt-0.5" style={{ color: T.rose }}>{t("common.youOweThis")}</div>
+                            : <div className="ui text-[10px] mt-0.5" style={{ color: T.green }}>{t("common.nothingOwed")}</div>
                         )}
                       </button>
                     );
@@ -130,11 +133,11 @@ export default function HomeScreen({
       )}
 
       <Section
-        title="Coming up"
-        right={<button onClick={onOpenPlanned} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>All <ChevronRight size={13} /></button>}
+        title={t("home.comingUp")}
+        right={<button onClick={onOpenPlanned} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>{t("actions.all")} <ChevronRight size={13} /></button>}
       >
         {upcoming.length === 0 ? (
-          <EmptyHint icon={<CalendarClock size={24} />} text="Subscriptions and installments appear here before they're due, so nothing sneaks up on you. Add the first one from Planned." cta="Add one" onClick={onOpenPlanned} />
+          <EmptyHint icon={<CalendarClock size={24} />} text={t("home.emptyUpcoming")} cta={t("home.addOne")} onClick={onOpenPlanned} />
         ) : (
           <CardBox>
             {upcoming.slice(0, 4).map((r, i) => {
@@ -162,7 +165,7 @@ export default function HomeScreen({
       </Section>
 
       {topCats.length > 0 && (
-        <Section title="This month by category">
+        <Section title={t("home.byCategory")}>
           <CardBox className="px-4 py-3.5">
             {topCats.map((c) => {
               const def = catDef(c.n);
@@ -170,21 +173,21 @@ export default function HomeScreen({
               return (
                 <div key={c.n} className="flex items-center gap-3 py-1.5">
                   <def.I size={15} style={{ color: def.c }} className="shrink-0" aria-hidden="true" />
-                  <span className="ui text-[13px] w-24 truncate" style={{ color: T.sub }}>{c.n}</span>
+                  <span className="ui text-[13px] w-24 truncate" style={{ color: T.sub }}>{catLabel(c.n)}</span>
                   <div className="flex-1"><Bar pct={(c.v / max) * 100} color={def.c} /></div>
                   <Money n={c.v} cur={base} hide={hide} className="text-[12px] w-20 text-right" />
                 </div>
               );
             })}
             {monthExpense > 0 && (
-              <div className="ui text-[10px] mt-1 text-right" style={{ color: T.faint }}>values fixed at entry-time rates</div>
+              <div className="ui text-[10px] mt-1 text-right" style={{ color: T.faint }}>{t("home.ratesNote")}</div>
             )}
           </CardBox>
         </Section>
       )}
 
       {recent.length > 0 && (
-        <Section title="Recent" right={<button onClick={onOpenActivity} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>All <ChevronRight size={13} /></button>}>
+        <Section title={t("home.recent")} right={<button onClick={onOpenActivity} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>{t("actions.all")} <ChevronRight size={13} /></button>}>
           <CardBox>
             {recent.map((t, i) => (
               <TxRow key={t.id} t={t} i={i} hide={hide} accName={accName} onDel={onDelTx} compact />
