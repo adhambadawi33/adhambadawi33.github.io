@@ -97,6 +97,9 @@ export function normalizeTransaction(t, report, accountIds, rates) {
   const date = isValidISO(t.date) ? t.date : null;
   const snapshot = snapshotRates(t.snapshot || rates);
   const base = { id: str(t.id) || uid(), date, note: str(t.note), snapshot, owner: ["me", "abeer", "kids"].includes(str(t.owner)) ? t.owner : "me" };
+  /* Gift tag (Sep 2026): something bought for someone else. Surfaces in the
+     People screen next to money given, so every gift sits in one place. */
+  if (bool(t.gift)) base.gift = true;
   /* Trip tag (Aug 2026): a spend logged while travelling carries the trip id
      and whether it's personal or work (work = the company pays it back). */
   if (str(t.tripId)) {
@@ -237,6 +240,8 @@ export function normalizeDebt(d, report) {
     repaid: Math.min(amount, Math.max(0, num(d.repaid, 0))),
     note: str(d.note),
     date: isValidISO(d.date) ? d.date : todayISO(),
+    /* Gift, not help: both are "no return", but only gifts join the Gifts list. */
+    ...(bool(d.gift) ? { gift: true } : {}),
   };
 }
 
