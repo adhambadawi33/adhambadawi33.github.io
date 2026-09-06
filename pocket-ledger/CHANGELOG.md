@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.0.0 — "Quiet ledger" design system (2026-09-07)
+
+Approved proposal implemented in full (stages S1–S5).
+
+### Design tokens
+- Semantic palette in `tokens.js` for both themes: canvas / surface / raised / sunken grounds, subtle + strong lines, three text levels (14.8 · 6.1 · 4.7 : 1), primary action with hover/pressed, one brass accent (text-safe `goldDeep` 4.8:1, decorative `gold`), state colors that all clear WCAG AA (success 5.0, warning 5.1, error 5.6, info 6.7), focus ring, scrim, shadow. Every token is mirrored to `--pl-*` CSS variables and exposed to Tailwind (`bg-surface`, `text-…`, `shadow-card`, `desk:` breakpoint at 900px).
+- Typography: IBM Plex Sans Arabic for the UI (Arabic + Latin from one family, pairs with the existing Plex Mono numerals); Fraunces kept for the wordmark and sheet titles. No text below 11px; row second lines 12px.
+
+### Components
+- Cards are layers (surface + soft shadow) instead of 1px borders; chips are 40px pills; inputs are 48px with a strong border and a brass focus ring; universal hover feedback; sheets sit on the raised surface with a grab handle; empty states are dashed and quiet; skeleton loading replaces the spinner text; `useLeaving` fades a row out after "Paid".
+- Bank/card marks sit on the raised surface so they read in dark mode.
+
+### Screens
+- Home: hero stats are one quiet line under the number; accounts are a vertical list folded per group (banks open; cards, cash and custodial behind their subtotal); empty custodial groups hide.
+- Activity: sticky day headers; account chips fold behind a filter button with a count.
+- Planned: "Next up" splits into This week / Later past six rows; Paid rows fade out.
+- People: "between you and people" is one line instead of two tiles; 4px progress bars; tap a name to open a person page (all loans + logged transactions naming them).
+- Settings: grouped cards; reset sits alone at the bottom.
+- Desktop (≥900px): left rail navigation, 760px content column, sheets open as a side panel.
+
 ## 2.9.0 — Arabic UI, dark mode, lint (2026-09-07)
 
 ### Added

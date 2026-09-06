@@ -19,6 +19,7 @@ export default {
     addTx: "Add transaction — hold to speak", goHome: "Go to Home", mainNav: "Main",
   },
   home: {
+    accountsN: "{n} accounts", accountOne: "1 account",
     accounts: "Accounts", comingUp: "Coming up", byCategory: "This month by category", recent: "Recent", ratesNote: "values fixed at entry-time rates",
     emptyAccounts: "Your money picture starts with accounts — each bank, card and your cash wallet, with a rough balance. Two minutes, no precision needed.", addAccounts: "Add accounts",
     emptyUpcoming: "Subscriptions and installments appear here before they're due, so nothing sneaks up on you. Add the first one from Planned.", addOne: "Add one",
@@ -26,6 +27,7 @@ export default {
   activity: {
     plainWords: "This month, in plain words", spent: "You've spent", soFar: "so far", mostOn: " — most of it on {top} ({topAmt})", then: ", then {second} ({secondAmt})",
     same: "About the same as last month at this point.", more: "That's {amt} more than last month at this point.", less: "That's {amt} less than last month at this point.",
+    filters: "Filters",
     searchPh: "Search notes or categories", searchAria: "Search transactions", report: "Monthly report", export: "Export CSV", allAccounts: "All accounts",
     empty: "Every expense, income, transfer and adjustment lands here. Tap the gold + to log the first one — three taps is all it takes.",
   },
@@ -44,6 +46,7 @@ export default {
     nextPayment: "Next payment · {i} of {n}", fullyPaid: "Fully paid ✓", showAll: "Show all {n} payments", hideSchedule: "Hide schedule", paidOf: "{paid} of {total} paid · {pct}%", ends: " · ends {date}", nextTag: "next",
     tripOpenLine: "● Open — new expenses ask about this trip", tripClosedLine: "Closed · {from}{to}", total: "Total", personal: "Personal · شخصي", work: "Work · شغل", me: "me", workTag: "work",
     companyOwes: "Company owes {amt} → record as a debt", workRecorded: "Work share recorded as a debt on the company", closeTrip: "Close trip (back home)", showSpends: "Show all {n} spends", hide: "Hide",
+    thisWeek: "This week", later: "Later",
     noCard: "No card", allChip: "All", everyone: "Everyone",
     editTrip: "Edit trip {name}", deleteTrip: "Delete trip {name}", deletePlan: "Delete {name}",
   },
@@ -52,6 +55,7 @@ export default {
     allSquare: "Nothing open. Everyone is square.", settledShow: "{n} settled · show", hideSettled: "Hide settled",
     givenAway: "Given away", givenSummary: "{n} entries · help and gifts, nothing coming back", givenOne: "1 entry · help and gifts, nothing coming back",
     owesYou: "owes you", youOweShort: "you owe", settled: "settled", recordRepayment: "Record a repayment", amountIn: "Amount in {cur}", repayAria: "Repayment amount for {name}",
+    between: "Between you and people", allWith: "Everything with {name}", noTx: "No logged transactions mention this name.", loans: "Loans", txs: "Transactions",
     gift: "gift", help: "help", bought: "bought", deleteLoan: "Delete loan with {name}", deleteGiven: "Delete given entry for {name}",
   },
   rows: {

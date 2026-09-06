@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Home, Receipt, CalendarClock, Coins, Plus, Settings as SettingsIcon, Eye, EyeOff, Wallet, CheckCircle2, Inbox } from "lucide-react";
 import { T, setTheme, THEME_MODES, setCurrencyLang, curLabel } from "../styles/tokens.js";
-import { SaveErrorBanner, UndoToast, TypedConfirm } from "../components/common/primitives.jsx";
+import { SaveErrorBanner, UndoToast, TypedConfirm, Skeleton } from "../components/common/primitives.jsx";
 import HomeScreen from "../components/screens/HomeScreen.jsx";
 import ActivityScreen from "../components/screens/ActivityScreen.jsx";
 import PlannedScreen from "../components/screens/PlannedScreen.jsx";
@@ -574,8 +574,12 @@ export default function App({ storage }) {
   /* ── loading ── */
   if (!data)
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: T.paper }}>
-        <span className="ui text-sm animate-pulse" style={{ color: T.faint }}>{makeT(settings.language)("common.loading")}</span>
+      <div className="min-h-screen flex justify-center" style={{ background: T.paper }}>
+        <div className="w-full max-w-md px-4 pt-6 flex flex-col gap-4" aria-busy="true" aria-label={makeT(settings.language)("common.loading")}>
+          <div className="h-36 rounded-2xl sk" />
+          <Skeleton rows={3} />
+          <Skeleton rows={2} />
+        </div>
       </div>
     );
 
@@ -593,8 +597,8 @@ export default function App({ storage }) {
 
   return (
     <I18nContext.Provider value={t}>
-    <div className="min-h-screen flex justify-center">
-      <div className="relative w-full max-w-md min-h-screen flex flex-col" style={{ background: T.paper }}>
+    <div className="min-h-screen flex justify-center desk:ps-[76px]">
+      <div className="relative w-full max-w-md desk:max-w-[760px] min-h-screen flex flex-col" style={{ background: T.paper }}>
         <SaveErrorBanner show={saveError} message={t("saveError")} />
 
         {/* header */}
@@ -607,7 +611,7 @@ export default function App({ storage }) {
                 <Wallet size={14} style={{ color: T.ink }} aria-hidden="true" />
               </span>
               <span className="flex flex-col items-start min-w-0">
-                <span className="ui text-[10px] leading-none" style={{ color: "#93A08D" }}>{t("header.strip")}</span>
+                <span className="ui text-[11px] leading-none" style={{ color: "#93A08D" }}>{t("header.strip")}</span>
                 <span className="mono text-[15px] leading-tight truncate" style={{ color: "#fff" }}>{fmtNet(Math.round(moneyGroups.liquid), base, hide)}</span>
               </span>
             </button>
@@ -615,7 +619,7 @@ export default function App({ storage }) {
               <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
                 <Inbox size={16} />
                 {data.pending.length > 0 && (
-                  <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
+                  <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
                 )}
               </button>
               <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? t("common.showAmounts") : t("common.hideAmounts")} aria-pressed={hide}>
@@ -641,7 +645,7 @@ export default function App({ storage }) {
               <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
                 <Inbox size={16} />
                 {data.pending.length > 0 && (
-                  <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
+                  <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
                 )}
               </button>
               <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? t("common.showAmounts") : t("common.hideAmounts")} aria-pressed={hide}>
@@ -654,7 +658,8 @@ export default function App({ storage }) {
           </div>
           <div className="ui text-[11px] uppercase tracking-widest mb-1" style={{ color: "#93A08D" }}>{t("header.total")}</div>
           <div className="mono text-[36px] leading-none" style={{ color: "#fff" }}>{fmtNet(Math.round(moneyGroups.liquid), base, hide)}</div>
-          <div className="flex flex-wrap gap-2 mt-3.5">
+          {/* One quiet line under the number instead of four tiles. */}
+          <div className="ui text-[12px] mt-3 flex flex-wrap gap-x-4 gap-y-1" style={{ color: "#B7C0B2" }}>
             <HeadStat label={t("header.banks")} v={hide ? "•••••" : Math.round(moneyGroups.banks).toLocaleString("en-US")} />
             <HeadStat label={t("header.cash")} v={hide ? "•••••" : Math.round(moneyGroups.cash).toLocaleString("en-US")} />
             {moneyGroups.cardOwed > 0.005 && <HeadStat owe label={t("header.owedCards")} v={hide ? "•••••" : Math.round(moneyGroups.cardOwed).toLocaleString("en-US")} />}
@@ -696,15 +701,15 @@ export default function App({ storage }) {
             />
           )}
           {tab === "people" && (
-            <PeopleScreen debts={data.debts} transactions={data.transactions} owedToMe={debts.owedToMe} iOwe={debts.iOwe} base={base} rates={settings.rates} hide={hide} onAddDebt={() => setSheet("debt")} onPay={payDebt} onDelDebt={delDebt} />
+            <PeopleScreen accName={accName} debts={data.debts} transactions={data.transactions} owedToMe={debts.owedToMe} iOwe={debts.iOwe} base={base} rates={settings.rates} hide={hide} onAddDebt={() => setSheet("debt")} onPay={payDebt} onDelDebt={delDebt} />
           )}
         </main>
 
         {/* tab bar + FAB */}
-        <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30" style={{ background: T.navBg, backdropFilter: "saturate(1.3) blur(14px)", WebkitBackdropFilter: "saturate(1.3) blur(14px)", borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label={t("common.mainNav")}>
-          <div className="relative flex items-stretch justify-around px-2 pt-1.5 pb-2">
+        <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30 desk:top-0 desk:bottom-0 desk:start-0 desk:left-auto desk:translate-x-0 desk:w-[76px] desk:max-w-none" style={{ background: T.navBg, backdropFilter: "saturate(1.3) blur(14px)", WebkitBackdropFilter: "saturate(1.3) blur(14px)", borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label={t("common.mainNav")}>
+          <div className="relative flex items-stretch justify-around px-2 pt-1.5 pb-2 desk:flex-col desk:justify-start desk:items-center desk:gap-3 desk:pt-24 desk:h-full">
             {TABS.slice(0, 2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
-            <div className="w-16" aria-hidden="true" />
+            <div className="w-16 desk:hidden" aria-hidden="true" />
             {TABS.slice(2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
             {/* Tap = keyboard entry. LONG-press = big-mic voice entry (batch 8). */}
             <button
@@ -717,7 +722,7 @@ export default function App({ storage }) {
               onContextMenu={(e) => e.preventDefault()}
               onClick={() => { if (!fabPress.current.fired) setSheet("add"); }}
               aria-label={t("common.addTx")}
-              className="tap absolute left-1/2 -translate-x-1/2 -top-6 h-14 w-14 rounded-full flex items-center justify-center"
+              className="tap absolute left-1/2 -translate-x-1/2 -top-6 h-14 w-14 rounded-full flex items-center justify-center desk:static desk:translate-x-0 desk:mt-2 desk:order-first desk:mb-4"
               style={{ background: `linear-gradient(145deg, ${T.gold}, ${T.goldDeep})`, color: T.ink, boxShadow: "0 6px 18px rgba(169,133,63,0.45)", WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "manipulation" }}
             >
               <Plus size={26} strokeWidth={2.5} />
@@ -772,10 +777,10 @@ export default function App({ storage }) {
 
 function HeadStat({ label, v, owe }) {
   return (
-    <div className="flex-1 min-w-0 rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", minWidth: "28%" }}>
-      <div className="ui text-[10px] mb-0.5 truncate" style={{ color: "#93A08D" }}>{label}</div>
-      <div className="mono text-[13px] truncate" style={{ color: owe ? "#E9B7A0" : "#EEF1E8" }}>{v}</div>
-    </div>
+    <span className="inline-flex items-baseline gap-1.5">
+      <span>{label}</span>
+      <span className="mono text-[13px]" style={{ color: owe ? "#E9B7A0" : "#EEF1E8" }}>{v}</span>
+    </span>
   );
 }
 
@@ -783,7 +788,7 @@ function TabBtn({ t, on, set }) {
   return (
     <button onClick={() => set(t.id)} aria-current={on ? "page" : undefined} className="tap flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-h-[44px]" style={{ color: on ? T.inkText : T.sub }}>
       <t.I size={20} strokeWidth={on ? 2.4 : 2} aria-hidden="true" />
-      <span className="ui text-[10px]" style={{ fontWeight: on ? 600 : 400 }}>{t.label}</span>
+      <span className="ui text-[11px]" style={{ fontWeight: on ? 600 : 400 }}>{t.label}</span>
     </button>
   );
 }

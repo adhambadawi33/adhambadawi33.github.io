@@ -23,6 +23,7 @@ export default {
     addTx: "إضافة حركة — دوس مطوّلًا عشان تتكلم", goHome: "روح للرئيسية", mainNav: "الرئيسي",
   },
   home: {
+    accountsN: "{n} حسابات", accountOne: "حساب واحد",
     accounts: "الحسابات", comingUp: "الجاي", byCategory: "الشهر ده حسب النوع", recent: "آخر الحركات", ratesNote: "القيم ثابتة بسعر يوم التسجيل",
     emptyAccounts: "الصورة بتبدأ بالحسابات: كل بنك وكارت ومحفظة الكاش، برصيد تقريبي. دقيقتين ومن غير دقة.", addAccounts: "أضف الحسابات",
     emptyUpcoming: "الاشتراكات والأقساط بتظهر هنا قبل ميعادها عشان مفيش حاجة تفاجئك. أضف أول واحدة من المخطط.", addOne: "أضف واحدة",
@@ -30,6 +31,7 @@ export default {
   activity: {
     plainWords: "الشهر ده بالبلدي", spent: "صرفت", soFar: "لحد دلوقتي", mostOn: " — أغلبها على {top} ({topAmt})", then: "، وبعدها {second} ({secondAmt})",
     same: "تقريبًا زي الشهر اللي فات في نفس التوقيت.", more: "أكتر من الشهر اللي فات في نفس التوقيت بـ {amt}.", less: "أقل من الشهر اللي فات في نفس التوقيت بـ {amt}.",
+    filters: "فلاتر",
     searchPh: "دوّر في الملاحظات أو الأنواع", searchAria: "بحث في الحركات", report: "التقرير الشهري", export: "تصدير CSV", allAccounts: "كل الحسابات",
     empty: "كل مصروف ودخل وتحويل وتسوية بيتسجل هنا. دوس على + الدهبي عشان تسجل أول حركة — ٣ ضغطات وخلاص.",
   },
@@ -48,6 +50,7 @@ export default {
     nextPayment: "الدفعة الجاية · {i} من {n}", fullyPaid: "اتدفعت بالكامل ✓", showAll: "اعرض كل الـ {n} دفعات", hideSchedule: "اخفي الجدول", paidOf: "اتدفع {paid} من {total} · {pct}%", ends: " · تخلص {date}", nextTag: "الجاية",
     tripOpenLine: "● مفتوحة — المصاريف الجديدة بتسأل عن الرحلة دي", tripClosedLine: "مقفولة · {from}{to}", total: "الإجمالي", personal: "شخصي", work: "شغل", me: "أنا", workTag: "شغل",
     companyOwes: "الشركة عليها {amt} → سجّلها دين", workRecorded: "حصة الشغل اتسجلت دين على الشركة", closeTrip: "اقفل الرحلة (رجعت البيت)", showSpends: "اعرض كل الـ {n} مصاريف", hide: "اخفي",
+    thisWeek: "الأسبوع ده", later: "بعدين",
     noCard: "من غير كارت", allChip: "الكل", everyone: "الكل",
     editTrip: "عدّل رحلة {name}", deleteTrip: "احذف رحلة {name}", deletePlan: "احذف {name}",
   },
@@ -56,6 +59,7 @@ export default {
     allSquare: "مفيش حاجة مفتوحة. الكل خالص.", settledShow: "{n} خلصت · اعرض", hideSettled: "اخفي اللي خلصت",
     givenAway: "اتدفع بدون رجعة", givenSummary: "{n} بنود · مساعدات وهدايا، مش هترجع", givenOne: "بند واحد · مساعدات وهدايا، مش هترجع",
     owesYou: "ليك عنده", youOweShort: "عليك ليه", settled: "خلصت", recordRepayment: "سجّل دفعة", amountIn: "المبلغ بالـ {cur}", repayAria: "مبلغ السداد لـ {name}",
+    between: "بينك وبين الناس", allWith: "كل اللي بينك وبين {name}", noTx: "مفيش حركات مسجلة باسمه.", loans: "السلف", txs: "الحركات",
     gift: "هدية", help: "مساعدة", bought: "اتشرت", deleteLoan: "احذف سلفة {name}", deleteGiven: "احذف بند {name}",
   },
   rows: {

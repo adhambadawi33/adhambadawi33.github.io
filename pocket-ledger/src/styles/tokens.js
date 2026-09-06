@@ -8,25 +8,45 @@ import {
    Chosen for low visual noise. Two palettes share one shape; `T` is a live
    view onto whichever is active, so every inline style follows the theme. */
 export const LIGHT = {
-  ink: "#2C3A2F", inkSoft: "#3A4A3E", inkText: "#2C3A2F", paper: "#F1EEE7", surface: "#FBFAF6",
-  line: "#E7E2D6", text: "#232A24", sub: "#6E7268", faint: "#858880",
-  gold: "#B08D57", goldDeep: "#8A6A3B",
-  green: "#3F8F6B", greenBg: "#E6F1EA", rose: "#A65C48", roseBg: "#F7EBE1",
-  amber: "#A9853F", amberBg: "#F5EEDB",
-  shell: "#E7EAEF", placeholder: "#93A0AE", navBg: "rgba(251,250,246,0.82)",
+  /* grounds */
+  paper: "#F1EEE7", surface: "#FBFAF6", raised: "#FFFFFF", sunken: "#EAE6DC",
+  /* lines */
+  line: "#E4DFD3", lineStrong: "#CFC9BA",
+  /* text: 14.8 / 6.1 / 4.7 : 1 on surface */
+  text: "#1F261F", sub: "#5B6159", faint: "#6E7268", textDisabled: "#A3A69C",
+  /* primary action */
+  ink: "#2C3A2F", inkHover: "#243128", inkPressed: "#1B251E", inkSoft: "#3A4A3E", inkText: "#2C3A2F",
+  /* the one accent: brass. goldDeep is the text-safe one (4.8:1), gold is decorative */
+  gold: "#B08D57", goldDeep: "#8A6A3B", goldBg: "#F3EBDD",
+  /* state colors, all ≥ 4.9:1 on surface */
+  green: "#2E7A57", greenBg: "#E3F0E8", rose: "#9E4D3A", roseBg: "#F7E8E1",
+  amber: "#8A6425", amberBg: "#F5ECD9", info: "#3E5C76", infoBg: "#E6ECF2",
+  focus: "#B08D57", shadow1: "0 1px 2px rgba(31,38,31,.06), 0 4px 14px rgba(31,38,31,.05)",
+  scrim: "rgba(31,38,31,0.45)", shell: "#E7EAEF", placeholder: "#93A0AE", navBg: "rgba(251,250,246,0.84)",
 };
 /* Night: the forest becomes the ground, paper becomes ink. Same one accent. */
 export const DARK = {
-  ink: "#33423A", inkSoft: "#465750", inkText: "#ECE9E0", paper: "#151A17", surface: "#1E2520",
-  line: "#2C352F", text: "#ECE9E0", sub: "#ABB0A5", faint: "#82877D",
-  gold: "#C9A96A", goldDeep: "#D6BC86",
-  green: "#6FB994", greenBg: "rgba(111,185,148,0.16)", rose: "#D48F7B", roseBg: "rgba(212,143,123,0.16)",
-  amber: "#D3B26E", amberBg: "rgba(211,178,110,0.16)",
-  shell: "#0E120F", placeholder: "#6F756D", navBg: "rgba(30,37,32,0.84)",
+  paper: "#151A17", surface: "#1E2520", raised: "#242C26", sunken: "#10140F",
+  line: "#2C352F", lineStrong: "#3D4741",
+  text: "#EDEBE3", sub: "#B4B8AE", faint: "#9A9F95", textDisabled: "#6C716A",
+  ink: "#3A4A3E", inkHover: "#45564A", inkPressed: "#2F3D33", inkSoft: "#465750", inkText: "#EDEBE3",
+  gold: "#C9A96A", goldDeep: "#D6BC86", goldBg: "rgba(214,188,134,0.14)",
+  green: "#7CC49F", greenBg: "rgba(124,196,159,0.14)", rose: "#DE9585", roseBg: "rgba(222,149,133,0.14)",
+  amber: "#DCB874", amberBg: "rgba(220,184,116,0.14)", info: "#9DB4CB", infoBg: "rgba(157,180,203,0.14)",
+  focus: "#C9A96A", shadow1: "0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28)",
+  scrim: "rgba(0,0,0,0.6)", shell: "#0E120F", placeholder: "#6F756D", navBg: "rgba(30,37,32,0.86)",
 };
 let active = LIGHT;
 export const THEME_MODES = ["system", "light", "dark"];
-export const setTheme = (mode) => { active = mode === "dark" ? DARK : LIGHT; };
+/* Mirror every token to CSS variables (--pl-*) so stylesheets and Tailwind
+   arbitrary values can use the same source of truth as inline styles. */
+const KEBAB = (k) => k.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
+const syncCssVars = () => {
+  if (typeof document === "undefined") return;
+  const st = document.documentElement.style;
+  for (const [k, v] of Object.entries(active)) st.setProperty(`--pl-${KEBAB(k)}`, v);
+};
+export const setTheme = (mode) => { active = mode === "dark" ? DARK : LIGHT; syncCssVars(); };
 export const currentTheme = () => (active === DARK ? "dark" : "light");
 export const T = new Proxy({}, { get: (_, k) => active[k], ownKeys: () => Reflect.ownKeys(active), getOwnPropertyDescriptor: (_, k) => ({ value: active[k], enumerable: true, configurable: true }) });
 
@@ -92,7 +112,7 @@ export const fmtMoney = (n, cur, hide) => {
   const v = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   return cur === "USD" ? `$${v}` : cur === "EUR" ? `€${v}` : `${v} ${curLabel(cur)}`;
 };
-export const inputCls = "ui w-full rounded-xl px-3.5 py-3 text-[15px] outline-none";
+export const inputCls = "ui pl-input w-full rounded-xl px-3.5 text-[15px] outline-none";
 /* Live like T: inputs follow the theme even though callers spread this object. */
-const inputStyleOf = () => ({ background: T.paper, border: `1px solid ${T.line}`, color: T.text });
+const inputStyleOf = () => ({ background: T.surface, border: `1px solid ${T.lineStrong}`, color: T.text });
 export const inputStyle = new Proxy({}, { get: (_, k) => inputStyleOf()[k], ownKeys: () => Object.keys(inputStyleOf()), getOwnPropertyDescriptor: (_, k) => ({ value: inputStyleOf()[k], enumerable: true, configurable: true }) });

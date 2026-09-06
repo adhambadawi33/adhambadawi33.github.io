@@ -169,8 +169,8 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
   };
 
   const Det = ({ on }) => on
-    ? <span className="ui text-[10px] font-semibold" style={{ color: T.goldDeep }}>فهمتها من كلامك ✓</span>
-    : <span className="ui text-[10px]" style={{ color: T.faint }}>مش متأكد — راجعها</span>;
+    ? <span className="ui text-[11px] font-semibold" style={{ color: T.goldDeep }}>فهمتها من كلامك ✓</span>
+    : <span className="ui text-[11px]" style={{ color: T.faint }}>مش متأكد — راجعها</span>;
 
   const SeqToggle = () => (
     <button

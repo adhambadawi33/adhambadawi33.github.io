@@ -1,8 +1,8 @@
-import React from "react";
-import { Landmark, CalendarClock, Repeat, Layers, ChevronRight, Lightbulb, X } from "lucide-react";
+import React, { useState } from "react";
+import { Landmark, CalendarClock, Repeat, Layers, ChevronRight, ChevronDown, Lightbulb, X } from "lucide-react";
 import { T, ACCOUNT_TYPE_DEFS, catDef, fmtMoney, accountStripe } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
-import { Section, CardBox, EmptyHint, Money, Bar, PaidBtn } from "../common/primitives.jsx";
+import { Section, CardBox, EmptyHint, Money, Bar, PaidBtn, useLeaving } from "../common/primitives.jsx";
 import { BankMark, CardChip, SubLogo } from "../common/brand.jsx";
 import { subBrandFor } from "../../lib/brands.js";
 import { TxRow } from "../common/rows.jsx";
@@ -40,8 +40,8 @@ function NudgeCard({ nudge, onDismiss }) {
   if (!nudge) return null;
   const amber = nudge.tone === "amber";
   return (
-    <div className="rounded-2xl px-4 py-3 mb-4 flex items-start gap-3" style={{ background: amber ? T.amberBg : T.surface, border: `1px solid ${amber ? T.amber : T.line}` }}>
-      <Lightbulb size={16} className="shrink-0 mt-0.5" style={{ color: amber ? T.amber : T.goldDeep }} aria-hidden="true" />
+    <div className="rounded-2xl px-4 py-3 mb-4 flex items-start gap-3" style={{ background: amber ? T.amberBg : T.infoBg }}>
+      <Lightbulb size={16} className="shrink-0 mt-0.5" style={{ color: amber ? T.amber : T.info }} aria-hidden="true" />
       <p className="ui text-[12px] leading-relaxed flex-1" style={{ color: T.text }}>{nudge.text}</p>
       <button onClick={() => onDismiss(nudge.key)} className="tap p-3 -m-3 shrink-0 opacity-50" style={{ color: T.sub }} aria-label={t("common.dismissHint")}>
         <X size={14} />
@@ -57,6 +57,9 @@ export default function HomeScreen({
   onManageAccounts, onOpenPlanned, onOpenActivity, onOpenCards, onDelTx, onPaid, onAccountTap,
 }) {
   const t = useT();
+  /* Banks stay open; cards, cash and custodial fold behind their subtotal. */
+  const [openGroups, setOpenGroups] = useState({});
+  const [leaving, leave] = useLeaving();
   return (
     <>
       <NudgeCard nudge={nudge} onDismiss={onDismissNudge} />
@@ -74,61 +77,57 @@ export default function HomeScreen({
           title={t("home.accounts")}
           right={<button onClick={onManageAccounts} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>{t("actions.manage")} <ChevronRight size={13} /></button>}
         >
-          {ACCOUNT_GROUPS.map((g) => {
+          <CardBox>
+          {ACCOUNT_GROUPS.map((g, gi) => {
             const list = accounts.filter((a) => g.types.includes(a.type) && !!a.custodial === !!g.custodial);
             if (!list.length) return null;
             /* Signed by design: owing on a card is negative, red. */
             const subtotal = list.reduce((s, a) => s + convert(balances[a.id] || 0, a.currency, base, rates), 0);
+            /* A custodial group with nothing in it is noise, not information. */
+            if (g.custodial && Math.abs(subtotal) < 0.005 && list.every((a) => Math.abs(balances[a.id] || 0) < 0.005)) return null;
             const fmtSigned = (n, cur) => (hide ? "•••••" : `${n < 0 ? "−" : ""}${fmtMoney(Math.abs(n), cur, false)}`);
+            const open = openGroups[g.key] ?? g.key === "banks";
             return (
-              <div key={g.key} className="mb-3">
-                <div className="flex items-baseline justify-between mb-1.5 px-0.5">
-                  <span className="ui text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1.5" style={{ color: T.sub }}>
-                    <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: g.dot }} aria-hidden="true" />
-                    {groupLabels?.[g.key] || g.key}
-                  </span>
-                  {g.key === "cards" ? (
-                    <button onClick={onOpenCards} className="tap flex items-center gap-0.5">
-                      <span className="mono text-[12px]" style={{ color: subtotal < -0.005 ? T.rose : T.text }}>{fmtSigned(Math.round(subtotal), base)}</span>
-                      <ChevronRight size={12} style={{ color: T.faint }} aria-hidden="true" />
-                    </button>
-                  ) : (
-                    <span className="mono text-[12px]" style={{ color: subtotal < -0.005 ? T.rose : T.text }}>{fmtSigned(Math.round(subtotal), base)}</span>
+              <div key={g.key} style={{ borderTop: gi ? `1px solid ${T.line}` : "none" }}>
+                <div className="flex items-center gap-2 px-4">
+                  <button onClick={() => setOpenGroups({ ...openGroups, [g.key]: !open })} aria-expanded={open} className="tap flex items-center gap-2 flex-1 min-w-0 text-left min-h-[52px]">
+                    <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: g.dot }} aria-hidden="true" />
+                    <span className="ui text-[13px] font-semibold flex-1 truncate" style={{ color: T.text }}>{groupLabels?.[g.key] || g.key}</span>
+                    <span className="ui text-[12px] shrink-0" style={{ color: T.faint }}>{list.length === 1 ? t("home.accountOne") : t("home.accountsN", { n: list.length })}</span>
+                    <span className="mono text-[13px] shrink-0" style={{ color: subtotal < -0.005 ? T.rose : T.text }}>{fmtSigned(Math.round(subtotal), base)}</span>
+                    <ChevronDown size={15} className="shrink-0" style={{ color: T.faint, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} aria-hidden="true" />
+                  </button>
+                  {g.key === "cards" && (
+                    <button onClick={onOpenCards} className="tap flex items-center min-h-[44px] px-1 -me-1" style={{ color: T.sub }} aria-label={groupLabels?.cards}><ChevronRight size={16} /></button>
                   )}
                 </div>
-                <div className="flex gap-3 overflow-x-auto no-scroll -mx-4 px-4 pb-1">
-                  {list.map((a) => {
-                    const bal = balances[a.id] || 0;
-                    const Ico = (ACCOUNT_TYPE_DEFS.find((t) => t.id === a.type) || ACCOUNT_TYPE_DEFS[0]).icon;
-                    const isCredit = a.type === "credit";
-                    const owed = isCredit ? Math.max(0, -bal) : 0;
-                    return (
-                      <button
-                        key={a.id} onClick={() => onAccountTap(a)}
-                        className="tap shrink-0 w-40 rounded-2xl p-3 text-left relative overflow-hidden"
-                        style={{ background: T.surface, border: `1px solid ${T.line}` }}
-                      >
-                        <span aria-hidden="true" className="absolute inset-y-0 w-1" style={{ insetInlineStart: 0, background: accountStripe(a) }} />
-                        <div className="flex items-center gap-2 mb-3">
-                          <AccountBadge a={a} Ico={Ico} isCredit={isCredit} />
-                          <span className="ui text-[10px] uppercase tracking-wider" style={{ color: T.faint }}>{t(`accountTypes.${a.type}`)}</span>
-                        </div>
-                        <div className="ui text-[12px] truncate" style={{ color: T.sub }}>{a.name}</div>
-                        <div className="mono text-[15px] mt-0.5" style={{ color: isCredit && bal < 0 ? T.rose : T.text }}>{fmtSigned(bal, a.currency)}</div>
-                        {/* No "available" here — credit headroom reads like money
-                            you own. Owed state only; details live in Cards. */}
-                        {isCredit && (
-                          owed > 0
-                            ? <div className="ui text-[10px] mt-0.5" style={{ color: T.rose }}>{t("common.youOweThis")}</div>
-                            : <div className="ui text-[10px] mt-0.5" style={{ color: T.green }}>{t("common.nothingOwed")}</div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                {open && list.map((a, i) => {
+                  const bal = balances[a.id] || 0;
+                  const Ico = (ACCOUNT_TYPE_DEFS.find((t) => t.id === a.type) || ACCOUNT_TYPE_DEFS[0]).icon;
+                  const isCredit = a.type === "credit";
+                  const owed = isCredit ? Math.max(0, -bal) : 0;
+                  return (
+                    <button
+                      key={a.id} onClick={() => onAccountTap(a)}
+                      className="tap w-full flex items-center gap-3 text-left px-4 min-h-[56px] relative"
+                      style={{ borderTop: `1px solid ${T.line}`, background: i % 2 ? "transparent" : "transparent" }}
+                    >
+                      <span aria-hidden="true" className="absolute inset-y-2 w-[3px] rounded-full" style={{ insetInlineStart: 0, background: accountStripe(a) }} />
+                      <AccountBadge a={a} Ico={Ico} isCredit={isCredit} />
+                      <span className="flex-1 min-w-0">
+                        <span className="ui text-[15px] block truncate" style={{ color: T.text }}>{a.name}</span>
+                        <span className="ui text-[12px] block" style={{ color: isCredit ? (owed > 0 ? T.rose : T.green) : T.faint }}>
+                          {isCredit ? (owed > 0 ? t("common.youOweThis") : t("common.nothingOwed")) : `${t(`accountTypes.${a.type}`)} · ${a.currency}`}
+                        </span>
+                      </span>
+                      <span className="mono text-[15px] shrink-0" style={{ color: isCredit && bal < 0 ? T.rose : T.text }}>{fmtSigned(bal, a.currency)}</span>
+                    </button>
+                  );
+                })}
               </div>
             );
           })}
+          </CardBox>
         </Section>
       )}
 
@@ -143,7 +142,7 @@ export default function HomeScreen({
             {upcoming.slice(0, 4).map((r, i) => {
               const tone = dueTone(r.d);
               return (
-                <div key={r.id} className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i ? `1px solid ${T.paper}` : "none" }}>
+                <div key={r.id} className={`flex items-center gap-3 px-4 py-3 ${leaving === r.id ? "row-leave" : ""}`} style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
                   {subBrandFor(r.name) ? (
                     <SubLogo name={r.name} size={36} />
                   ) : (
@@ -156,7 +155,7 @@ export default function HomeScreen({
                     <div className="ui text-[12px]" style={{ color: tone.c }}>{tone.t} · {humanDay(r.nextDue)}</div>
                   </div>
                   <Money n={r.amount} cur={r.currency} hide={hide} className="text-sm" />
-                  <PaidBtn onClick={() => onPaid(r)} />
+                  <PaidBtn onClick={() => leave(r.id, () => onPaid(r))} />
                 </div>
               );
             })}
@@ -180,7 +179,7 @@ export default function HomeScreen({
               );
             })}
             {monthExpense > 0 && (
-              <div className="ui text-[10px] mt-1 text-right" style={{ color: T.faint }}>{t("home.ratesNote")}</div>
+              <div className="ui text-[11px] mt-1 text-right" style={{ color: T.faint }}>{t("home.ratesNote")}</div>
             )}
           </CardBox>
         </Section>

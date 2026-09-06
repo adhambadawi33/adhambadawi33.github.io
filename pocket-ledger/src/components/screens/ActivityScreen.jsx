@@ -1,5 +1,5 @@
-import React from "react";
-import { Search, Download, Receipt, Sparkles, FileText } from "lucide-react";
+import React, { useState } from "react";
+import { Search, Download, Receipt, Sparkles, FileText, SlidersHorizontal } from "lucide-react";
 import { T, fmtMoney } from "../../styles/tokens.js";
 import { CardBox, EmptyHint, ChipRow } from "../common/primitives.jsx";
 import { TxRow } from "../common/rows.jsx";
@@ -33,11 +33,14 @@ function InsightCard({ insight, base, hide }) {
 
 export default function ActivityScreen({ txByDay, filter, setFilter, accounts, hide, accName, onDelTx, onEditTx, onExport, onOpenReport, insight, base }) {
   const t = useT();
+  const active = filter.accountId !== "all";
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const showChips = filtersOpen || active;
   return (
     <>
       <InsightCard insight={insight} base={base} hide={hide} />
       <div className="flex gap-2 mb-3">
-        <div className="flex-1 flex items-center gap-2 rounded-xl px-3" style={{ background: T.surface, border: `1px solid ${T.line}` }}>
+        <div className="flex-1 flex items-center gap-2 rounded-xl px-3" style={{ background: T.surface, border: `1px solid ${T.lineStrong}` }}>
           <Search size={15} style={{ color: T.faint }} aria-hidden="true" />
           <input
             value={filter.q}
@@ -48,6 +51,10 @@ export default function ActivityScreen({ txByDay, filter, setFilter, accounts, h
             aria-label={t("activity.searchAria")}
           />
         </div>
+        <button onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={showChips} className="tap relative h-[44px] w-[44px] rounded-xl flex items-center justify-center" style={{ background: active ? T.ink : T.surface, border: `1px solid ${active ? T.ink : T.line}`, color: active ? "#fff" : T.sub }} aria-label={t("activity.filters")}>
+          <SlidersHorizontal size={16} />
+          {active && <span className="absolute -top-1 -end-1 h-4 min-w-4 px-1 rounded-full mono text-[10px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>1</span>}
+        </button>
         <button onClick={onOpenReport} className="tap h-[44px] w-[44px] rounded-xl flex items-center justify-center" style={{ background: T.surface, border: `1px solid ${T.line}`, color: T.sub }} aria-label={t("activity.report")}>
           <FileText size={16} />
         </button>
@@ -55,19 +62,19 @@ export default function ActivityScreen({ txByDay, filter, setFilter, accounts, h
           <Download size={16} />
         </button>
       </div>
-      <div className="overflow-x-auto no-scroll mb-4 -mx-4 px-4">
+      {showChips && <div className="overflow-x-auto no-scroll mb-4 -mx-4 px-4">
         <div className="w-max"><ChipRow
           value={filter.accountId}
           onChange={(v) => setFilter({ ...filter, accountId: v })}
           options={[{ value: "all", label: t("activity.allAccounts") }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
         /></div>
-      </div>
+      </div>}
       {txByDay.length === 0 ? (
         <EmptyHint icon={<Receipt size={26} />} text={t("activity.empty")} />
       ) : (
         txByDay.map(([day, rows]) => (
           <div key={day} className="mb-4">
-            <div className="ui text-[11px] uppercase tracking-wider mb-1.5 px-0.5" style={{ color: T.faint }}>{humanDay(day)}</div>
+            <div className="sticky-day ui text-[12px] font-medium uppercase tracking-wider py-1.5 px-0.5 mb-1" style={{ color: T.faint }}>{humanDay(day)}</div>
             <CardBox>
               {rows.map((t, i) => (
                 <TxRow key={t.id} t={t} i={i} hide={hide} accName={accName} onDel={onDelTx} onEdit={onEditTx} />

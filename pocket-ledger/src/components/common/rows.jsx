@@ -9,7 +9,7 @@ import { addMonthsClamped } from "../../lib/dates/localDate.js";
 import { useT, catLabel, ownerLabel } from "../../i18n/index.js";
 
 /* Owner tag — shown only for non-default owners to keep "mine" rows quiet. */
-export function OwnerPill({ id, size = "text-[10px]" }) {
+export function OwnerPill({ id, size = "text-[12px]" }) {
   if (!id || id === "me") return null;
   const o = ownerDef(id);
   return <span className={`ui ${size} font-semibold rounded-lg px-1.5 py-0.5 shrink-0`} style={{ background: o.bg, color: o.c }}>{ownerLabel(o.id)}</span>;
@@ -26,7 +26,7 @@ export function TxRow({ t, i, hide, accName, onDel, onEdit, compact }) {
   /* With onEdit, the row body becomes a button: tap to edit note / move account. */
   const Body = onEdit ? "button" : "div";
   return (
-    <div className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i ? `1px solid ${T.paper}` : "none" }}>
+    <div className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
       <Body
         {...(onEdit ? { onClick: () => onEdit(t), "aria-label": tr("rows.editTx", { what: isTr ? tr("rows.transfer") : catLabel(t.category), amt: amount }) } : {})}
         className={`flex items-center gap-3 flex-1 min-w-0 text-left ${onEdit ? "tap" : ""}`}
@@ -43,12 +43,12 @@ export function TxRow({ t, i, hide, accName, onDel, onEdit, compact }) {
           <span className="truncate">{isTr ? tr("rows.transfer") : isAdj ? tr("rows.adjustment") : catLabel(t.category)}</span>
           <OwnerPill id={t.owner} />
           {t.tripId && (
-            <span className="ui text-[9px] shrink-0 rounded px-1 py-px" style={{ background: t.tripKind === "work" ? "#B08D5722" : "#4E7A9B22", color: t.tripKind === "work" ? T.goldDeep : "#4E7A9B" }} title="Trip spend">
+            <span className="ui text-[12px] shrink-0 rounded px-1 py-px" style={{ background: t.tripKind === "work" ? "#B08D5722" : "#4E7A9B22", color: t.tripKind === "work" ? T.goldDeep : "#4E7A9B" }} title="Trip spend">
               🧳 {t.tripKind === "work" ? tr("rows.work") : tr("rows.trip")}
             </span>
           )}
         </div>
-        <div className="ui text-[11px] truncate" style={{ color: T.sub }}>
+        <div className="ui text-[12px] truncate" style={{ color: T.sub }}>
           {isTr ? `${accName(t.sourceAccountId)} → ${accName(t.destinationAccountId)}` : accName(t.accountId)}
           {t.note ? ` · ${t.note}` : ""}
         </div>
@@ -84,7 +84,7 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
         const done = r.kind === "installment" && r.monthsPaid >= r.monthsTotal;
         const tone = dueTone(daysUntilFromToday(r.nextDue));
         return (
-          <div key={r.id} className="px-4 py-3" style={{ borderTop: i ? `1px solid ${T.paper}` : "none", opacity: done ? 0.55 : 1 }}>
+          <div key={r.id} className="px-4 py-3" style={{ borderTop: i ? `1px solid ${T.line}` : "none", opacity: done ? 0.55 : 1 }}>
             <div className="flex items-start gap-3">
               {/* Tap the row body to edit — move it to another card, fix the
                   amount or date (batch 12). */}
@@ -100,12 +100,12 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
                   <span className="truncate">{r.name}</span>
                   <OwnerPill id={r.owner} />
                 </div>
-                <div className="ui text-[11px] truncate" style={{ color: done ? T.green : tone.c }}>
+                <div className="ui text-[12px] truncate" style={{ color: done ? T.green : tone.c }}>
                   {done ? t("rows.completed") : `${tone.t} · ${humanDay(r.nextDue)}`}
                   {!done && r.kind === "subscription" ? ` · ${t(`sheets.recurr.${r.cycle}`)}` : ""}
                 </div>
                 {accName && r.accountId && (
-                  <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.sub }}>{t("common.from", { name: accName(r.accountId) })}</div>
+                  <div className="ui text-[12px] mt-0.5 truncate" style={{ color: T.sub }}>{t("common.from", { name: accName(r.accountId) })}</div>
                 )}
               </div>
               </button>
@@ -140,7 +140,7 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
             {r.kind === "installment" && (
               <div className="mt-2">
                 <Bar pct={(r.monthsPaid / r.monthsTotal) * 100} color={done ? T.green : T.gold} />
-                <div className="mono text-[10px] mt-1" style={{ color: T.sub }}>
+                <div className="mono text-[12px] mt-1" style={{ color: T.sub }}>
                   {t("rows.monthsLeft", { paid: r.monthsPaid, total: r.monthsTotal, left: fmtMoney(Math.max(0, (r.monthsTotal - r.monthsPaid) * r.amount), r.currency, hide) })}
                   {!done && t("rows.ends", { date: monthYear(addMonthsClamped(r.nextDue, r.monthsTotal - r.monthsPaid - 1)) })}
                 </div>
@@ -160,14 +160,14 @@ export function GivenRow({ g, hide, onDel, base, rates, first }) {
   const eq = base && rates && g.currency !== base ? convert(g.amount, g.currency, base, rates) : null;
   const isGift = g.kind === "gift";
   return (
-    <div className="flex items-center gap-3 px-4 py-3 min-h-[60px]" style={{ borderTop: first ? "none" : `1px solid ${T.paper}` }}>
+    <div className="flex items-center gap-3 px-4 py-3 min-h-[60px]" style={{ borderTop: first ? "none" : `1px solid ${T.line}` }}>
       <span className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 ui text-sm font-semibold" style={{ background: T.amberBg, color: T.goldDeep }} aria-hidden="true">
         {isGift ? <Gift size={16} /> : g.who.slice(0, 1).toUpperCase()}
       </span>
       <div className="flex-1 min-w-0">
         <div className="ui text-sm leading-snug flex items-start gap-1.5" style={{ color: T.text }}>
           <span>{g.who || g.what || humanDay(g.date)}</span>
-          <span className="ui text-[10px] font-semibold rounded-lg px-1.5 py-0.5 shrink-0" style={{ background: T.amberBg, color: T.goldDeep }}>{isGift ? t("people.gift") : t("people.help")}</span>
+          <span className="ui text-[12px] font-semibold rounded-lg px-1.5 py-0.5 shrink-0" style={{ background: T.amberBg, color: T.goldDeep }}>{isGift ? t("people.gift") : t("people.help")}</span>
         </div>
         <div className="ui text-[12px] truncate" style={{ color: T.sub }}>
           {g.who && g.what ? `${g.what} · ` : ""}{g.source === "transaction" ? `${t("people.bought")} · ` : ""}{humanDay(g.date)}
@@ -175,7 +175,7 @@ export function GivenRow({ g, hide, onDel, base, rates, first }) {
       </div>
       <div className="text-right">
         <Money n={g.amount} cur={g.currency} hide={hide} className="text-sm" />
-        {eq != null && <div className="mono text-[10px]" style={{ color: T.sub }}>≈ {hide ? "•••••" : `${Math.round(eq).toLocaleString("en-US")} ${curLabel(base)}`}</div>}
+        {eq != null && <div className="mono text-[12px]" style={{ color: T.sub }}>≈ {hide ? "•••••" : `${Math.round(eq).toLocaleString("en-US")} ${curLabel(base)}`}</div>}
       </div>
       {onDel && g.source === "debt" && (
         <button onClick={() => onDel(g.ref)} className="tap p-4 -m-2.5 opacity-40" style={{ color: T.rose }} aria-label={t("people.deleteGiven", { name: g.who })}>
@@ -195,7 +195,7 @@ export const GiftCard = ({ g, hide, base, rates }) => <CardBox><GivenRow g={{ ..
 /* Loan card: name, what's left, progress. The repayment form stays folded
    behind "Record a repayment" so a list of loans reads as a list, not as a
    stack of open forms. Delete lives in the same fold. */
-export function DebtCard({ x, hide, onPay, onDel, base, rates }) {
+export function DebtCard({ x, hide, onPay, onDel, base, rates, onOpenPerson }) {
   const t = useT();
   const [amt, setAmt] = useState("");
   const [open, setOpen] = useState(false);
@@ -211,18 +211,22 @@ export function DebtCard({ x, hide, onPay, onDel, base, rates }) {
           {x.person.slice(0, 1).toUpperCase()}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="ui text-sm truncate" style={{ color: T.text }}>{x.person}</div>
+          {onOpenPerson ? (
+            <button onClick={() => onOpenPerson(x.person)} className="tap ui text-sm truncate block max-w-full text-start min-h-[28px]" style={{ color: T.text, textDecoration: "underline", textDecorationColor: T.lineStrong, textUnderlineOffset: 3 }}>{x.person}</button>
+          ) : (
+            <div className="ui text-sm truncate" style={{ color: T.text }}>{x.person}</div>
+          )}
           <div className="ui text-[12px] truncate" style={{ color: T.sub }}>{settled ? t("people.settled") : lent ? t("people.owesYou") : t("people.youOweShort")} · {x.note || humanDay(x.date)}</div>
         </div>
         <div className="text-right shrink-0">
           <Money n={left} cur={x.currency} hide={hide} color={settled ? T.green : lent ? T.green : T.rose} className="text-base" />
-          <div className="mono text-[11px] whitespace-nowrap" style={{ color: T.sub }}>
+          <div className="mono text-[12px] whitespace-nowrap" style={{ color: T.sub }}>
             {eq != null ? `≈ ${hide ? "•••••" : `${Math.round(eq).toLocaleString("en-US")} ${curLabel(base)}`}` : `${t("common.of")} ${fmtMoney(x.amount, x.currency, hide)}`}
           </div>
         </div>
       </div>
       <div className="flex items-center gap-3 mt-2.5">
-        <div className="flex-1"><Bar pct={(x.repaid / x.amount) * 100} color={settled ? T.green : T.gold} /></div>
+        <div className="flex-1"><Bar pct={(x.repaid / x.amount) * 100} color={settled ? T.green : T.gold} h={4} /></div>
         <button onClick={() => setOpen(!open)} aria-expanded={open} className="tap ui text-[12px] flex items-center gap-0.5 min-h-[44px] -my-3 shrink-0" style={{ color: T.goldDeep }}>
           {open ? t("actions.close") : settled ? t("actions.details") : t("people.recordRepayment")}<ChevronRight size={13} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} aria-hidden="true" />
         </button>

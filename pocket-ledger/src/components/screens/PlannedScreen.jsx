@@ -4,7 +4,7 @@ import { T, EXP_CATS, OWNERS, inputStyle, curLabel } from "../../styles/tokens.j
 import { convert } from "../../lib/finance/currency.js";
 import { planStats } from "../../lib/finance/plans.js";
 import { tripStats } from "../../lib/finance/trips.js";
-import { Section, CardBox, Bar, Money, ChipRow, GhostBtn, PaidBtn, EmptyHint } from "../common/primitives.jsx";
+import { Section, CardBox, Bar, Money, ChipRow, GhostBtn, PaidBtn, EmptyHint, useLeaving } from "../common/primitives.jsx";
 import { RecurrList, OwnerPill } from "../common/rows.jsx";
 import { SubLogo } from "../common/brand.jsx";
 import { fmtMoney } from "../../styles/tokens.js";
@@ -107,7 +107,7 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
             <OwnerPill id={p.owner} />
           </div>
           {accName && p.accountId && (
-            <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.sub }}>{t("common.from", { name: accName(p.accountId) })}</div>
+            <div className="ui text-[11px] mt-0.5 truncate" style={{ color: T.sub }}>{t("common.from", { name: accName(p.accountId) })}</div>
           )}
         </div>
         <button onClick={() => onDel(p)} className="tap p-3.5 -m-2 opacity-40" style={{ color: T.rose }} aria-label={t("planned.deletePlan", { name: p.name })}>
@@ -131,7 +131,7 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
       )}
 
       <div className="mt-3"><Bar pct={pct} color={s.done ? T.green : T.gold} /></div>
-      <div className="mono text-[10px] mt-1" style={{ color: T.sub }}>
+      <div className="mono text-[11px] mt-1" style={{ color: T.sub }}>
         {t("planned.paidOf", { paid: fmtMoney(Math.round(s.paidSum), p.currency, hide), total: fmtMoney(Math.round(s.totalSum), p.currency, hide), pct: Math.round(pct) })}
         {!s.done && t("planned.ends", { date: monthYear(s.endDue) })}
       </div>
@@ -146,10 +146,10 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
             const isNext = s.next && m.id === s.next.id;
             return (
               <div key={m.id} className="flex items-center gap-2 py-1.5" style={{ borderBottom: `1px solid ${T.line}22` }}>
-                <span className="ui text-[10px] w-10 shrink-0" style={{ color: m.paid ? T.green : isNext ? T.goldDeep : T.faint }}>
+                <span className="ui text-[11px] w-10 shrink-0" style={{ color: m.paid ? T.green : isNext ? T.goldDeep : T.faint }}>
                   {m.paid ? "✓" : isNext ? t("planned.nextTag") : ""} {m.label}
                 </span>
-                <span className="mono text-[10px] flex-1" style={{ color: m.paid ? T.faint : T.sub }}>{m.due}</span>
+                <span className="mono text-[11px] flex-1" style={{ color: m.paid ? T.faint : T.sub }}>{m.due}</span>
                 <span className="mono text-[11px]" style={{ color: m.paid ? T.faint : T.text, textDecoration: m.paid ? "line-through" : "none" }}>
                   {fmtMoney(m.amount, p.currency, hide)}
                 </span>
@@ -177,7 +177,7 @@ function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onCl
         </span>
         <button onClick={() => onEdit(trip)} className="tap min-w-0 flex-1 text-left" aria-label={tr("planned.editTrip", { name: trip.name })}>
           <div className="ui text-sm truncate" style={{ color: T.text }}>{trip.name}</div>
-          <div className="ui text-[10px] mt-0.5" style={{ color: trip.open ? T.green : T.faint }}>
+          <div className="ui text-[11px] mt-0.5" style={{ color: trip.open ? T.green : T.faint }}>
             {trip.open ? tr("planned.tripOpenLine") : tr("planned.tripClosedLine", { from: trip.startDate, to: trip.endDate ? ` → ${trip.endDate}` : "" })}
           </div>
         </button>
@@ -193,9 +193,9 @@ function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onCl
           { l: tr("planned.work"), v: s.work, c: T.goldDeep },
         ].map((x) => (
           <div key={x.l} className="rounded-xl px-3 py-2" style={{ background: T.paper }}>
-            <div className="ui text-[10px] truncate" style={{ color: T.faint }}>{x.l}</div>
+            <div className="ui text-[11px] truncate" style={{ color: T.faint }}>{x.l}</div>
             <div className="mono text-[13px] truncate" style={{ color: x.c }}>{fmtMoney(Math.round(x.v), trip.currency, hide)}</div>
-            {approx(x.v) && <div className="mono text-[9px] truncate" style={{ color: T.faint }}>{approx(x.v)}</div>}
+            {approx(x.v) && <div className="mono text-[11px] truncate" style={{ color: T.faint }}>{approx(x.v)}</div>}
           </div>
         ))}
       </div>
@@ -220,7 +220,7 @@ function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onCl
         <div className="mt-2 rounded-xl px-3.5 py-1" style={{ background: T.paper }}>
           {s.items.map((t) => (
             <div key={t.id} className="flex items-center gap-2 py-1.5" style={{ borderBottom: `1px solid ${T.line}22` }}>
-              <span className="ui text-[10px] shrink-0 rounded px-1" style={{ background: t.tripKind === "work" ? "#B08D5722" : "#4E7A9B22", color: t.tripKind === "work" ? T.goldDeep : "#4E7A9B" }}>{t.tripKind === "work" ? tr("planned.workTag") : tr("planned.me")}</span>
+              <span className="ui text-[11px] shrink-0 rounded px-1" style={{ background: t.tripKind === "work" ? "#B08D5722" : "#4E7A9B22", color: t.tripKind === "work" ? T.goldDeep : "#4E7A9B" }}>{t.tripKind === "work" ? tr("planned.workTag") : tr("planned.me")}</span>
               <span className="ui text-[11px] flex-1 truncate" style={{ color: T.text }}>{t.note || catLabel(t.category)}<span style={{ color: T.faint }}> · {accName(t.accountId)}</span></span>
               <span className="mono text-[11px] shrink-0" style={{ color: T.text }}>{fmtMoney(t.amount, t.currency, hide)}</span>
             </div>
@@ -235,7 +235,7 @@ function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onCl
    summary; tap to unfold the full section underneath. */
 function Group({ id, icon: Icon, name, summary, open, onToggle, right, children, first }) {
   return (
-    <div style={{ borderTop: first ? "none" : `1px solid ${T.paper}` }}>
+    <div style={{ borderTop: first ? "none" : `1px solid ${T.line}` }}>
       <div className="flex items-center gap-3 px-4">
         <button onClick={() => onToggle(id)} aria-expanded={open} className="tap flex items-center gap-3 flex-1 min-w-0 text-left min-h-[56px]">
           <Icon size={18} strokeWidth={1.8} style={{ color: T.sub }} className="shrink-0" aria-hidden="true" />
@@ -260,6 +260,7 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
   const t = useT();
   const [openGroup, setOpenGroup] = useState(null);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [leaving, leave] = useLeaving();
   const toggle = (id) => setOpenGroup(openGroup === id ? null : id);
   const flagged = recurrs.filter((r) => r.kind === "subscription" && r.toCancel && !r.paused);
   const active = recurrs.filter((r) => !r.toCancel);
@@ -324,18 +325,16 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
         </>
       )}
 
-      <Section title={t("planned.nextUp")}>
-        {soon.length === 0 ? (
-          <EmptyHint icon={<CalendarClock size={24} />} text={t("planned.emptyNext")} />
-        ) : (
+      {(() => {
+        const renderRows = (rows) => (
           <CardBox>
-            {soon.map((r, i) => {
+            {rows.map((r, i) => {
               const tone = dueTone(r.d);
               const count = r.kind === "installment" ? `${r.monthsPaid + 1} of ${r.monthsTotal}` : r.kind === "plan" ? (() => { const p = plans.find((x) => x.id === r.planId); const st = p ? planStats(p) : null; return st ? `${st.paidCount + 1} of ${st.count}` : ""; })() : "";
               return (
-                <div key={r.id} className="flex items-center gap-3 px-4 py-2.5 min-h-[64px]" style={{ borderTop: i ? `1px solid ${T.paper}` : "none" }}>
+                <div key={r.id} className={`flex items-center gap-3 px-4 py-2.5 min-h-[64px] ${leaving === r.id ? "row-leave" : ""}`} style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
                   {r.kind === "plan" ? (
-                    <span className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#B08D5722", color: T.goldDeep }} aria-hidden="true"><Landmark size={17} /></span>
+                    <span className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: T.goldBg, color: T.goldDeep }} aria-hidden="true"><Landmark size={17} /></span>
                   ) : (
                     <SubLogo name={r.name} size={36} tintBg={tone.bg} tintColor={tone.c} />
                   )}
@@ -346,13 +345,26 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
                     </div>
                   </div>
                   <Money n={r.amount} cur={r.currency} hide={hide} className="text-sm text-right shrink-0" />
-                  <PaidBtn onClick={() => onPaid(r)} />
+                  <PaidBtn onClick={() => leave(r.id, () => onPaid(r))} />
                 </div>
               );
             })}
           </CardBox>
-        )}
-      </Section>
+        );
+        const split = soon.length > 6;
+        const week = soon.filter((r) => r.d <= 7);
+        const later = soon.filter((r) => r.d > 7);
+        return (
+          <>
+            <Section title={split ? t("planned.thisWeek") : t("planned.nextUp")}>
+              {soon.length === 0 ? (
+                <EmptyHint icon={<CalendarClock size={24} />} text={t("planned.emptyNext")} />
+              ) : renderRows(split ? week : soon)}
+            </Section>
+            {split && later.length > 0 && <Section title={t("planned.later")}>{renderRows(later)}</Section>}
+          </>
+        );
+      })()}
 
       <Section title={t("planned.everything")}>
         <CardBox>
@@ -395,7 +407,7 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
                       {b > 0 && (
                         <>
                           <div className="mt-1"><Bar pct={(spent / b) * 100} color={over ? T.rose : warn ? T.gold : T.green} /></div>
-                          <div className="mono text-[10px] mt-0.5" style={{ color: over ? T.rose : T.sub }}>
+                          <div className="mono text-[11px] mt-0.5" style={{ color: over ? T.rose : T.sub }}>
                             {over ? t("planned.spentOver", { spent: fmtMoney(spent, base, hide), over: fmtMoney(spent - b, base, hide) }) : t("planned.spentLeft", { spent: fmtMoney(spent, base, hide), left: fmtMoney(b - spent, base, hide) })}
                           </div>
                         </>
@@ -410,7 +422,7 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
                   </div>
                 );
               })}
-              <p className="ui text-[10px] py-2" style={{ color: T.sub }}>
+              <p className="ui text-[11px] py-2" style={{ color: T.sub }}>
                 {t("planned.budgetsFoot")}
               </p>
             </div>

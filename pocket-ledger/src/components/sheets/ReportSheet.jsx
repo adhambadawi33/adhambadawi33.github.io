@@ -11,7 +11,7 @@ const dayOf = (iso) => String(+(iso || "").slice(8, 10));
 function HeroStat({ label, v, color }) {
   return (
     <div className="flex-1 min-w-0 text-center px-1 py-3">
-      <div className="ui text-[10px] uppercase tracking-wider mb-1" style={{ color: T.faint }}>{label}</div>
+      <div className="ui text-[11px] uppercase tracking-wider mb-1" style={{ color: T.faint }}>{label}</div>
       <div className="mono text-[15px] truncate" style={{ color }}>{v}</div>
     </div>
   );

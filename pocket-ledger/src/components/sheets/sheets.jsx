@@ -285,7 +285,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
                 return (
                   <button key={c.n} onClick={() => setCat(c.n)} aria-pressed={on} className="tap rounded-xl px-1 py-2.5 flex flex-col items-center gap-1" style={on ? { background: `${c.c}1A`, border: `1.5px solid ${c.c}` } : { background: T.paper, border: `1px solid ${T.line}` }}>
                     <c.I size={17} style={{ color: c.c }} aria-hidden="true" />
-                    <span className="ui text-[10px] leading-tight text-center" style={{ color: on ? T.text : T.sub }}>{catLabel(c.n).split(" ")[0]}</span>
+                    <span className="ui text-[11px] leading-tight text-center" style={{ color: on ? T.text : T.sub }}>{catLabel(c.n).split(" ")[0]}</span>
                   </button>
                 );
               })}
@@ -356,7 +356,7 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
         const bal = balances[a.id] || 0;
         const isAdj = adjustFor === a.id;
         return (
-          <div key={a.id} style={{ borderBottom: `1px solid ${T.paper}`, opacity: a.archived ? 0.45 : 1 }}>
+          <div key={a.id} style={{ borderBottom: `1px solid ${T.line}`, opacity: a.archived ? 0.45 : 1 }}>
             <div className="flex items-center gap-3 py-3">
               <div className="flex flex-col -my-1" aria-label={tr("sheets.accounts.reorder", { name: a.name })}>
                 <button onClick={() => onMove(a, -1)} disabled={idx === 0} className="tap p-1 disabled:opacity-20" style={{ color: T.sub }} aria-label={tr("sheets.accounts.moveUp", { name: a.name })}>
@@ -372,7 +372,7 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
                 <div className="ui text-[11px]" style={{ color: T.faint }}>{tr(`accountTypes.${a.type}`)} · {a.currency}</div>
               </div>
               <Money n={a.type === "credit" && bal < 0 ? -bal : bal} cur={a.currency} hide={hide} className="text-sm" />
-              <button onClick={() => { setAdjustFor(isAdj ? null : a.id); setActual(""); }} className="tap ui text-[10px] px-2 py-1.5 rounded-lg" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
+              <button onClick={() => { setAdjustFor(isAdj ? null : a.id); setActual(""); }} className="tap ui text-[11px] px-2 py-1.5 rounded-lg" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
                 {tr("sheets.accounts.adjust")}
               </button>
               <button onClick={() => onEdit(a)} className="tap p-2" style={{ color: T.sub }} aria-label={tr("sheets.accounts.edit", { name: a.name })}><Pencil size={15} /></button>
@@ -552,11 +552,11 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
     <Sheet open onClose={onClose} title={tr("sheets.cards.title")} tall>
       <div className="flex gap-2 mb-4">
         <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.paper }}>
-          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.limitLeftRoom")}</div>
+          <div className="ui text-[11px] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.limitLeftRoom")}</div>
           <div className="mono text-[17px]" style={{ color: T.sub }}>{hide ? "•••••" : `${Math.round(totAvail).toLocaleString("en-US")} ${base}`}</div>
         </div>
         <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.roseBg }}>
-          <div className="ui text-[10px] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.totalOwed")}</div>
+          <div className="ui text-[11px] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.totalOwed")}</div>
           <div className="mono text-[17px]" style={{ color: totOwed > 0.005 ? T.rose : T.green }}>{hide ? "•••••" : `${totOwed > 0.005 ? "−" : ""}${Math.round(totOwed).toLocaleString("en-US")} ${base}`}</div>
         </div>
       </div>
@@ -589,11 +589,11 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
             </div>
             <div className="flex gap-2.5 mb-3">
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
-                <div className="ui text-[10px] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.limitLeft")}</div>
+                <div className="ui text-[11px] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.limitLeft")}</div>
                 <div className="mono text-[17px]" style={{ color: T.sub }}>{avail != null ? fmtMoney(avail, a.currency, hide) : "—"}</div>
               </div>
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
-                <div className="ui text-[10px] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.owed")}</div>
+                <div className="ui text-[11px] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.owed")}</div>
                 <div className="mono text-[17px]" style={{ color: owed > 0 ? T.rose : T.green }}>{hide ? "•••••" : owed > 0 ? `−${fmtMoney(owed, a.currency, false)}` : "0"}</div>
               </div>
             </div>
@@ -1007,7 +1007,7 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
                     <span className="ui text-[11px] flex-1" style={{ color: T.goldDeep }}>
                       🔁 ده اشتراك <b>{matches[p.id].name}</b> — هيتعلم عليه مدفوع{matches[p.id].byName ? "" : " (تقريب بالقيمة والميعاد)"}
                     </span>
-                    <button onClick={() => setUnlinked({ ...unlinked, [p.id]: true })} className="tap ui text-[10px] shrink-0 opacity-60" style={{ color: T.sub }} aria-label={`Don't link to ${matches[p.id].name}`}>
+                    <button onClick={() => setUnlinked({ ...unlinked, [p.id]: true })} className="tap ui text-[11px] shrink-0 opacity-60" style={{ color: T.sub }} aria-label={`Don't link to ${matches[p.id].name}`}>
                       ✕ مش هو
                     </button>
                   </div>
@@ -1038,7 +1038,7 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
                   </button>
                 </div>
                 <details className="mt-2">
-                  <summary className="ui text-[10px] cursor-pointer" style={{ color: T.faint }}>{tr("sheets.inbox.original")}</summary>
+                  <summary className="ui text-[11px] cursor-pointer" style={{ color: T.faint }}>{tr("sheets.inbox.original")}</summary>
                   <p className="ui text-[11px] mt-1" style={{ color: T.sub }} dir="auto">{p.rawText}</p>
                 </details>
               </div>
@@ -1079,13 +1079,16 @@ export function SettingsSheet({
 
   return (
     <Sheet open={open} onClose={onClose} title={tr("sheets.settings.title")} tall>
+      <div className="rounded-2xl px-4 pt-4 pb-1 mb-3" style={{ background: T.surface, boxShadow: T.shadow1 }}>
       <Field label={tr("sheets.settings.appearance")}>
         <ChipRow value={settings.theme || "system"} onChange={(v) => onPref?.("theme", v)} options={[{ value: "system", label: tr("sheets.settings.system") }, { value: "light", label: tr("sheets.settings.light") }, { value: "dark", label: tr("sheets.settings.dark") }]} />
       </Field>
       <Field label={tr("sheets.settings.language")}>
         <ChipRow value={settings.language || "en"} onChange={(v) => onPref?.("language", v)} options={[{ value: "en", label: "English" }, { value: "ar", label: "العربية" }]} />
       </Field>
+      </div>
 
+      <div className="rounded-2xl px-4 pt-4 pb-1 mb-3" style={{ background: T.surface, boxShadow: T.shadow1 }}>
       <Field label={tr("sheets.settings.base")}>
         <ChipRow value={settings.base} onChange={onBase} options={CURRENCIES.map((c) => ({ value: c, label: c }))} />
       </Field>
@@ -1134,7 +1137,9 @@ export function SettingsSheet({
           {tr("sheets.settings.manualNote")}
         </p>
       </Field>
+      </div>
 
+      <div className="rounded-2xl px-4 pt-4 pb-1 mb-3" style={{ background: T.surface, boxShadow: T.shadow1 }}>
       <Field label={tr("sheets.settings.backup")}>
         <div className="flex flex-wrap gap-2">
           <button onClick={onExportBackup} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ background: T.ink, color: "#fff" }}><Download size={15} aria-hidden="true" />{tr("sheets.settings.exportJson")}</button>
@@ -1144,15 +1149,21 @@ export function SettingsSheet({
         </div>
         <p className="ui text-[11px] mt-2" style={{ color: T.faint }}>{tr("sheets.settings.backupNote")}</p>
       </Field>
+      </div>
 
+      <div className="rounded-2xl px-4 pt-4 pb-1 mb-3" style={{ background: T.surface, boxShadow: T.shadow1 }}>
       <Field label={tr("sheets.settings.yourData")}>
         <p className="mono text-xs mb-3" style={{ color: T.sub }}>
           {tr("sheets.settings.counts", { tx: counts.tx, a: counts.accounts, r: counts.recurrs, d: counts.debts, s: backendName })}
         </p>
-        <button onClick={onResetRequest} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ border: `1px solid ${T.rose}`, color: T.rose }}>
+      </Field>
+      </div>
+
+      <div className="mt-6 pt-4" style={{ borderTop: `1px solid ${T.roseBg}` }}>
+        <button onClick={onResetRequest} className="tap ui text-sm rounded-xl px-4 min-h-[44px] flex items-center gap-1.5" style={{ background: T.roseBg, color: T.rose }}>
           <Trash2 size={15} aria-hidden="true" />{tr("sheets.settings.reset")}
         </button>
-      </Field>
+      </div>
 
       <p className="ui text-[11px] flex items-start gap-1.5 mt-1" style={{ color: T.faint }}>
         <Sparkles size={13} className="shrink-0 mt-0.5" style={{ color: T.gold }} aria-hidden="true" />

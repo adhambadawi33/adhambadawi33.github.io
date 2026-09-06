@@ -44,7 +44,7 @@ export function BankMark({ name, size = 24, radius = 8 }) {
   return (
     <span
       className="flex items-center justify-center shrink-0 overflow-hidden"
-      style={{ width: size, height: size, borderRadius: radius, background: "#fff", border: `1px solid ${T.line}`, boxShadow: "0 1px 2px rgba(30,40,28,.08)" }}
+      style={{ width: size, height: size, borderRadius: radius, background: T.raised, border: `1px solid ${T.line}`, boxShadow: "0 1px 2px rgba(30,40,28,.08)" }}
       aria-hidden="true"
     >
       <BrandImg domain={b.domain} size={Math.round(size * 0.72)} fallback={wordmark} />
@@ -61,7 +61,7 @@ export function CardChip({ account, width = 38 }) {
   return (
     <span
       className="relative shrink-0 block"
-      style={{ width, height: h, borderRadius: Math.round(width * 0.14), background: "#fff", border: `1px solid ${T.line}`, boxShadow: "0 1px 3px rgba(30,40,28,.12)" }}
+      style={{ width, height: h, borderRadius: Math.round(width * 0.14), background: T.raised, border: `1px solid ${T.line}`, boxShadow: "0 1px 3px rgba(30,40,28,.12)" }}
       aria-hidden="true"
     >
       <span className="absolute" style={{ top: Math.round(h * 0.12), insetInlineStart: Math.round(width * 0.09) }}>
@@ -99,7 +99,7 @@ export function SubLogo({ name, size = 38, tintBg, tintColor }) {
   return (
     <span
       className="flex items-center justify-center shrink-0 overflow-hidden"
-      style={{ width: size, height: size, borderRadius: r, background: "#fff", border: `1px solid ${T.line}` }}
+      style={{ width: size, height: size, borderRadius: r, background: T.raised, border: `1px solid ${T.line}` }}
       aria-hidden="true"
     >
       <BrandImg domain={b.domain} size={Math.round(size * 0.72)} fallback={glyph} />
