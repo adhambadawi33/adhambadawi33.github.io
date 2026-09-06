@@ -104,6 +104,21 @@ export const Section = ({ title, right, children }) => (
   </div>
 );
 
+/* Quiet secondary action ("Add ›", "Manage ›"): text + chevron, 44px tall.
+   Only "Paid" stays as a filled ink button, so one screen never shows a
+   row of competing dark pills. */
+export const GhostBtn = ({ onClick, children, className = "", ariaLabel, ariaExpanded }) => (
+  <button onClick={onClick} aria-label={ariaLabel} aria-expanded={ariaExpanded} className={`tap ui text-xs flex items-center gap-0.5 min-h-[44px] px-1 -my-2 ${className}`} style={{ color: T.sub }}>
+    {children}
+  </button>
+);
+
+export const PaidBtn = ({ onClick, label = "Paid" }) => (
+  <button onClick={onClick} className="tap ui text-[11px] font-medium rounded-lg px-3 min-h-[44px]" style={{ background: T.ink, color: "#fff" }}>
+    {label}
+  </button>
+);
+
 export const CardBox = ({ children, className = "", style = {} }) => (
   <div className={`rounded-2xl ${className}`} style={{ background: T.surface, border: `1px solid ${T.line}`, ...style }}>
     {children}

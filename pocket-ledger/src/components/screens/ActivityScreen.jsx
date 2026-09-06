@@ -21,7 +21,7 @@ function InsightCard({ insight, base, hide }) {
         {insight.top && <> — most of it on {insight.top.n} ({money(insight.top.v)}{insight.second ? `), then ${insight.second.n} (${money(insight.second.v)}` : ""})</>}.
       </p>
       {insight.hadLast && (
-        <p className="ui text-[12px] mt-1" style={{ color: same ? T.faint : diff > 0 ? T.rose : T.green }}>
+        <p className="ui text-[12px] mt-1" style={{ color: T.sub }}>
           {same
             ? "About the same as last month at this point."
             : `That's ${money(Math.abs(diff))} ${diff > 0 ? "more" : "less"} than last month at this point.`}
@@ -54,12 +54,12 @@ export default function ActivityScreen({ txByDay, filter, setFilter, accounts, h
           <Download size={16} />
         </button>
       </div>
-      <div className="flex gap-2 overflow-x-auto no-scroll mb-4 -mx-4 px-4">
-        <ChipRow
+      <div className="overflow-x-auto no-scroll mb-4 -mx-4 px-4">
+        <div className="w-max"><ChipRow
           value={filter.accountId}
           onChange={(v) => setFilter({ ...filter, accountId: v })}
           options={[{ value: "all", label: "All accounts" }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
-        />
+        /></div>
       </div>
       {txByDay.length === 0 ? (
         <EmptyHint icon={<Receipt size={26} />} text="Every expense, income, transfer and adjustment lands here. Tap the gold + to log the first one — three taps is all it takes." />

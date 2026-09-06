@@ -1,30 +1,36 @@
-import React from "react";
-import { Plus, Coins } from "lucide-react";
+import React, { useState } from "react";
+import { Coins, ChevronDown } from "lucide-react";
 import { T } from "../../styles/tokens.js";
-import { Section, CardBox, EmptyHint, Money } from "../common/primitives.jsx";
-import { DebtCard, GivenCard } from "../common/rows.jsx";
+import { Section, CardBox, EmptyHint, Money, GhostBtn } from "../common/primitives.jsx";
+import { DebtCard, GivenRow } from "../common/rows.jsx";
 import { convert } from "../../lib/finance/currency.js";
+import { collectGifts, isGift } from "../../lib/finance/gifts.js";
 
-export default function PeopleScreen({ debts, owedToMe, iOwe, base, rates, hide, onAddDebt, onPay, onDelDebt }) {
+/* People answers one question: who owes whom right now. Open loans are the
+   action list. Everything given away (help or gifts, handed over or bought)
+   is one memory list under a single total, folded until you want it. */
+export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe, base, rates, hide, onAddDebt, onPay, onDelDebt }) {
+  const [givenOpen, setGivenOpen] = useState(false);
   const loans = debts.filter((x) => !x.noReturn);
-  const given = debts.filter((x) => x.noReturn);
+  const help = debts
+    .filter((x) => x.noReturn && !isGift(x))
+    .map((x) => ({ id: `help:${x.id}`, source: "debt", kind: "help", who: x.person, what: x.note, amount: x.amount, currency: x.currency, date: x.date, ref: x }));
+  const gifts = collectGifts(debts, transactions).map((g) => ({ ...g, kind: "gift" }));
+  const given = [...help, ...gifts].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   const givenTotal = given.reduce((s, x) => s + convert(x.amount, x.currency, base, rates), 0);
   return (
     <>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <CardBox className="px-4 py-3">
-          <div className="ui text-[11px] uppercase tracking-wider" style={{ color: T.faint }}>Owed to you</div>
+          <div className="ui text-[11px] uppercase tracking-wider" style={{ color: T.sub }}>Owed to you</div>
           <Money n={Math.round(owedToMe)} cur={base} hide={hide} color={T.green} className="text-lg" />
         </CardBox>
         <CardBox className="px-4 py-3">
-          <div className="ui text-[11px] uppercase tracking-wider" style={{ color: T.faint }}>You owe</div>
+          <div className="ui text-[11px] uppercase tracking-wider" style={{ color: T.sub }}>You owe</div>
           <Money n={Math.round(iOwe)} cur={base} hide={hide} color={iOwe > 0 ? T.rose : T.text} className="text-lg" />
         </CardBox>
       </div>
-      <Section
-        title="Loans & IOUs"
-        right={<button onClick={onAddDebt} className="tap ui text-xs flex items-center gap-1 rounded-lg px-2.5 py-2" style={{ background: T.ink, color: "#fff" }}><Plus size={13} aria-hidden="true" />Add</button>}
-      >
+      <Section title="Open loans" right={<GhostBtn onClick={onAddDebt}>Add <span aria-hidden="true">›</span></GhostBtn>}>
         {loans.length === 0 ? (
           <EmptyHint icon={<Coins size={26} />} text="Money you've lent or borrowed lives here — who, how much, and every partial repayment — kept separate from your accounts by default." cta="Add a loan" onClick={onAddDebt} />
         ) : (
@@ -33,10 +39,23 @@ export default function PeopleScreen({ debts, owedToMe, iOwe, base, rates, hide,
       </Section>
       {given.length > 0 && (
         <Section
-          title="Given · no return expected"
-          right={<Money n={Math.round(givenTotal)} cur={base} hide={hide} color={T.goldDeep} className="text-sm" />}
+          title="Given away"
+          right={
+            <button onClick={() => setGivenOpen(!givenOpen)} aria-expanded={givenOpen} className="tap flex items-center gap-1.5 min-h-[44px] -my-2 px-1">
+              <Money n={Math.round(givenTotal)} cur={base} hide={hide} color={T.goldDeep} className="text-sm" />
+              <ChevronDown size={14} style={{ color: T.sub, transform: givenOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} aria-hidden="true" />
+            </button>
+          }
         >
-          {given.map((x) => <GivenCard key={x.id} x={x} hide={hide} onDel={onDelDebt} base={base} rates={rates} />)}
+          {givenOpen ? (
+            <CardBox>
+              {given.map((g, i) => <GivenRow key={g.id} g={g} hide={hide} onDel={onDelDebt} base={base} rates={rates} first={i === 0} />)}
+            </CardBox>
+          ) : (
+            <button onClick={() => setGivenOpen(true)} className="tap ui text-[12px] w-full text-left px-0.5 min-h-[44px] -my-2" style={{ color: T.sub }}>
+              {given.length} {given.length === 1 ? "entry" : "entries"} · help and gifts, nothing coming back
+            </button>
+          )}
         </Section>
       )}
     </>

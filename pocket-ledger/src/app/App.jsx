@@ -576,6 +576,35 @@ export default function App({ storage }) {
         <SaveErrorBanner show={saveError} message={t("saveError")} />
 
         {/* header */}
+        {/* Home carries the full money picture. Every other tab gets a one-line
+            strip so the screen's own answer sits above the fold. */}
+        {tab !== "home" ? (
+          <header className="app-chrome px-5 py-2.5 flex items-center justify-between gap-3" style={{ background: T.ink }}>
+            <button onClick={() => setTab("home")} className="tap flex items-center gap-2.5 min-w-0 min-h-[44px]" aria-label="Go to Home">
+              <span className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: T.gold }}>
+                <Wallet size={14} style={{ color: T.ink }} aria-hidden="true" />
+              </span>
+              <span className="flex flex-col items-start min-w-0">
+                <span className="ui text-[10px] leading-none" style={{ color: "#93A08D" }}>{t("header.strip")}</span>
+                <span className="mono text-[15px] leading-tight truncate" style={{ color: "#fff" }}>{fmtNet(Math.round(moneyGroups.liquid), base, hide)}</span>
+              </span>
+            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? `Approval inbox: ${data.pending.length} waiting` : "Approval inbox"}>
+                <Inbox size={16} />
+                {data.pending.length > 0 && (
+                  <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
+                )}
+              </button>
+              <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? "Show amounts" : "Hide amounts"} aria-pressed={hide}>
+                {hide ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+              <button onClick={() => setSheet("settings")} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label="Settings">
+                <SettingsIcon size={16} />
+              </button>
+            </div>
+          </header>
+        ) : (
         <header className="app-chrome px-5 pt-5 pb-4" style={{ background: T.ink }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -587,16 +616,16 @@ export default function App({ storage }) {
             <div className="flex items-center gap-2">
               {/* Always visible — it's also the only door to "Paste bank SMS",
                   so hiding it when empty left no way in (the user got stuck). */}
-              <button onClick={() => setSheet("inbox")} className="tap relative h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? `Approval inbox: ${data.pending.length} waiting` : "Approval inbox"}>
+              <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? `Approval inbox: ${data.pending.length} waiting` : "Approval inbox"}>
                 <Inbox size={16} />
                 {data.pending.length > 0 && (
                   <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
                 )}
               </button>
-              <button onClick={() => setHide(!hide)} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? "Show amounts" : "Hide amounts"} aria-pressed={hide}>
+              <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? "Show amounts" : "Hide amounts"} aria-pressed={hide}>
                 {hide ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              <button onClick={() => setSheet("settings")} className="tap h-10 w-10 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label="Settings">
+              <button onClick={() => setSheet("settings")} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label="Settings">
                 <SettingsIcon size={16} />
               </button>
             </div>
@@ -610,6 +639,7 @@ export default function App({ storage }) {
             {moneyGroups.trust > 0.005 && <HeadStat label={t("header.trust")} v={hide ? "•••••" : Math.round(moneyGroups.trust).toLocaleString("en-US")} />}
           </div>
         </header>
+        )}
 
         {/* body */}
         <main className="app-chrome flex-1 px-4 pt-5" style={{ paddingBottom: "calc(110px + env(safe-area-inset-bottom))" }}>
@@ -633,7 +663,7 @@ export default function App({ storage }) {
           )}
           {tab === "planned" && (
             <PlannedScreen
-              recurrs={data.recurrs} plans={data.plans} budgets={data.budgets} monthByCat={monthly.byCategory} base={base} rates={settings.rates} hide={hide} accName={accName}
+              recurrs={data.recurrs} plans={data.plans} upcoming={upcoming} budgets={data.budgets} monthByCat={monthly.byCategory} base={base} rates={settings.rates} hide={hide} accName={accName}
               onAddRecurr={(k) => { setRecurrKind(k); setEditRecurr(null); setSheet("recurr"); }}
               onEditRecurr={(r) => { setRecurrKind(r.kind); setEditRecurr(r); setSheet("recurr"); }}
               onPaid={markPaid} onDelRecurr={delRecurr} onToggleCancel={toggleToCancel} dueTone={dueTone} setBudget={setBudget}
@@ -644,12 +674,12 @@ export default function App({ storage }) {
             />
           )}
           {tab === "people" && (
-            <PeopleScreen debts={data.debts} owedToMe={debts.owedToMe} iOwe={debts.iOwe} base={base} rates={settings.rates} hide={hide} onAddDebt={() => setSheet("debt")} onPay={payDebt} onDelDebt={delDebt} />
+            <PeopleScreen debts={data.debts} transactions={data.transactions} owedToMe={debts.owedToMe} iOwe={debts.iOwe} base={base} rates={settings.rates} hide={hide} onAddDebt={() => setSheet("debt")} onPay={payDebt} onDelDebt={delDebt} />
           )}
         </main>
 
         {/* tab bar + FAB */}
-        <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30" style={{ background: T.surface, borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Main">
+        <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30" style={{ background: "rgba(251,250,246,0.82)", backdropFilter: "saturate(1.3) blur(14px)", WebkitBackdropFilter: "saturate(1.3) blur(14px)", borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Main">
           <div className="relative flex items-stretch justify-around px-2 pt-1.5 pb-2">
             {TABS.slice(0, 2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
             <div className="w-16" aria-hidden="true" />
@@ -728,7 +758,7 @@ function HeadStat({ label, v, owe }) {
 
 function TabBtn({ t, on, set }) {
   return (
-    <button onClick={() => set(t.id)} aria-current={on ? "page" : undefined} className="tap flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl" style={{ color: on ? T.ink : T.faint }}>
+    <button onClick={() => set(t.id)} aria-current={on ? "page" : undefined} className="tap flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-h-[44px]" style={{ color: on ? T.ink : T.sub }}>
       <t.I size={20} strokeWidth={on ? 2.4 : 2} aria-hidden="true" />
       <span className="ui text-[10px]" style={{ fontWeight: on ? 600 : 400 }}>{t.label}</span>
     </button>

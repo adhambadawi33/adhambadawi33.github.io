@@ -2,7 +2,7 @@ import React from "react";
 import { Landmark, CalendarClock, Repeat, Layers, ChevronRight, Lightbulb, X } from "lucide-react";
 import { T, ACCOUNT_TYPE_DEFS, catDef, fmtMoney, accountStripe } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
-import { Section, CardBox, EmptyHint, Money, Bar } from "../common/primitives.jsx";
+import { Section, CardBox, EmptyHint, Money, Bar, PaidBtn } from "../common/primitives.jsx";
 import { BankMark, CardChip, SubLogo } from "../common/brand.jsx";
 import { subBrandFor } from "../../lib/brands.js";
 import { TxRow } from "../common/rows.jsx";
@@ -41,7 +41,7 @@ function NudgeCard({ nudge, onDismiss }) {
     <div className="rounded-2xl px-4 py-3 mb-4 flex items-start gap-3" style={{ background: amber ? T.amberBg : T.surface, border: `1px solid ${amber ? T.amber : T.line}` }}>
       <Lightbulb size={16} className="shrink-0 mt-0.5" style={{ color: amber ? T.amber : T.goldDeep }} aria-hidden="true" />
       <p className="ui text-[12px] leading-relaxed flex-1" style={{ color: T.text }}>{nudge.text}</p>
-      <button onClick={() => onDismiss(nudge.key)} className="tap p-1 -m-1 shrink-0 opacity-50" style={{ color: T.sub }} aria-label="Dismiss hint">
+      <button onClick={() => onDismiss(nudge.key)} className="tap p-3 -m-3 shrink-0 opacity-50" style={{ color: T.sub }} aria-label="Dismiss hint">
         <X size={14} />
       </button>
     </div>
@@ -69,7 +69,7 @@ export default function HomeScreen({
       {accounts.length > 0 && (
         <Section
           title="Accounts"
-          right={<button onClick={onManageAccounts} className="tap ui text-xs flex items-center gap-0.5" style={{ color: T.sub }}>Manage <ChevronRight size={13} /></button>}
+          right={<button onClick={onManageAccounts} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>Manage <ChevronRight size={13} /></button>}
         >
           {ACCOUNT_GROUPS.map((g) => {
             const list = accounts.filter((a) => g.types.includes(a.type) && !!a.custodial === !!g.custodial);
@@ -131,7 +131,7 @@ export default function HomeScreen({
 
       <Section
         title="Coming up"
-        right={<button onClick={onOpenPlanned} className="tap ui text-xs flex items-center gap-0.5" style={{ color: T.sub }}>All <ChevronRight size={13} /></button>}
+        right={<button onClick={onOpenPlanned} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>All <ChevronRight size={13} /></button>}
       >
         {upcoming.length === 0 ? (
           <EmptyHint icon={<CalendarClock size={24} />} text="Subscriptions and installments appear here before they're due, so nothing sneaks up on you. Add the first one from Planned." cta="Add one" onClick={onOpenPlanned} />
@@ -150,10 +150,10 @@ export default function HomeScreen({
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="ui text-sm truncate" style={{ color: T.text }}>{r.name}</div>
-                    <div className="ui text-[11px]" style={{ color: tone.c }}>{tone.t} · {humanDay(r.nextDue)}</div>
+                    <div className="ui text-[12px]" style={{ color: tone.c }}>{tone.t} · {humanDay(r.nextDue)}</div>
                   </div>
                   <Money n={r.amount} cur={r.currency} hide={hide} className="text-sm" />
-                  <button onClick={() => onPaid(r)} className="tap ui text-[11px] font-medium rounded-lg px-3 py-2" style={{ background: T.ink, color: "#fff" }}>Paid</button>
+                  <PaidBtn onClick={() => onPaid(r)} />
                 </div>
               );
             })}
@@ -184,7 +184,7 @@ export default function HomeScreen({
       )}
 
       {recent.length > 0 && (
-        <Section title="Recent" right={<button onClick={onOpenActivity} className="tap ui text-xs flex items-center gap-0.5" style={{ color: T.sub }}>All <ChevronRight size={13} /></button>}>
+        <Section title="Recent" right={<button onClick={onOpenActivity} className="tap ui text-xs flex items-center gap-0.5 min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>All <ChevronRight size={13} /></button>}>
           <CardBox>
             {recent.map((t, i) => (
               <TxRow key={t.id} t={t} i={i} hide={hide} accName={accName} onDel={onDelTx} compact />

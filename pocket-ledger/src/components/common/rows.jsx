@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { ArrowLeftRight, Trash2, Repeat, Layers, SlidersHorizontal, Ban, MoreHorizontal } from "lucide-react";
+import { ArrowLeftRight, Trash2, Repeat, Layers, SlidersHorizontal, Ban, MoreHorizontal, Gift, ChevronRight } from "lucide-react";
 import { SubLogo } from "./brand.jsx";
 import { T, catDef, ownerDef, fmtMoney, inputStyle } from "../../styles/tokens.js";
 import { convert } from "../../lib/finance/currency.js";
-import { Money, Bar, CardBox, EmptyHint } from "./primitives.jsx";
+import { Money, Bar, CardBox, EmptyHint, PaidBtn } from "./primitives.jsx";
 import { daysUntilFromToday, humanDay, monthYear } from "../../lib/dates/ui.js";
 import { addMonthsClamped } from "../../lib/dates/localDate.js";
 
@@ -46,7 +46,7 @@ export function TxRow({ t, i, hide, accName, onDel, onEdit, compact }) {
             </span>
           )}
         </div>
-        <div className="ui text-[11px] truncate" style={{ color: T.faint }}>
+        <div className="ui text-[11px] truncate" style={{ color: T.sub }}>
           {isTr ? `${accName(t.sourceAccountId)} → ${accName(t.destinationAccountId)}` : accName(t.accountId)}
           {t.note ? ` · ${t.note}` : ""}
         </div>
@@ -55,7 +55,7 @@ export function TxRow({ t, i, hide, accName, onDel, onEdit, compact }) {
       <Money n={amount} cur={currency} hide={hide} color={isIn || (isAdj && amount > 0) ? T.green : T.text} className="text-sm" />
       </Body>
       {!compact && (
-        <button onClick={() => onDel(t)} className="tap p-2 opacity-40 hover:opacity-100" style={{ color: T.rose }} aria-label={`Delete ${isTr ? "transfer" : t.category} of ${fmtMoney(amount, currency)}`}>
+        <button onClick={() => onDel(t)} className="tap p-3.5 -m-2 opacity-40 hover:opacity-100" style={{ color: T.rose }} aria-label={`Delete ${isTr ? "transfer" : t.category} of ${fmtMoney(amount, currency)}`}>
           <Trash2 size={14} />
         </button>
       )}
@@ -106,7 +106,7 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
                   {!done && r.kind === "subscription" ? ` · ${r.cycle}` : ""}
                 </div>
                 {accName && r.accountId && (
-                  <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.faint }}>from {accName(r.accountId)}</div>
+                  <div className="ui text-[10px] mt-0.5 truncate" style={{ color: T.sub }}>from {accName(r.accountId)}</div>
                 )}
               </div>
               </button>
@@ -115,15 +115,13 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setMoreId(moreId === r.id ? null : r.id)}
-                    className="tap p-2 opacity-50" style={{ color: T.sub }}
+                    className="tap p-3.5 -m-2 opacity-50" style={{ color: T.sub }}
                     aria-label={`More actions for ${r.name}`} aria-expanded={moreId === r.id}
                   >
                     <MoreHorizontal size={16} />
                   </button>
                   {!done && (
-                    <button onClick={() => onPaid(r)} className="tap ui text-[11px] font-medium rounded-lg px-3 py-2" style={{ background: T.ink, color: "#fff" }}>
-                      Paid
-                    </button>
+                    <PaidBtn onClick={() => onPaid(r)} />
                   )}
                 </div>
               </div>
@@ -143,7 +141,7 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
             {r.kind === "installment" && (
               <div className="mt-2">
                 <Bar pct={(r.monthsPaid / r.monthsTotal) * 100} color={done ? T.green : T.gold} />
-                <div className="mono text-[10px] mt-1" style={{ color: T.faint }}>
+                <div className="mono text-[10px] mt-1" style={{ color: T.sub }}>
                   {r.monthsPaid}/{r.monthsTotal} months · {fmtMoney(Math.max(0, (r.monthsTotal - r.monthsPaid) * r.amount), r.currency, hide)} left
                   {!done && ` · ends ${monthYear(addMonthsClamped(r.nextDue, r.monthsTotal - r.monthsPaid - 1))}`}
                 </div>
@@ -156,71 +154,98 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
   );
 }
 
-export function GivenCard({ x, hide, onDel, base, rates }) {
-  const eq = base && rates && x.currency !== base ? convert(x.amount, x.currency, base, rates) : null;
+/* One "given away" row: help or gift, money handed over (a People entry) or
+   a thing bought (an expense). Same shape either way; the tag says which. */
+export function GivenRow({ g, hide, onDel, base, rates, first }) {
+  const eq = base && rates && g.currency !== base ? convert(g.amount, g.currency, base, rates) : null;
+  const isGift = g.kind === "gift";
   return (
-    <CardBox className="px-4 py-3.5 mb-3">
-      <div className="flex items-center gap-3">
-        <span className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 ui text-sm font-semibold" style={{ background: T.amberBg, color: T.goldDeep }} aria-hidden="true">
-          {x.person.slice(0, 1).toUpperCase()}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="ui text-sm" style={{ color: T.text }}>{x.person}</div>
-          <div className="ui text-[11px]" style={{ color: T.faint }}>given · {x.note || x.date}</div>
+    <div className="flex items-center gap-3 px-4 py-3 min-h-[60px]" style={{ borderTop: first ? "none" : `1px solid ${T.paper}` }}>
+      <span className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 ui text-sm font-semibold" style={{ background: T.amberBg, color: T.goldDeep }} aria-hidden="true">
+        {isGift ? <Gift size={16} /> : g.who.slice(0, 1).toUpperCase()}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="ui text-sm leading-snug flex items-start gap-1.5" style={{ color: T.text }}>
+          <span>{g.who || g.what || humanDay(g.date)}</span>
+          <span className="ui text-[10px] font-semibold rounded-lg px-1.5 py-0.5 shrink-0" style={{ background: T.amberBg, color: T.goldDeep }}>{isGift ? "gift" : "help"}</span>
         </div>
-        <div className="text-right">
-          <Money n={x.amount} cur={x.currency} hide={hide} className="text-base" />
-          {eq != null && <div className="mono text-[10px]" style={{ color: T.faint }}>≈ {hide ? "•••••" : `${Math.round(eq).toLocaleString("en-US")} ${base}`}</div>}
+        <div className="ui text-[12px] truncate" style={{ color: T.sub }}>
+          {g.who && g.what ? `${g.what} · ` : ""}{g.source === "transaction" ? "bought · " : ""}{humanDay(g.date)}
         </div>
-        <button onClick={() => onDel(x)} className="tap px-1 opacity-40" style={{ color: T.rose }} aria-label={`Delete given entry for ${x.person}`}>
-          <Trash2 size={15} />
-        </button>
       </div>
-    </CardBox>
+      <div className="text-right">
+        <Money n={g.amount} cur={g.currency} hide={hide} className="text-sm" />
+        {eq != null && <div className="mono text-[10px]" style={{ color: T.sub }}>≈ {hide ? "•••••" : `${Math.round(eq).toLocaleString("en-US")} ${base}`}</div>}
+      </div>
+      {onDel && g.source === "debt" && (
+        <button onClick={() => onDel(g.ref)} className="tap p-4 -m-2.5 opacity-40" style={{ color: T.rose }} aria-label={`Delete given entry for ${g.who}`}>
+          <Trash2 size={14} />
+        </button>
+      )}
+    </div>
   );
 }
 
+/* Kept for callers/tests that still import the old cards. */
+export const GivenCard = ({ x, hide, onDel, base, rates }) => (
+  <CardBox><GivenRow g={{ id: x.id, source: "debt", kind: "help", who: x.person, what: x.note, amount: x.amount, currency: x.currency, date: x.date, ref: x }} hide={hide} onDel={onDel} base={base} rates={rates} first /></CardBox>
+);
+export const GiftCard = ({ g, hide, base, rates }) => <CardBox><GivenRow g={{ ...g, kind: "gift" }} hide={hide} base={base} rates={rates} first /></CardBox>;
+
+/* Loan card: name, what's left, progress. The repayment form stays folded
+   behind "Record a repayment" so a list of loans reads as a list, not as a
+   stack of open forms. Delete lives in the same fold. */
 export function DebtCard({ x, hide, onPay, onDel, base, rates }) {
   const [amt, setAmt] = useState("");
+  const [open, setOpen] = useState(false);
   const left = Math.max(0, x.amount - x.repaid);
   const lent = x.direction === "lent";
   /* Native currency is the source of truth; base is a small ≈ line only. */
   const eq = base && rates && x.currency !== base && left > 0 ? convert(left, x.currency, base, rates) : null;
+  const settled = left === 0;
   return (
     <CardBox className="px-4 py-3.5 mb-3">
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-3">
         <span className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 ui text-sm font-semibold" style={{ background: lent ? T.greenBg : T.roseBg, color: lent ? T.green : T.rose }} aria-hidden="true">
           {x.person.slice(0, 1).toUpperCase()}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="ui text-sm" style={{ color: T.text }}>{x.person}</div>
-          <div className="ui text-[11px]" style={{ color: T.faint }}>{lent ? "owes you" : "you owe"} · {x.note || x.date}</div>
+          <div className="ui text-sm truncate" style={{ color: T.text }}>{x.person}</div>
+          <div className="ui text-[12px] truncate" style={{ color: T.sub }}>{settled ? "settled" : lent ? "owes you" : "you owe"} · {x.note || humanDay(x.date)}</div>
         </div>
-        <div className="text-right">
-          <Money n={left} cur={x.currency} hide={hide} color={left === 0 ? T.green : lent ? T.green : T.rose} className="text-base" />
-          <div className="mono text-[10px]" style={{ color: T.faint }}>of {fmtMoney(x.amount, x.currency, hide)}</div>
-          {eq != null && <div className="mono text-[10px]" style={{ color: T.faint }}>≈ {hide ? "•••••" : `${Math.round(eq).toLocaleString("en-US")} ${base}`}</div>}
+        <div className="text-right shrink-0">
+          <Money n={left} cur={x.currency} hide={hide} color={settled ? T.green : lent ? T.green : T.rose} className="text-base" />
+          <div className="mono text-[11px] whitespace-nowrap" style={{ color: T.sub }}>
+            {eq != null ? `≈ ${hide ? "•••••" : `${Math.round(eq).toLocaleString("en-US")} ${base}`}` : `of ${fmtMoney(x.amount, x.currency, hide)}`}
+          </div>
         </div>
       </div>
-      <div className="mt-2.5"><Bar pct={(x.repaid / x.amount) * 100} color={left === 0 ? T.green : T.gold} /></div>
-      <div className="flex gap-2 mt-2.5">
-        <input
-          type="number" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)}
-          placeholder="Repayment amount" className={`mono flex-1 rounded-lg px-3 py-2 text-sm outline-none`} style={inputStyle}
-          aria-label={`Repayment amount for ${x.person}`}
-        />
-        <button
-          onClick={() => { if (+amt > 0) { onPay(x.id, +amt); setAmt(""); } }}
-          disabled={!(+amt > 0)}
-          className="tap ui text-xs font-medium rounded-lg px-3"
-          style={{ background: +amt > 0 ? T.ink : T.line, color: +amt > 0 ? "#fff" : T.faint }}
-        >
-          Record
-        </button>
-        <button onClick={() => onDel(x)} className="tap px-2 opacity-40" style={{ color: T.rose }} aria-label={`Delete loan with ${x.person}`}>
-          <Trash2 size={15} />
+      <div className="flex items-center gap-3 mt-2.5">
+        <div className="flex-1"><Bar pct={(x.repaid / x.amount) * 100} color={settled ? T.green : T.gold} /></div>
+        <button onClick={() => setOpen(!open)} aria-expanded={open} className="tap ui text-[12px] flex items-center gap-0.5 min-h-[44px] -my-3 shrink-0" style={{ color: T.goldDeep }}>
+          {open ? "Close" : settled ? "Details" : "Record a repayment"}<ChevronRight size={13} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} aria-hidden="true" />
         </button>
       </div>
+      {open && (
+        <div className="flex gap-2 mt-2.5">
+          <input
+            type="number" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} autoFocus
+            placeholder={`Amount in ${x.currency}`} className="mono flex-1 rounded-lg px-3 min-h-[44px] text-sm outline-none" style={inputStyle}
+            aria-label={`Repayment amount for ${x.person}`}
+          />
+          <button
+            onClick={() => { if (+amt > 0) { onPay(x.id, +amt); setAmt(""); setOpen(false); } }}
+            disabled={!(+amt > 0)}
+            className="tap ui text-xs font-medium rounded-lg px-3 min-h-[44px]"
+            style={{ background: +amt > 0 ? T.ink : T.line, color: +amt > 0 ? "#fff" : T.sub }}
+          >
+            Record
+          </button>
+          <button onClick={() => onDel(x)} className="tap px-3 min-h-[44px] opacity-50" style={{ color: T.rose }} aria-label={`Delete loan with ${x.person}`}>
+            <Trash2 size={15} />
+          </button>
+        </div>
+      )}
     </CardBox>
   );
 }

@@ -8,7 +8,7 @@ import {
    Chosen for low visual noise. */
 export const T = {
   ink: "#2C3A2F", inkSoft: "#3A4A3E", paper: "#F1EEE7", surface: "#FBFAF6",
-  line: "#E7E2D6", text: "#232A24", sub: "#6E7268", faint: "#A2A498",
+  line: "#E7E2D6", text: "#232A24", sub: "#6E7268", faint: "#858880",
   gold: "#B08D57", goldDeep: "#8A6A3B",
   green: "#3F8F6B", greenBg: "#E6F1EA", rose: "#A65C48", roseBg: "#F7EBE1",
   amber: "#A9853F", amberBg: "#F5EEDB",
