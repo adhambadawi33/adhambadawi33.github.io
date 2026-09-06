@@ -11,7 +11,11 @@ import { collectGifts, isGift } from "../../lib/finance/gifts.js";
    is one memory list under a single total, folded until you want it. */
 export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe, base, rates, hide, onAddDebt, onPay, onDelDebt }) {
   const [givenOpen, setGivenOpen] = useState(false);
-  const loans = debts.filter((x) => !x.noReturn);
+  const [settledOpen, setSettledOpen] = useState(false);
+  /* Settled loans stay in the file for memory, but out of the way. */
+  const allLoans = debts.filter((x) => !x.noReturn);
+  const loans = allLoans.filter((x) => x.amount - x.repaid > 0.005);
+  const settled = allLoans.filter((x) => x.amount - x.repaid <= 0.005);
   const help = debts
     .filter((x) => x.noReturn && !isGift(x))
     .map((x) => ({ id: `help:${x.id}`, source: "debt", kind: "help", who: x.person, what: x.note, amount: x.amount, currency: x.currency, date: x.date, ref: x }));
@@ -31,10 +35,21 @@ export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe,
         </CardBox>
       </div>
       <Section title="Open loans" right={<GhostBtn onClick={onAddDebt}>Add <span aria-hidden="true">›</span></GhostBtn>}>
-        {loans.length === 0 ? (
+        {loans.length === 0 && settled.length === 0 ? (
           <EmptyHint icon={<Coins size={26} />} text="Money you've lent or borrowed lives here — who, how much, and every partial repayment — kept separate from your accounts by default." cta="Add a loan" onClick={onAddDebt} />
+        ) : loans.length === 0 ? (
+          <div className="ui text-[13px] px-0.5 py-3" style={{ color: T.sub }}>Nothing open. Everyone is square.</div>
         ) : (
           loans.map((x) => <DebtCard key={x.id} x={x} hide={hide} onPay={onPay} onDel={onDelDebt} base={base} rates={rates} />)
+        )}
+        {settled.length > 0 && (
+          <>
+            <button onClick={() => setSettledOpen(!settledOpen)} aria-expanded={settledOpen} className="tap ui text-[12px] flex items-center gap-1 min-h-[44px] px-0.5" style={{ color: T.sub }}>
+              <ChevronDown size={14} style={{ transform: settledOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} aria-hidden="true" />
+              {settledOpen ? "Hide settled" : `${settled.length} settled · show`}
+            </button>
+            {settledOpen && settled.map((x) => <DebtCard key={x.id} x={x} hide={hide} onPay={onPay} onDel={onDelDebt} base={base} rates={rates} />)}
+          </>
         )}
       </Section>
       {given.length > 0 && (
