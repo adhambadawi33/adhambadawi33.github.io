@@ -52,8 +52,15 @@ export function collectGifts(debts = [], transactions = []) {
   for (const d of debts) {
     if (d && d.direction === "lent" && d.noReturn && isGift(d)) out.push(fromDebt(d));
   }
+  /* The same gift is often recorded twice on purpose — once as money leaving
+     an account (expense) and once as a People entry naming who got it. Show
+     it once: the People entry wins because it carries the name. */
+  const seen = new Set(out.map((g) => `${g.date}|${g.currency}|${Math.round(g.amount * 100)}`));
   for (const t of transactions) {
-    if (t && t.type === "expense" && isGift(t)) out.push(fromTransaction(t));
+    if (!(t && t.type === "expense" && isGift(t))) continue;
+    const key = `${t.date}|${t.currency}|${Math.round(t.amount * 100)}`;
+    if (seen.has(key)) continue;
+    out.push(fromTransaction(t));
   }
   return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 }

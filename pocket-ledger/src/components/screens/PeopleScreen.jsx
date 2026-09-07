@@ -22,6 +22,8 @@ export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe,
   /* Settled loans stay in the file for memory, but out of the way. */
   const allLoans = debts.filter((x) => !x.noReturn);
   const loans = allLoans.filter((x) => x.amount - x.repaid > 0.005);
+  const lent = loans.filter((x) => x.direction === "lent");
+  const borrowed = loans.filter((x) => x.direction === "borrowed");
   const settled = allLoans.filter((x) => x.amount - x.repaid <= 0.005);
   /* Offsetting pairs: an open lent + an open borrowed with the same remaining
      amount and currency (e.g. money passing through for the company) cancel
@@ -55,13 +57,26 @@ export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe,
           {pairedTotal > 0.5 && <span title={t("ux.pairedHint")} className="rounded-full px-2 py-0.5" style={{ background: T.goldBg, color: T.goldDeep }}>{t("ux.paired", { amt: fmtMoney(Math.round(pairedTotal), base, hide) })}</span>}
         </div>
       </div>
-      <Section title={t("people.openLoans")} right={<GhostBtn onClick={onAddDebt}>{t("actions.add")} <span aria-hidden="true">›</span></GhostBtn>}>
-        {loans.length === 0 && settled.length === 0 ? (
+      {loans.length === 0 && settled.length === 0 && (
+        <Section title={t("people.openLoans")} right={<GhostBtn onClick={onAddDebt}>{t("actions.add")} <span aria-hidden="true">›</span></GhostBtn>}>
           <EmptyHint icon={<Coins size={26} />} text={t("people.empty")} cta={t("people.addLoan")} onClick={onAddDebt} />
-        ) : loans.length === 0 ? (
+        </Section>
+      )}
+      {(loans.length > 0 || settled.length > 0) && (
+      <Section title={t("people.owedToYou")} right={<GhostBtn onClick={onAddDebt}>{t("actions.add")} <span aria-hidden="true">›</span></GhostBtn>}>
+        {lent.length === 0 ? (
           <div className="ui text-[0.8125rem] px-0.5 py-3" style={{ color: T.sub }}>{t("people.allSquare")}</div>
         ) : (
-          loans.map((x) => <DebtCard key={x.id} x={x} hide={hide} onPay={onPay} onDel={onDelDebt} base={base} rates={rates} onOpenPerson={setPerson} />)
+          lent.map((x) => <DebtCard key={x.id} x={x} hide={hide} onPay={onPay} onDel={onDelDebt} base={base} rates={rates} onOpenPerson={setPerson} />)
+        )}
+      </Section>
+      )}
+      {(loans.length > 0 || settled.length > 0) && (
+      <Section title={t("people.youOwe")}>
+        {borrowed.length === 0 ? (
+          <div className="ui text-[0.8125rem] px-0.5 py-3" style={{ color: T.sub }}>{t("people.allSquare")}</div>
+        ) : (
+          borrowed.map((x) => <DebtCard key={x.id} x={x} hide={hide} onPay={onPay} onDel={onDelDebt} base={base} rates={rates} onOpenPerson={setPerson} />)
         )}
         {settled.length > 0 && (
           <>
@@ -73,6 +88,7 @@ export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe,
           </>
         )}
       </Section>
+      )}
       {given.length > 0 && (
         <Section
           title={t("people.givenAway")}
