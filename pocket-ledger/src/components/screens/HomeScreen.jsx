@@ -90,7 +90,7 @@ export default function HomeScreen({
             return (
               <div key={g.key} style={{ borderTop: gi ? `1px solid ${T.line}` : "none" }}>
                 <div className="flex items-center gap-2 px-4">
-                  <button onClick={() => setOpenGroups({ ...openGroups, [g.key]: !open })} aria-expanded={open} className="tap flex items-center gap-2 flex-1 min-w-0 text-left min-h-[52px]">
+                  <button onClick={() => setOpenGroups({ ...openGroups, [g.key]: !open })} aria-expanded={open} className="tap flex items-center gap-2 flex-1 min-w-0 text-start min-h-[52px]">
                     <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: g.dot }} aria-hidden="true" />
                     <span className="ui text-[13px] font-semibold flex-1 truncate" style={{ color: T.text }}>{groupLabels?.[g.key] || g.key}</span>
                     <span className="ui text-[12px] shrink-0" style={{ color: T.faint }}>{list.length === 1 ? t("home.accountOne") : t("home.accountsN", { n: list.length })}</span>
@@ -109,7 +109,7 @@ export default function HomeScreen({
                   return (
                     <button
                       key={a.id} onClick={() => onAccountTap(a)}
-                      className="tap w-full flex items-center gap-3 text-left px-4 min-h-[56px] relative"
+                      className="tap w-full flex items-center gap-3 text-start px-4 min-h-[56px] relative"
                       style={{ borderTop: `1px solid ${T.line}`, background: i % 2 ? "transparent" : "transparent" }}
                     >
                       <span aria-hidden="true" className="absolute inset-y-2 w-[3px] rounded-full" style={{ insetInlineStart: 0, background: accountStripe(a) }} />

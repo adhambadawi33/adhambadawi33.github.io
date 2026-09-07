@@ -70,7 +70,7 @@ export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe,
               {given.map((g, i) => <GivenRow key={g.id} g={g} hide={hide} onDel={onDelDebt} base={base} rates={rates} first={i === 0} />)}
             </CardBox>
           ) : (
-            <button onClick={() => setGivenOpen(true)} className="tap ui text-[12px] w-full text-left px-0.5 min-h-[44px] -my-2" style={{ color: T.sub }}>
+            <button onClick={() => setGivenOpen(true)} className="tap ui text-[12px] w-full text-start px-0.5 min-h-[44px] -my-2" style={{ color: T.sub }}>
               {given.length === 1 ? t("people.givenOne") : t("people.givenSummary", { n: given.length })}
             </button>
           )}

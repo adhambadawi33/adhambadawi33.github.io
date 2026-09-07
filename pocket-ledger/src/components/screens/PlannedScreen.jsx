@@ -175,7 +175,7 @@ function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onCl
         <span className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#4E7A9B22", color: "#4E7A9B" }} aria-hidden="true">
           <Luggage size={17} />
         </span>
-        <button onClick={() => onEdit(trip)} className="tap min-w-0 flex-1 text-left" aria-label={tr("planned.editTrip", { name: trip.name })}>
+        <button onClick={() => onEdit(trip)} className="tap min-w-0 flex-1 text-start" aria-label={tr("planned.editTrip", { name: trip.name })}>
           <div className="ui text-sm truncate" style={{ color: T.text }}>{trip.name}</div>
           <div className="ui text-[11px] mt-0.5" style={{ color: trip.open ? T.green : T.faint }}>
             {trip.open ? tr("planned.tripOpenLine") : tr("planned.tripClosedLine", { from: trip.startDate, to: trip.endDate ? ` → ${trip.endDate}` : "" })}
@@ -237,7 +237,7 @@ function Group({ id, icon: Icon, name, summary, open, onToggle, right, children,
   return (
     <div style={{ borderTop: first ? "none" : `1px solid ${T.line}` }}>
       <div className="flex items-center gap-3 px-4">
-        <button onClick={() => onToggle(id)} aria-expanded={open} className="tap flex items-center gap-3 flex-1 min-w-0 text-left min-h-[56px]">
+        <button onClick={() => onToggle(id)} aria-expanded={open} className="tap flex items-center gap-3 flex-1 min-w-0 text-start min-h-[56px]">
           <Icon size={18} strokeWidth={1.8} style={{ color: T.sub }} className="shrink-0" aria-hidden="true" />
           <span className="flex-1 min-w-0">
             <span className="ui text-sm block" style={{ color: T.text }}>{name}</span>
@@ -313,7 +313,7 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
 
       {flagged.length > 0 && (
         <>
-          <button onClick={() => setCancelOpen(!cancelOpen)} aria-expanded={cancelOpen} className="tap w-full flex items-center gap-3 rounded-xl px-3.5 min-h-[44px] mb-3 text-left" style={{ background: T.amberBg, border: `1px solid ${T.amber}` }}>
+          <button onClick={() => setCancelOpen(!cancelOpen)} aria-expanded={cancelOpen} className="tap w-full flex items-center gap-3 rounded-xl px-3.5 min-h-[44px] mb-3 text-start" style={{ background: T.amberBg, border: `1px solid ${T.amber}` }}>
             <Lightbulb size={16} style={{ color: T.goldDeep }} className="shrink-0" aria-hidden="true" />
             <span className="ui text-[12px] flex-1" style={{ color: T.text }}>
               {flagged.length === 1 ? t("planned.cancelOne", { name: flagged[0].name }) : t("planned.cancelMany", { n: flagged.length })}

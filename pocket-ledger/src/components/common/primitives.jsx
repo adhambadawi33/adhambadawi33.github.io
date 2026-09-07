@@ -268,7 +268,7 @@ export class ErrorBoundary extends React.Component {
             <button onClick={() => location.reload()} className="tap rounded-xl py-3 text-sm font-semibold" style={{ background: T.ink, color: "#fff" }}>{t("prim.reload")}</button>
             <button onClick={() => this.props.onExportRecovery?.()} className="tap rounded-xl py-3 text-sm" style={{ border: `1px solid ${T.line}`, color: T.sub }}>{t("prim.exportRecovery")}</button>
           </div>
-          <details className="mt-4 text-left">
+          <details className="mt-4 text-start">
             <summary className="text-xs cursor-pointer" style={{ color: T.faint }}>{t("prim.tech")}</summary>
             <pre className="text-[11px] mt-2 overflow-auto max-h-32" style={{ color: T.sub }}>{String(this.state.error?.stack || this.state.error)}</pre>
           </details>

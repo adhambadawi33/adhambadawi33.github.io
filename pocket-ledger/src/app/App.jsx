@@ -619,7 +619,7 @@ export default function App({ storage }) {
               <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
                 <Inbox size={16} />
                 {data.pending.length > 0 && (
-                  <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
+                  <span className="mono absolute -top-0.5 -end-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
                 )}
               </button>
               <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? t("common.showAmounts") : t("common.hideAmounts")} aria-pressed={hide}>
@@ -645,7 +645,7 @@ export default function App({ storage }) {
               <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
                 <Inbox size={16} />
                 {data.pending.length > 0 && (
-                  <span className="mono absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
+                  <span className="mono absolute -top-0.5 -end-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
                 )}
               </button>
               <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? t("common.showAmounts") : t("common.hideAmounts")} aria-pressed={hide}>

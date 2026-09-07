@@ -29,7 +29,7 @@ export function TxRow({ t, i, hide, accName, onDel, onEdit, compact }) {
     <div className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
       <Body
         {...(onEdit ? { onClick: () => onEdit(t), "aria-label": tr("rows.editTx", { what: isTr ? tr("rows.transfer") : catLabel(t.category), amt: amount }) } : {})}
-        className={`flex items-center gap-3 flex-1 min-w-0 text-left ${onEdit ? "tap" : ""}`}
+        className={`flex items-center gap-3 flex-1 min-w-0 text-start ${onEdit ? "tap" : ""}`}
       >
       <span
         className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
@@ -92,7 +92,7 @@ export function RecurrList({ kind, recurrs, hide, onPaid, onDel, onToggleCancel,
                 onClick={() => onEdit?.(r)}
                 disabled={!onEdit}
                 aria-label={onEdit ? t("rows.editRow", { name: r.name }) : undefined}
-                className={`flex items-start gap-3 flex-1 min-w-0 text-left ${onEdit ? "tap" : ""}`}
+                className={`flex items-start gap-3 flex-1 min-w-0 text-start ${onEdit ? "tap" : ""}`}
               >
               <SubLogo name={r.name} size={36} tintBg={tone.bg} tintColor={tone.c} />
               <div className="min-w-0 flex-1">

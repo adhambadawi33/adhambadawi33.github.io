@@ -261,7 +261,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
 
         <div className="text-center mb-2" aria-live="polite">
           <span className="mono text-[44px] leading-none" style={{ color: +amount > 0 ? T.text : T.faint }}>{amount || "0"}</span>
-          <span className="ui text-base ml-2" style={{ color: T.faint }}>{cur}</span>
+          <span className="ui text-base ms-2" style={{ color: T.faint }}>{cur}</span>
         </div>
         <div className="flex justify-center gap-1.5 mb-3">
           {CURRENCIES.map((c) => (
@@ -381,7 +381,7 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
               </button>
             </div>
             {isAdj && (
-              <div className="pb-3 pl-13" style={{ paddingLeft: 52 }}>
+              <div className="pb-3" style={{ paddingInlineStart: 52 }}>
                 <p className="ui text-[11px] mb-1.5" style={{ color: T.faint }}>
                   {a.type === "credit" ? tr("sheets.accounts.adjustOwed") : tr("sheets.accounts.adjustBal")}
                 </p>
@@ -714,7 +714,7 @@ export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
               <button
                 key={a.id}
                 onClick={() => setAccountId(a.id)}
-                className="tap flex items-center justify-between rounded-2xl px-4 py-3 text-left"
+                className="tap flex items-center justify-between rounded-2xl px-4 py-3 text-start"
                 style={{ background: on ? T.ink : T.surface, color: on ? "#fff" : T.text, border: `1px solid ${on ? T.ink : T.line}` }}
                 aria-pressed={on}
               >

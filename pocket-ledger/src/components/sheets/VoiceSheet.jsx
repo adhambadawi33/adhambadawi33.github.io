@@ -266,7 +266,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
             <span className="mono text-[44px] leading-none" style={{ color: +f.amount > 0 ? T.text : T.rose }}>
               {+f.amount > 0 ? (+f.amount).toLocaleString("en-US") : "؟"}
             </span>
-            <span className="ui text-base ml-2" style={{ color: T.faint }}>{f.currency}</span>
+            <span className="ui text-base ms-2" style={{ color: T.faint }}>{f.currency}</span>
           </div>
           {!(+f.amount > 0) && (
             <p className="ui text-[12px] text-center mb-2" style={{ color: T.rose }}>{tr("sheets.voice.noAmount")}</p>
