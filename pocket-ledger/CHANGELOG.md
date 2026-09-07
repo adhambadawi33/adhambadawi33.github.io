@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.1.0 — UX audit implemented (2026-09-07)
+
+### Trust and safety
+- Restore from file is a sheet: file summary, "Add to what I have" or "Replace everything" (replace confirms once more, inline). No native dialogs anywhere; rates changes explain themselves inline.
+- Optional app lock: 4-digit PIN (SHA-256, on device) with Face ID / Touch ID via WebAuthn when the device offers it.
+- Hide-amounts preference is remembered; offline line under the header shows which rates are in use.
+- Sheets trap keyboard focus; the reset word follows the language (امسح / RESET); every remaining message comes from the dictionary.
+
+### Clarity
+- Save buttons stay enabled and say what is missing when tapped ("Enter the amount first").
+- "Bank SMS" is a named button in the header; a visible mic sits next to the + on phones and a one-time hint explains the long-press.
+- First run: language and base currency follow the device; a three-step start list (account · first expense · subscription) shows until done.
+- People opens with the net between you and people; offsetting pairs (same amount both ways with a shared name, e.g. money passing through for the company) are left out and labelled.
+- Activity: filters fold behind a counted button (month · account · whose · type); a numeric search matches amounts; deletion moved into the edit sheet so rows carry no trash icon.
+- Planned: overdue rows offer "Paid on its due date".
+- Home: tapping an account opens its page (balance, match the bank, recent activity, edit, all activity); "Card details" row; nudge dismiss reads "Snooze 3 days".
+- Reconcile reads "Match the bank ›" then "Record the difference (+320)"; report print says "Save PDF"; category chips show full names; gift/help tag explained once.
+- Tablet breakpoint at 768px; type sizes in rem so system text scaling applies; section titles are headings.
+
 ## 3.0.1 — Report and voice sheets in Arabic (2026-09-07)
 
 - Monthly report (month names, in/out/net, sections, notes) and the voice sheet (all prompts, errors, examples) now follow the language setting; category and owner names localized there too.

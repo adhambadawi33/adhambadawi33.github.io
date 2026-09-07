@@ -110,9 +110,10 @@ export const curLabel = (cur) => (curLang === "ar" && AR_CUR[cur] ? AR_CUR[cur] 
 export const fmtMoney = (n, cur, hide) => {
   if (hide) return "•••••";
   const v = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  return cur === "USD" ? `$${v}` : cur === "EUR" ? `€${v}` : `${v} ${curLabel(cur)}`;
+  return `${v} ${cur === "USD" ? "$" : cur === "EUR" ? "€" : curLabel(cur)}`;
 };
 export const inputCls = "ui pl-input w-full rounded-xl px-3.5 text-[15px] outline-none";
 /* Live like T: inputs follow the theme even though callers spread this object. */
-const inputStyleOf = () => ({ background: T.surface, border: `1px solid ${T.lineStrong}`, color: T.text });
-export const inputStyle = new Proxy({}, { get: (_, k) => inputStyleOf()[k], ownKeys: () => Object.keys(inputStyleOf()), getOwnPropertyDescriptor: (_, k) => ({ value: inputStyleOf()[k], enumerable: true, configurable: true }) });
+/* Inputs follow the theme: call it at render time (React freezes style
+   objects in dev, which a live Proxy cannot survive). */
+export const inputStyle = () => ({ background: T.surface, border: `1px solid ${T.lineStrong}`, color: T.text });

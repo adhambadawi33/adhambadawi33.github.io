@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Home, Receipt, CalendarClock, Coins, Plus, Settings as SettingsIcon, Eye, EyeOff, Wallet, CheckCircle2, Inbox } from "lucide-react";
+import { Home, Receipt, CalendarClock, Coins, Plus, Settings as SettingsIcon, Eye, EyeOff, Wallet, CheckCircle2, Inbox, Mic, WifiOff } from "lucide-react";
 import { T, setTheme, THEME_MODES, setCurrencyLang, curLabel } from "../styles/tokens.js";
 import { SaveErrorBanner, UndoToast, TypedConfirm, Skeleton } from "../components/common/primitives.jsx";
+import { hashPin, webauthnCreate, webauthnVerify } from "../lib/lock.js";
 import HomeScreen from "../components/screens/HomeScreen.jsx";
 import ActivityScreen from "../components/screens/ActivityScreen.jsx";
 import PlannedScreen from "../components/screens/PlannedScreen.jsx";
 import PeopleScreen from "../components/screens/PeopleScreen.jsx";
-import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet, EditTxSheet, PayPlanSheet, TripSheet } from "../components/sheets/sheets.jsx";
+import { AddTxSheet, AccountsSheet, AccountFormSheet, RecurrSheet, DebtSheet, SettingsSheet, InboxSheet, CardsSheet, EditTxSheet, PayPlanSheet, TripSheet, ImportSheet, AccountSheet, LockScreen, PinSheet } from "../components/sheets/sheets.jsx";
 import VoiceSheet from "../components/sheets/VoiceSheet.jsx";
 import ReportSheet from "../components/sheets/ReportSheet.jsx";
 import { STORAGE_KEY, LEGACY_KEYS } from "../lib/storage/adapter.js";
@@ -18,7 +19,7 @@ import { openTrip } from "../lib/finance/trips.js";
 import { syncSubscriptionOnTx } from "../lib/finance/subscriptions.js";
 import { computeNudges, pickNudge } from "../lib/nudges.js";
 import { matchPendingToSub, subAfterPayment } from "../lib/finance/subMatch.js";
-import { snapshotRates, convert, CURRENCIES } from "../lib/finance/currency.js";
+import { snapshotRates, convert } from "../lib/finance/currency.js";
 import { fetchLiveRates } from "../lib/finance/fxLive.js";
 import { parseSmsBatch } from "../lib/voice/sms.js";
 import { learnableTokens } from "../lib/voice/parse.js";
@@ -30,12 +31,22 @@ import { makeT, applyDir, setUiLang, I18nContext } from "../i18n/index.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const fmtNet = (n, cur, hide) =>
-  hide ? "•••••" : `${n < 0 ? "−" : ""}${cur === "USD" ? "$" : cur === "EUR" ? "€" : ""}${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}${["USD", "EUR"].includes(cur) ? "" : ` ${curLabel(cur)}`}`;
+  hide ? "•••••" : `${n < 0 ? "−" : ""}${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 2 })} ${cur === "USD" ? "$" : cur === "EUR" ? "€" : curLabel(cur)}`;
 
 export default function App({ storage }) {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("home");
-  const [hide, setHide] = useState(false);
+  const [hide, setHideState] = useState(() => { try { return localStorage.getItem("pl:hide") === "1"; } catch { return false; } });
+  const setHide = (v) => { setHideState(v); try { localStorage.setItem("pl:hide", v ? "1" : "0"); } catch { /* private mode */ } };
+  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine !== false));
+  useEffect(() => {
+    const up = () => setOnline(true), down = () => setOnline(false);
+    window.addEventListener("online", up); window.addEventListener("offline", down);
+    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", down); };
+  }, []);
+  const [importTarget, setImportTarget] = useState(null);
+  const [accountSheet, setAccountSheet] = useState(null);
+  const [locked, setLocked] = useState(null); /* null = not decided yet */
   const [flash, setFlash] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [sheet, setSheet] = useState(null);
@@ -43,7 +54,7 @@ export default function App({ storage }) {
   const [recurrKind, setRecurrKind] = useState("subscription");
   const [editRecurr, setEditRecurr] = useState(null);
   const [editTrip, setEditTrip] = useState(null);
-  const [actFilter, setActFilter] = useState({ q: "", accountId: "all" });
+  const [actFilter, setActFilter] = useState({ q: "", accountId: "all", month: "all", owner: "all", category: "all" });
   const [undo, setUndo] = useState(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [voiceText, setVoiceText] = useState(null);
@@ -95,8 +106,16 @@ export default function App({ storage }) {
         }
       }
       const { data: normalized } = normalizeData(parsed);
+      if (parsed === null && typeof navigator !== "undefined") {
+        /* Fresh install: speak the device's language and count in its currency. */
+        const tag = (navigator.language || "en").toLowerCase();
+        if (tag.startsWith("ar")) normalized.settings.language = "ar";
+        const region = tag.split("-")[1] || "";
+        normalized.settings.base = region === "ae" ? "AED" : region === "sa" ? "SAR" : region === "us" ? "USD" : "EGP";
+      }
       if (live) {
         setData(normalized);
+        setLocked(!!normalized.settings.lock?.pinHash);
         /* Write back immediately so legacy-key migration is durable (§4.4). */
         storage.set(STORAGE_KEY, JSON.stringify(normalized)).then((ok) => setSaveError(!ok));
       }
@@ -234,7 +253,16 @@ export default function App({ storage }) {
     if (!data) return [];
     return [...data.transactions]
       .filter((x) => actFilter.accountId === "all" || x.accountId === actFilter.accountId || x.toAccountId === actFilter.accountId)
-      .filter((x) => !actFilter.q || (x.note || "").toLowerCase().includes(actFilter.q.toLowerCase()) || (x.category || "").toLowerCase().includes(actFilter.q.toLowerCase()))
+      .filter((x) => actFilter.month === "all" || (x.date || "").startsWith(actFilter.month))
+      .filter((x) => actFilter.owner === "all" || (x.owner || "me") === actFilter.owner)
+      .filter((x) => actFilter.category === "all" || x.category === actFilter.category)
+      .filter((x) => {
+        const q = actFilter.q.trim().toLowerCase();
+        if (!q) return true;
+        /* A purely numeric query matches the amount (either side of a transfer). */
+        if (/^[\d.,]+$/.test(q)) { const n = Number(q.replace(/,/g, "")); return [x.amount, x.sourceAmount, x.destinationAmount].some((v) => v != null && Math.abs(Math.abs(v) - n) < 0.005); }
+        return (x.note || "").toLowerCase().includes(q) || (x.category || "").toLowerCase().includes(q);
+      })
       .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   }, [data, actFilter]);
   const txByDay = useMemo(() => {
@@ -258,6 +286,7 @@ export default function App({ storage }) {
 
   /* ── undo-based deletion (handoff §4.8) ── */
   const scheduleUndo = (label, restore) => {
+    /* restore === null → an info toast without an Undo button. */
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setUndo({ label, restore });
     undoTimer.current = setTimeout(() => setUndo(null), 10000);
@@ -283,7 +312,7 @@ export default function App({ storage }) {
       : base;
   const toastLearned = (next, learn) => {
     if (!learn) return;
-    scheduleUndo(`Learned: ${learn.tokens.join("، ")} → ${learn.category}`, () => {
+    scheduleUndo(t("ux.learned", { tokens: learn.tokens.join("، "), cat: learn.category }), () => {
       const cleaned = { ...next.settings.learnedCats };
       for (const t of learn.tokens) delete cleaned[t];
       commit({ ...next, settings: { ...next.settings, learnedCats: cleaned } }, true);
@@ -333,7 +362,7 @@ export default function App({ storage }) {
   };
   const archiveAccount = (acc) => {
     commit({ ...data, accounts: data.accounts.map((a) => (a.id === acc.id ? { ...a, archived: !a.archived } : a)) }, true);
-    scheduleUndo(acc.archived ? `Shown: ${acc.name}` : `Hidden: ${acc.name}`, () =>
+    scheduleUndo(acc.archived ? t("ux.shown", { name: acc.name }) : t("ux.hidden", { name: acc.name }), () =>
       commit({ ...data }, true)
     );
   };
@@ -431,12 +460,12 @@ export default function App({ storage }) {
     scheduleUndo(`${t("deleted")}: ${p.name}`, () => commit({ ...prev }, true));
   };
 
-  const markPaid = (r) => {
+  const markPaid = (r, opts = {}) => {
     if (r.kind === "plan") return payPlanMilestone(r.planId, r.msId);
     const acct = data.accounts.find((a) => a.id === r.accountId && !a.archived) || activeAccounts[0];
     const tx = acct
       ? [{
-          id: uid(), date: todayISO(), type: "expense", amount: r.amount, currency: r.currency,
+          id: uid(), date: opts.onDue ? r.nextDue : todayISO(), type: "expense", amount: r.amount, currency: r.currency,
           accountId: acct.id, category: r.kind === "subscription" ? "Subscriptions" : "Installments",
           note: r.name, snapshot: snapshotRates(settings.rates),
         }]
@@ -454,9 +483,9 @@ export default function App({ storage }) {
     scheduleUndo(t("common.paidUndo", { name: r.name }), () => commit({ ...prev }, true));
   };
   const importSmsText = (text) => {
-    const { items, skipped } = parseSmsBatch(text, data.accounts);
+    const { items } = parseSmsBatch(text, data.accounts);
     if (items.length === 0) {
-      window.alert(skipped ? "لم أتعرف على أي عملية بنكية في النص الملصوق." : "لا يوجد نص لاستيراده.");
+      scheduleUndo(t("ux.smsNone"), null);
       return;
     }
     const existing = new Set(data.pending.map((x) => x.rawText));
@@ -541,8 +570,6 @@ export default function App({ storage }) {
   const setBase = (b) => commit({ ...data, settings: { ...settings, base: b } }, true);
   const setPref = (key, value) => commit({ ...data, settings: { ...settings, [key]: value } }, true);
   const saveRates = (rates) => {
-    const changed = CURRENCIES.some((c) => c !== "USD" && rates[c] !== settings.rates[c]);
-    if (changed && !window.confirm("New rates change live balance totals from now on. Past entries keep their original rates. Continue?")) return;
     commit({ ...data, settings: { ...settings, rates, ratesUpdatedAt: todayISO() } }, true);
   };
 
@@ -551,24 +578,39 @@ export default function App({ storage }) {
     downloadText(buildBackup(data), stampedName("pocket-ledger-backup", "json"), "application/json");
     commit({ ...data, settings: { ...settings, lastBackupAt: todayISO() } }, true);
   };
+  /* Import is a two-step sheet, never a native dialog: read + summarize,
+     then an explicit "add" or "replace" (replace asks once more, inline). */
   const importBackup = async (file) => {
     const text = await file.text();
     const res = parseBackup(text);
-    if (res.error) { window.alert(res.error); return; }
-    const { summary } = res;
-    /* Safe-by-default import: OK adds (merge, nothing lost); replacing
-       everything needs a second, explicit confirmation. */
-    const counts = `${summary.accounts} accounts, ${summary.transactions} transactions, ${summary.recurring} recurring, ${summary.debts} loans${summary.plans ? `, ${summary.plans} payment plans` : ""}`;
-    const merge = window.confirm(`This file contains ${counts}.\n\nOK = ADD it to your current data (safe — nothing is deleted).\nCancel = more options.`);
-    let next = null;
-    if (merge) next = mergeData(data, res.data);
-    else if (window.confirm("REPLACE everything with this file instead?\n\nOK = wipe current data and use the file.\nCancel = do nothing.")) next = res.data;
-    if (!next) return;
+    if (res.error) { setImportTarget({ error: true, name: file.name }); setSheet("import"); return; }
+    let exportedAt = null;
+    try { exportedAt = JSON.parse(text)?.exportedAt || null; } catch { /* fine */ }
+    setImportTarget({ res, name: file.name, exportedAt });
+    setSheet("import");
+  };
+  const applyImport = async (mode) => {
+    if (!importTarget?.res) return;
+    const next = mode === "replace" ? importTarget.res.data : mergeData(data, importTarget.res.data);
     await storage.set(`${STORAGE_KEY}:pre-import`, JSON.stringify(data));
     /* An import is a reconciliation too — numbers just came from statements. */
     commit({ ...next, settings: { ...next.settings, lastReconcileAt: todayISO() } }, true);
-    setSheet(null);
+    setImportTarget(null); setSheet(null); showFlash();
   };
+  /* App lock: a 4-digit PIN (hashed) with optional platform biometrics. */
+  const setPin = async (pin) => {
+    const pinHash = await hashPin(pin);
+    commit({ ...data, settings: { ...settings, lock: { ...(settings.lock || {}), pinHash } } }, true);
+  };
+  const removePin = () => commit({ ...data, settings: { ...settings, lock: null } }, true);
+  const addBiometric = async () => {
+    const credId = await webauthnCreate();
+    if (!credId) return false;
+    commit({ ...data, settings: { ...settings, lock: { ...(settings.lock || {}), credId } } }, true);
+    return true;
+  };
+  const tryUnlockPin = async (pin) => { const ok = (await hashPin(pin)) === settings.lock?.pinHash; if (ok) setLocked(false); return ok; };
+  const tryUnlockBio = async () => { const ok = settings.lock?.credId ? await webauthnVerify(settings.lock.credId) : false; if (ok) setLocked(false); return ok; };
   const resetAll = () => { commit(blankData(), true); setResetOpen(false); setSheet(null); };
 
   /* ── loading ── */
@@ -595,6 +637,13 @@ export default function App({ storage }) {
       : d <= 3 ? { c: T.amber, bg: T.amberBg, t: t("common.inDays", { d }) }
       : { c: T.sub, bg: T.paper, t: t("common.inDays", { d }) };
 
+  if (locked)
+    return (
+      <I18nContext.Provider value={t}>
+        <LockScreen onPin={tryUnlockPin} onBio={settings.lock?.credId ? tryUnlockBio : null} />
+      </I18nContext.Provider>
+    );
+
   return (
     <I18nContext.Provider value={t}>
     <div className="min-h-screen flex justify-center desk:ps-[76px]">
@@ -611,16 +660,13 @@ export default function App({ storage }) {
                 <Wallet size={14} style={{ color: T.ink }} aria-hidden="true" />
               </span>
               <span className="flex flex-col items-start min-w-0">
-                <span className="ui text-[11px] leading-none" style={{ color: "#93A08D" }}>{t("header.strip")}</span>
-                <span className="mono text-[15px] leading-tight truncate" style={{ color: "#fff" }}>{fmtNet(Math.round(moneyGroups.liquid), base, hide)}</span>
+                <span className="ui text-[0.6875rem] leading-none" style={{ color: "#93A08D" }}>{t("header.strip")}</span>
+                <span className="mono text-[0.9375rem] leading-tight truncate" style={{ color: "#fff" }}>{fmtNet(Math.round(moneyGroups.liquid), base, hide)}</span>
               </span>
             </button>
             <div className="flex items-center gap-1.5 shrink-0">
-              <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
-                <Inbox size={16} />
-                {data.pending.length > 0 && (
-                  <span className="mono absolute -top-0.5 -end-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
-                )}
+              <button onClick={() => setSheet("inbox")} className="tap ui h-11 rounded-full flex items-center gap-1.5 px-3 text-[0.75rem] font-medium" style={{ background: data.pending.length > 0 ? T.gold : T.inkSoft, color: data.pending.length > 0 ? T.ink : "#DDE3D6" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
+                <Inbox size={15} aria-hidden="true" /><span>{data.pending.length > 0 ? t("ux.inboxN", { n: data.pending.length }) : t("ux.inbox")}</span>
               </button>
               <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? t("common.showAmounts") : t("common.hideAmounts")} aria-pressed={hide}>
                 {hide ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -637,16 +683,13 @@ export default function App({ storage }) {
               <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: T.gold }}>
                 <Wallet size={16} style={{ color: T.ink }} aria-hidden="true" />
               </div>
-              <span className="disp text-lg" style={{ color: "#fff" }}>Pocket Ledger</span>
+              <span className="disp text-lg whitespace-nowrap max-[420px]:hidden" style={{ color: "#fff" }}>Pocket Ledger</span>
             </div>
             <div className="flex items-center gap-2">
               {/* Always visible — it's also the only door to "Paste bank SMS",
                   so hiding it when empty left no way in (the user got stuck). */}
-              <button onClick={() => setSheet("inbox")} className="tap relative h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: data.pending.length > 0 ? T.gold : "#AAB8C9" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
-                <Inbox size={16} />
-                {data.pending.length > 0 && (
-                  <span className="mono absolute -top-0.5 -end-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] flex items-center justify-center" style={{ background: T.gold, color: T.ink }}>{data.pending.length}</span>
-                )}
+              <button onClick={() => setSheet("inbox")} className="tap ui h-11 rounded-full flex items-center gap-1.5 px-3 text-[0.75rem] font-medium" style={{ background: data.pending.length > 0 ? T.gold : T.inkSoft, color: data.pending.length > 0 ? T.ink : "#DDE3D6" }} aria-label={data.pending.length > 0 ? t("common.inboxN", { n: data.pending.length }) : t("common.inbox")}>
+                <Inbox size={15} aria-hidden="true" /><span>{data.pending.length > 0 ? t("ux.inboxN", { n: data.pending.length }) : t("ux.inbox")}</span>
               </button>
               <button onClick={() => setHide(!hide)} className="tap h-11 w-11 rounded-full flex items-center justify-center" style={{ background: T.inkSoft, color: "#AAB8C9" }} aria-label={hide ? t("common.showAmounts") : t("common.hideAmounts")} aria-pressed={hide}>
                 {hide ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -656,10 +699,10 @@ export default function App({ storage }) {
               </button>
             </div>
           </div>
-          <div className="ui text-[11px] uppercase tracking-widest mb-1" style={{ color: "#93A08D" }}>{t("header.total")}</div>
-          <div className="mono text-[36px] leading-none" style={{ color: "#fff" }}>{fmtNet(Math.round(moneyGroups.liquid), base, hide)}</div>
+          <div className="ui text-[0.6875rem] uppercase tracking-widest mb-1" style={{ color: "#93A08D" }}>{t("header.total")}</div>
+          <div className="mono text-[2.25rem] leading-none" style={{ color: "#fff" }}>{fmtNet(Math.round(moneyGroups.liquid), base, hide)}</div>
           {/* One quiet line under the number instead of four tiles. */}
-          <div className="ui text-[12px] mt-3 flex flex-wrap gap-x-4 gap-y-1" style={{ color: "#B7C0B2" }}>
+          <div className="ui text-[0.75rem] mt-3 flex flex-wrap gap-x-4 gap-y-1" style={{ color: "#B7C0B2" }}>
             <HeadStat label={t("header.banks")} v={hide ? "•••••" : Math.round(moneyGroups.banks).toLocaleString("en-US")} />
             <HeadStat label={t("header.cash")} v={hide ? "•••••" : Math.round(moneyGroups.cash).toLocaleString("en-US")} />
             {moneyGroups.cardOwed > 0.005 && <HeadStat owe label={t("header.owedCards")} v={hide ? "•••••" : Math.round(moneyGroups.cardOwed).toLocaleString("en-US")} />}
@@ -668,6 +711,11 @@ export default function App({ storage }) {
         </header>
         )}
 
+        {!online && (
+          <div className="ui text-[0.75rem] px-4 py-1.5 flex items-center gap-2" style={{ background: T.amberBg, color: T.amber }} role="status">
+            <WifiOff size={13} aria-hidden="true" />{settings.ratesUpdatedAt ? t("ux.offline", { date: settings.ratesUpdatedAt }) : t("ux.offlineNoDate")}
+          </div>
+        )}
         {/* body */}
         <main className="app-chrome flex-1 px-4 pt-5" style={{ paddingBottom: "calc(110px + env(safe-area-inset-bottom))" }}>
           {tab === "home" && (
@@ -679,10 +727,12 @@ export default function App({ storage }) {
               groupLabels={{ banks: t("groups.banks"), cards: t("groups.cards"), cash: t("groups.cash"), trust: t("groups.trust") }}
               onManageAccounts={() => setSheet("accounts")}
               onOpenCards={() => setSheet("cards")}
+              counts={{ accounts: data.accounts.length, tx: data.transactions.length, recurrs: data.recurrs.length }}
+              onAddRecurr={() => { setRecurrKind("subscription"); setEditRecurr(null); setSheet("recurr"); }} onAddTx={() => setSheet("add")}
               onOpenPlanned={() => setTab("planned")}
               onOpenActivity={() => setTab("activity")}
               onDelTx={delTx} onPaid={markPaid}
-              onAccountTap={(a) => { setActFilter({ ...actFilter, accountId: a.id }); setTab("activity"); }}
+              onAccountTap={(a) => { setAccountSheet(a.id); setSheet("account"); }}
             />
           )}
           {tab === "activity" && (
@@ -709,7 +759,7 @@ export default function App({ storage }) {
         <nav className="app-chrome fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30 desk:top-0 desk:bottom-0 desk:start-0 desk:left-auto desk:translate-x-0 desk:w-[76px] desk:max-w-none" style={{ background: T.navBg, backdropFilter: "saturate(1.3) blur(14px)", WebkitBackdropFilter: "saturate(1.3) blur(14px)", borderTop: `1px solid ${T.line}`, paddingBottom: "env(safe-area-inset-bottom)" }} aria-label={t("common.mainNav")}>
           <div className="relative flex items-stretch justify-around px-2 pt-1.5 pb-2 desk:flex-col desk:justify-start desk:items-center desk:gap-3 desk:pt-24 desk:h-full">
             {TABS.slice(0, 2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
-            <div className="w-16 desk:hidden" aria-hidden="true" />
+            <div className="w-32 desk:hidden" aria-hidden="true" />
             {TABS.slice(2).map((x) => <TabBtn key={x.id} t={x} on={tab === x.id} set={setTab} />)}
             {/* Tap = keyboard entry. LONG-press = big-mic voice entry (batch 8). */}
             <button
@@ -726,6 +776,9 @@ export default function App({ storage }) {
               style={{ background: `linear-gradient(145deg, ${T.gold}, ${T.goldDeep})`, color: T.ink, boxShadow: "0 6px 18px rgba(169,133,63,0.45)", WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "manipulation" }}
             >
               <Plus size={26} strokeWidth={2.5} />
+            </button>
+            <button onClick={() => setSheet("voice")} aria-label={t("ux.mic")} className="tap absolute -top-3 h-11 w-11 rounded-full flex items-center justify-center desk:hidden" style={{ insetInlineStart: "calc(50% + 36px)", background: T.surface, color: T.goldDeep, boxShadow: T.shadow1 }}>
+              <Mic size={17} />
             </button>
           </div>
         </nav>
@@ -760,13 +813,16 @@ export default function App({ storage }) {
         <TripSheet open={sheet === "trip"} onClose={() => { setSheet(null); setEditTrip(null); }} onSave={saveTrip} initial={editTrip} />
         <DebtSheet open={sheet === "debt"} onClose={() => { setSheet(null); setDebtDraft(null); }} onSave={saveDebt} initial={debtDraft} />
         <PayPlanSheet open={sheet === "pay-plan"} onClose={() => { setSheet(null); setPayPlanTarget(null); }} target={payPlanTarget} accounts={activeAccounts} onConfirm={confirmPayPlan} />
-        <EditTxSheet open={sheet === "edit-tx"} onClose={() => { setSheet(null); setEditTxTarget(null); }} tx={editTxTarget} accounts={activeAccounts} onSave={saveTxEdit} trips={data.trips || []} />
+        <EditTxSheet open={sheet === "edit-tx"} onClose={() => { setSheet(null); setEditTxTarget(null); }} tx={editTxTarget} accounts={activeAccounts} onSave={saveTxEdit} trips={data.trips || []} onDelete={(tx) => { setSheet(null); setEditTxTarget(null); delTx(tx); }} />
+        <ImportSheet open={sheet === "import"} onClose={() => { setSheet("settings"); setImportTarget(null); }} target={importTarget} current={data} onApply={applyImport} />
+        <AccountSheet open={sheet === "account"} onClose={() => { setSheet(null); setAccountSheet(null); }} account={accountSheet ? data.accounts.find((a) => a.id === accountSheet) : null} balance={accountSheet ? balances[accountSheet] || 0 : 0} transactions={data.transactions} hide={hide} accName={accName} onAdjust={adjustAccount} onEdit={(a) => { setEditAcc(a); setSheet("account-form"); }} onAllActivity={(a) => { setActFilter({ ...actFilter, accountId: a.id }); setSheet(null); setTab("activity"); }} />
+        <PinSheet open={sheet === "pin"} onClose={() => setSheet("settings")} onSet={async (pin) => { await setPin(pin); setSheet("settings"); }} />
         <CardsSheet open={sheet === "cards"} onClose={() => setSheet(null)} cards={activeAccounts.filter((a) => a.type === "credit")} balances={balances} hide={hide} base={base} rates={settings.rates} />
         <ReportSheet open={sheet === "report"} onClose={() => setSheet(null)} data={data} base={base} hide={hide} accName={accName} />
         <SettingsSheet
           open={sheet === "settings"} onClose={() => setSheet(null)} settings={settings}
           counts={{ tx: data.transactions.length, accounts: data.accounts.length, recurrs: data.recurrs.length, debts: data.debts.length }}
-          onBase={setBase} onPref={setPref} onSaveRates={saveRates} onFetchRates={fetchRatesNow} onExportCsv={exportCsv} onExportBackup={exportBackup}
+          onBase={setBase} onPref={setPref} onSaveRates={saveRates} onSetPin={() => setSheet("pin")} onRemovePin={removePin} onAddBiometric={addBiometric} onFetchRates={fetchRatesNow} onExportCsv={exportCsv} onExportBackup={exportBackup}
           onImportBackup={importBackup} onResetRequest={() => setResetOpen(true)} backendName={storage.backendName}
         />
       </div>
@@ -779,7 +835,7 @@ function HeadStat({ label, v, owe }) {
   return (
     <span className="inline-flex items-baseline gap-1.5">
       <span>{label}</span>
-      <span className="mono text-[13px]" style={{ color: owe ? "#E9B7A0" : "#EEF1E8" }}>{v}</span>
+      <span className="mono text-[0.8125rem]" style={{ color: owe ? "#E9B7A0" : "#EEF1E8" }}>{v}</span>
     </span>
   );
 }
@@ -788,7 +844,7 @@ function TabBtn({ t, on, set }) {
   return (
     <button onClick={() => set(t.id)} aria-current={on ? "page" : undefined} className="tap flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-h-[44px]" style={{ color: on ? T.inkText : T.sub }}>
       <t.I size={20} strokeWidth={on ? 2.4 : 2} aria-hidden="true" />
-      <span className="ui text-[11px]" style={{ fontWeight: on ? 600 : 400 }}>{t.label}</span>
+      <span className="ui text-[0.6875rem]" style={{ fontWeight: on ? 600 : 400 }}>{t.label}</span>
     </button>
   );
 }

@@ -9,7 +9,7 @@ export default {
       },
       borderRadius: { card: "16px", sheet: "22px" },
       boxShadow: { card: "var(--pl-shadow1)" },
-      screens: { desk: "900px" },
+      screens: { desk: "768px" },
     },
   },
   plugins: [],

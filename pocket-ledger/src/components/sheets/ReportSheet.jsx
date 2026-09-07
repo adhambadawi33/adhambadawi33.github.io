@@ -11,8 +11,8 @@ const dayOf = (iso) => String(+(iso || "").slice(8, 10));
 function HeroStat({ label, v, color }) {
   return (
     <div className="flex-1 min-w-0 text-center px-1 py-3">
-      <div className="ui text-[11px] uppercase tracking-wider mb-1" style={{ color: T.faint }}>{label}</div>
-      <div className="mono text-[14px] truncate" style={{ color }}>{v}</div>
+      <div className="ui text-[0.6875rem] uppercase tracking-wider mb-1" style={{ color: T.faint }}>{label}</div>
+      <div className="mono text-[0.875rem] truncate" style={{ color }}>{v}</div>
     </div>
   );
 }
@@ -64,7 +64,7 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
         </button>
         <div className="text-center">
           <div className="disp text-xl" style={{ color: T.text }}>{monthLabel(monthKey)}</div>
-          <div className="ui text-[11px]" style={{ color: T.faint }}>
+          <div className="ui text-[0.6875rem]" style={{ color: T.faint }}>
             {report.txCount === 1 ? tr("sheets.report.txOne", { cur: base }) : tr("sheets.report.txCount", { n: report.txCount, cur: base })}
           </div>
         </div>
@@ -80,11 +80,11 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
           </button>
           <button
             onClick={() => window.print()}
-            className="tap no-print h-10 w-10 rounded-full flex items-center justify-center"
+            className="tap no-print ui h-10 rounded-full flex items-center gap-1.5 px-3 text-[0.75rem] font-medium"
             style={{ background: T.ink, color: "#fff" }}
             aria-label={tr("sheets.report.print")}
           >
-            <Printer size={16} />
+            <Printer size={14} aria-hidden="true" />{tr("ux.savePdf")}
           </button>
         </div>
       </div>
@@ -96,7 +96,7 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
         <HeroStat label={tr("sheets.report.net")} v={`${report.net < 0 ? "−" : ""}${money(Math.abs(report.net))}`} color={report.net < 0 ? T.rose : T.text} />
       </CardBox>
       {report.prevHadExpense && (
-        <p className="ui text-[12px] mb-5 px-0.5" style={{ color: Math.abs(diff) < 1 ? T.faint : diff > 0 ? T.rose : T.green }}>
+        <p className="ui text-[0.75rem] mb-5 px-0.5" style={{ color: Math.abs(diff) < 1 ? T.faint : diff > 0 ? T.rose : T.green }}>
           {Math.abs(diff) < 1
             ? tr("sheets.report.same", { month: monthLabel(prevMonthKey(monthKey)) })
             : tr(diff > 0 ? "sheets.report.more" : "sheets.report.less", { amt: money(Math.abs(diff)), month: monthLabel(prevMonthKey(monthKey)), prev: money(report.prevExpense) })}
@@ -119,13 +119,13 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
                     <div key={c.key} className="py-2.5" style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
                       <div className="flex items-center gap-2 mb-1.5">
                         <def.I size={14} style={{ color: def.c }} aria-hidden="true" />
-                        <span className="ui text-[13px] flex-1 truncate" style={{ color: T.text }}>{catLabel(c.key)}</span>
+                        <span className="ui text-[0.8125rem] flex-1 truncate" style={{ color: T.text }}>{catLabel(c.key)}</span>
                         {c.budget != null && (
-                          <span className="ui text-[11px]" style={{ color: over ? T.rose : T.green }}>
+                          <span className="ui text-[0.6875rem]" style={{ color: over ? T.rose : T.green }}>
                             {over ? tr("sheets.report.over") : tr("sheets.report.of")} {fmtMoney(c.budget, base, hide)}
                           </span>
                         )}
-                        <span className="mono text-[13px]" style={{ color: T.text }}>{money(c.v)}</span>
+                        <span className="mono text-[0.8125rem]" style={{ color: T.text }}>{money(c.v)}</span>
                       </div>
                       <Bar pct={(c.v / maxCat) * 100} color={over ? T.rose : def.c} />
                     </div>
@@ -142,9 +142,9 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
                   const def = ownerDef(o.key);
                   return (
                     <div key={o.key} className="flex items-center gap-2 py-2.5" style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
-                      <span className="ui text-[11px] rounded-lg px-2 py-0.5" style={{ background: def.bg, color: def.c }}>{ownerLabel(def.id)}</span>
-                      <span className="ui text-[11px] flex-1" style={{ color: T.faint }}>{Math.round((o.v / report.expense) * 100)}%</span>
-                      <span className="mono text-[13px]" style={{ color: T.text }}>{money(o.v)}</span>
+                      <span className="ui text-[0.6875rem] rounded-lg px-2 py-0.5" style={{ background: def.bg, color: def.c }}>{ownerLabel(def.id)}</span>
+                      <span className="ui text-[0.6875rem] flex-1" style={{ color: T.faint }}>{Math.round((o.v / report.expense) * 100)}%</span>
+                      <span className="mono text-[0.8125rem]" style={{ color: T.text }}>{money(o.v)}</span>
                     </div>
                   );
                 })}
@@ -157,8 +157,8 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
               <CardBox className="px-4 py-1">
                 {report.accounts.map((a, i) => (
                   <div key={a.key} className="flex items-center gap-2 py-2.5" style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
-                    <span className="ui text-[13px] flex-1 truncate" style={{ color: T.text }}>{accName(a.key)}</span>
-                    <span className="mono text-[13px]" style={{ color: T.text }}>{money(a.v)}</span>
+                    <span className="ui text-[0.8125rem] flex-1 truncate" style={{ color: T.text }}>{accName(a.key)}</span>
+                    <span className="mono text-[0.8125rem]" style={{ color: T.text }}>{money(a.v)}</span>
                   </div>
                 ))}
               </CardBox>
@@ -171,17 +171,17 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
                 {report.subsCharged.map((s, i) => (
                   <div key={s.id} className="flex items-center gap-2 py-2.5" style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
                     <Repeat size={13} style={{ color: T.goldDeep }} aria-hidden="true" />
-                    <span className="ui text-[13px] flex-1 truncate" style={{ color: T.text }}>{s.name}</span>
-                    <span className="ui text-[11px]" style={{ color: T.faint }}>{tr("sheets.report.day", { d: dayOf(s.date) })}</span>
-                    <span className="mono text-[13px]" style={{ color: T.text }}>{money(s.baseValue)}</span>
+                    <span className="ui text-[0.8125rem] flex-1 truncate" style={{ color: T.text }}>{s.name}</span>
+                    <span className="ui text-[0.6875rem]" style={{ color: T.faint }}>{tr("sheets.report.day", { d: dayOf(s.date) })}</span>
+                    <span className="mono text-[0.8125rem]" style={{ color: T.text }}>{money(s.baseValue)}</span>
                   </div>
                 ))}
                 {report.subsDue.map((s, i) => (
                   <div key={s.id} className="flex items-center gap-2 py-2.5" style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
                     <CalendarClock size={13} style={{ color: T.amber }} aria-hidden="true" />
-                    <span className="ui text-[13px] flex-1 truncate" style={{ color: T.sub }}>{s.name}</span>
-                    <span className="ui text-[11px]" style={{ color: T.amber }}>{tr("sheets.report.dueDay", { d: dayOf(s.due) })}</span>
-                    <span className="mono text-[13px]" style={{ color: T.sub }}>{fmtMoney(s.amount, s.currency, hide)}</span>
+                    <span className="ui text-[0.8125rem] flex-1 truncate" style={{ color: T.sub }}>{s.name}</span>
+                    <span className="ui text-[0.6875rem]" style={{ color: T.amber }}>{tr("sheets.report.dueDay", { d: dayOf(s.due) })}</span>
+                    <span className="mono text-[0.8125rem]" style={{ color: T.sub }}>{fmtMoney(s.amount, s.currency, hide)}</span>
                   </div>
                 ))}
               </CardBox>
@@ -196,9 +196,9 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
                   return (
                     <div key={x.id} className="flex items-center gap-2 py-2.5" style={{ borderTop: i ? `1px solid ${T.line}` : "none" }}>
                       <def.I size={14} style={{ color: def.c }} aria-hidden="true" />
-                      <span className="ui text-[13px] flex-1 truncate" style={{ color: T.text }}>{x.note || catLabel(x.category)}</span>
-                      <span className="ui text-[11px]" style={{ color: T.faint }}>{tr("sheets.report.day", { d: dayOf(x.date) })}</span>
-                      <span className="mono text-[13px]" style={{ color: T.text }}>{money(x.baseValue)}</span>
+                      <span className="ui text-[0.8125rem] flex-1 truncate" style={{ color: T.text }}>{x.note || catLabel(x.category)}</span>
+                      <span className="ui text-[0.6875rem]" style={{ color: T.faint }}>{tr("sheets.report.day", { d: dayOf(x.date) })}</span>
+                      <span className="mono text-[0.8125rem]" style={{ color: T.text }}>{money(x.baseValue)}</span>
                     </div>
                   );
                 })}
@@ -206,7 +206,7 @@ export default function ReportSheet({ open, onClose, data, base, hide, accName }
             </Section>
           )}
 
-          <p className="ui text-[11px] text-center mb-2" style={{ color: T.faint }}>
+          <p className="ui text-[0.6875rem] text-center mb-2" style={{ color: T.faint }}>
             {tr("sheets.report.note")}
           </p>
         </>

@@ -165,7 +165,8 @@ describe("Pocket Ledger UI", () => {
     render(<App storage={createStorage()} />);
     await screen.findByText("ADCB Current");
     fireEvent.click(screen.getByText("Activity"));
-    fireEvent.click((await screen.findAllByLabelText(/Delete Groceries/))[0]);
+    fireEvent.click((await screen.findAllByLabelText(/Edit Groceries/))[0]);
+    fireEvent.click(await screen.findByText("Delete this transaction"));
     expect(await screen.findByText(/Undo/)).toBeInTheDocument();
     fireEvent.click(screen.getByText(/Undo/));
     await waitFor(() => {

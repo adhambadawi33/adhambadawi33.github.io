@@ -8,6 +8,8 @@ import { subBrandFor } from "../../lib/brands.js";
 import { TxRow } from "../common/rows.jsx";
 import { humanDay } from "../../lib/dates/ui.js";
 import { useT, catLabel } from "../../i18n/index.js";
+import { hintSeen, dismissHint } from "../../lib/hints.js";
+import { Check, Circle } from "lucide-react";
 
 /* Accounts are shown grouped by kind (deliberate design): banks
    together, credit cards together, cash alone — each with its own subtotal. */
@@ -42,8 +44,8 @@ function NudgeCard({ nudge, onDismiss }) {
   return (
     <div className="rounded-2xl px-4 py-3 mb-4 flex items-start gap-3" style={{ background: amber ? T.amberBg : T.infoBg }}>
       <Lightbulb size={16} className="shrink-0 mt-0.5" style={{ color: amber ? T.amber : T.info }} aria-hidden="true" />
-      <p className="ui text-[12px] leading-relaxed flex-1" style={{ color: T.text }}>{nudge.text}</p>
-      <button onClick={() => onDismiss(nudge.key)} className="tap p-3 -m-3 shrink-0 opacity-50" style={{ color: T.sub }} aria-label={t("common.dismissHint")}>
+      <p className="ui text-[0.75rem] leading-relaxed flex-1" style={{ color: T.text }}>{nudge.text}</p>
+      <button onClick={() => onDismiss(nudge.key)} className="tap p-3 -m-3 shrink-0 opacity-50" style={{ color: T.sub }} aria-label={t("ux.snooze")} title={t("ux.snooze")}>
         <X size={14} />
       </button>
     </div>
@@ -54,15 +56,37 @@ export default function HomeScreen({
   nudge, onDismissNudge,
   accounts, balances, upcoming, topCats, monthExpense, recent,
   hide, accName, base, dueTone, rates, groupLabels,
-  onManageAccounts, onOpenPlanned, onOpenActivity, onOpenCards, onDelTx, onPaid, onAccountTap,
+  onManageAccounts, onOpenPlanned, onOpenActivity, onOpenCards, onDelTx, onPaid, onAccountTap, counts, onAddRecurr, onAddTx,
 }) {
   const t = useT();
   /* Banks stay open; cards, cash and custodial fold behind their subtotal. */
   const [openGroups, setOpenGroups] = useState({});
   const [leaving, leave] = useLeaving();
+  /* Three-step start: shown until all three are done or it is dismissed. */
+  const [startHidden, setStartHidden] = useState(() => hintSeen("start") > 0);
+  const steps = counts ? [
+    { key: "account", done: counts.accounts > 0, label: t("ux.stepAccount"), go: onManageAccounts },
+    { key: "tx", done: counts.tx > 0, label: t("ux.stepTx"), go: onAddTx },
+    { key: "sub", done: counts.recurrs > 0, label: t("ux.stepSub"), go: onAddRecurr },
+  ] : [];
+  const showStart = steps.length > 0 && !startHidden && steps.some((s) => !s.done) && counts.accounts > 0;
   return (
     <>
       <NudgeCard nudge={nudge} onDismiss={onDismissNudge} />
+      {showStart && (
+        <CardBox className="px-4 py-3 mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="ui text-[0.8125rem] font-semibold" style={{ color: T.text }}>{t("ux.start")}</span>
+            <button onClick={() => { dismissHint("start"); setStartHidden(true); }} className="tap ui text-[0.75rem] min-h-[44px] -my-2 px-1" style={{ color: T.sub }}>{t("ux.dismiss")}</button>
+          </div>
+          {steps.map((s) => (
+            <button key={s.key} onClick={s.done ? undefined : s.go} disabled={s.done} className="tap w-full flex items-center gap-3 min-h-[44px] text-start" style={{ color: s.done ? T.faint : T.text, textDecoration: s.done ? "line-through" : "none" }}>
+              {s.done ? <Check size={16} style={{ color: T.green }} aria-hidden="true" /> : <Circle size={16} style={{ color: T.lineStrong }} aria-hidden="true" />}
+              <span className="ui text-[0.875rem]">{s.label}</span>
+            </button>
+          ))}
+        </CardBox>
+      )}
       {accounts.length === 0 && (
         <EmptyHint
           icon={<Landmark size={26} />}
@@ -92,14 +116,12 @@ export default function HomeScreen({
                 <div className="flex items-center gap-2 px-4">
                   <button onClick={() => setOpenGroups({ ...openGroups, [g.key]: !open })} aria-expanded={open} className="tap flex items-center gap-2 flex-1 min-w-0 text-start min-h-[52px]">
                     <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: g.dot }} aria-hidden="true" />
-                    <span className="ui text-[13px] font-semibold flex-1 truncate" style={{ color: T.text }}>{groupLabels?.[g.key] || g.key}</span>
-                    <span className="ui text-[12px] shrink-0" style={{ color: T.faint }}>{list.length === 1 ? t("home.accountOne") : t("home.accountsN", { n: list.length })}</span>
-                    <span className="mono text-[13px] shrink-0" style={{ color: subtotal < -0.005 ? T.rose : T.text }}>{fmtSigned(Math.round(subtotal), base)}</span>
+                    <span className="ui text-[0.8125rem] font-semibold flex-1 truncate" style={{ color: T.text }}>{groupLabels?.[g.key] || g.key}</span>
+                    <span className="ui text-[0.75rem] shrink-0" style={{ color: T.faint }}>{list.length === 1 ? t("home.accountOne") : t("home.accountsN", { n: list.length })}</span>
+                    <span className="mono text-[0.8125rem] shrink-0" style={{ color: subtotal < -0.005 ? T.rose : T.text }}>{fmtSigned(Math.round(subtotal), base)}</span>
                     <ChevronDown size={15} className="shrink-0" style={{ color: T.faint, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} aria-hidden="true" />
                   </button>
-                  {g.key === "cards" && (
-                    <button onClick={onOpenCards} className="tap flex items-center min-h-[44px] px-1 -me-1" style={{ color: T.sub }} aria-label={groupLabels?.cards}><ChevronRight size={16} /></button>
-                  )}
+
                 </div>
                 {open && list.map((a, i) => {
                   const bal = balances[a.id] || 0;
@@ -115,15 +137,21 @@ export default function HomeScreen({
                       <span aria-hidden="true" className="absolute inset-y-2 w-[3px] rounded-full" style={{ insetInlineStart: 0, background: accountStripe(a) }} />
                       <AccountBadge a={a} Ico={Ico} isCredit={isCredit} />
                       <span className="flex-1 min-w-0">
-                        <span className="ui text-[15px] block truncate" style={{ color: T.text }}>{a.name}</span>
-                        <span className="ui text-[12px] block" style={{ color: isCredit ? (owed > 0 ? T.rose : T.green) : T.faint }}>
+                        <span className="ui text-[0.9375rem] block truncate" style={{ color: T.text }}>{a.name}</span>
+                        <span className="ui text-[0.75rem] block" style={{ color: isCredit ? (owed > 0 ? T.rose : T.green) : T.faint }}>
                           {isCredit ? (owed > 0 ? t("common.youOweThis") : t("common.nothingOwed")) : `${t(`accountTypes.${a.type}`)} · ${a.currency}`}
                         </span>
                       </span>
-                      <span className="mono text-[15px] shrink-0" style={{ color: isCredit && bal < 0 ? T.rose : T.text }}>{fmtSigned(bal, a.currency)}</span>
+                      <span className="mono text-[0.9375rem] shrink-0" style={{ color: isCredit && bal < 0 ? T.rose : T.text }}>{fmtSigned(bal, a.currency)}</span>
+                      <ChevronRight size={15} className="shrink-0" style={{ color: T.faint }} aria-hidden="true" />
                     </button>
                   );
                 })}
+                {open && g.key === "cards" && (
+                  <button onClick={onOpenCards} className="tap w-full flex items-center justify-between px-4 min-h-[48px] text-start" style={{ borderTop: `1px solid ${T.line}`, color: T.goldDeep }}>
+                    <span className="ui text-[0.8125rem] font-medium">{t("ux.cardsDetail")}</span><ChevronRight size={15} aria-hidden="true" />
+                  </button>
+                )}
               </div>
             );
           })}
@@ -152,7 +180,7 @@ export default function HomeScreen({
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="ui text-sm truncate" style={{ color: T.text }}>{r.name}</div>
-                    <div className="ui text-[12px]" style={{ color: tone.c }}>{tone.t} · {humanDay(r.nextDue)}</div>
+                    <div className="ui text-[0.75rem]" style={{ color: tone.c }}>{tone.t} · {humanDay(r.nextDue)}</div>
                   </div>
                   <Money n={r.amount} cur={r.currency} hide={hide} className="text-sm" />
                   <PaidBtn onClick={() => leave(r.id, () => onPaid(r))} />
@@ -172,14 +200,14 @@ export default function HomeScreen({
               return (
                 <div key={c.n} className="flex items-center gap-3 py-1.5">
                   <def.I size={15} style={{ color: def.c }} className="shrink-0" aria-hidden="true" />
-                  <span className="ui text-[13px] w-24 truncate" style={{ color: T.sub }}>{catLabel(c.n)}</span>
+                  <span className="ui text-[0.8125rem] w-24 truncate" style={{ color: T.sub }}>{catLabel(c.n)}</span>
                   <div className="flex-1"><Bar pct={(c.v / max) * 100} color={def.c} /></div>
-                  <Money n={c.v} cur={base} hide={hide} className="text-[12px] w-20 text-right" />
+                  <Money n={c.v} cur={base} hide={hide} className="text-[0.75rem] w-20 text-right" />
                 </div>
               );
             })}
             {monthExpense > 0 && (
-              <div className="ui text-[11px] mt-1 text-right" style={{ color: T.faint }}>{t("home.ratesNote")}</div>
+              <div className="ui text-[0.6875rem] mt-1 text-right" style={{ color: T.faint }}>{t("home.ratesNote")}</div>
             )}
           </CardBox>
         </Section>

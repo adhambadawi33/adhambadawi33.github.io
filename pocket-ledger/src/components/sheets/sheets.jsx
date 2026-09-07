@@ -1,18 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Plus, Landmark, Check, Pencil, Eye, EyeOff, Download, Upload, Trash2, Sparkles, ChevronDown,
-  ClipboardPaste, Wand2, ChevronUp, Mic, HandCoins,
+  ClipboardPaste, Wand2, ChevronUp, Mic, HandCoins, Lock, Fingerprint, ChevronRight, AlertTriangle,
 } from "lucide-react";
+import { hintSeen, bumpHint } from "../../lib/hints.js";
+import { biometricsAvailable } from "../../lib/lock.js";
+import { TxRow } from "../common/rows.jsx";
 import {
   T, ACCOUNT_TYPE_DEFS, ACCOUNT_COLORS, EXP_CATS, INC_CATS, OWNERS, fmtMoney, inputCls, inputStyle, accountStripe,
 } from "../../styles/tokens.js";
-import { Sheet, Field, ChipRow, Numpad, EmptyHint, Money } from "../common/primitives.jsx";
+import { Sheet, Field, ChipRow, Numpad, EmptyHint, Money, CardBox, Section } from "../common/primitives.jsx";
 import { CardChip } from "../common/brand.jsx";
 import { bankFor } from "../../lib/brands.js";
 import { CURRENCIES, convert, isValidRate, DEFAULT_RATES } from "../../lib/finance/currency.js";
 import { parseVoice } from "../../lib/voice/parse.js";
 import { todayISO, toISO, daysInMonth } from "../../lib/dates/localDate.js";
 import { humanDay } from "../../lib/dates/ui.js";
+
+/* Save buttons stay enabled; a tap while something is missing explains what. */
+const SaveReason = ({ text }) => (text ? <p role="alert" className="ui text-[0.75rem] text-center mb-2" style={{ color: T.rose }}>{text}</p> : null);
 import { useT, catLabel, ownerLabel } from "../../i18n/index.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -60,6 +66,9 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
   const [parsedHint, setParsedHint] = useState("");
   const [debtDraft, setDebtDraft] = useState(null);
   const [listening, setListening] = useState(false);
+  const [reason, setReason] = useState("");
+  const [showVoiceHint] = useState(() => hintSeen("voice") < 3);
+  useEffect(() => { if (open) bumpHint("voice"); }, [open]);
   const recRef = useRef(null);
   const parsedCatRef = useRef(null);
 
@@ -148,7 +157,11 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
   const ok = +amount > 0 && !!acc && (type !== "transfer" || (to && toId !== accId));
 
   const save = () => {
-    if (!ok) return;
+    if (!ok) {
+      setReason(!(+amount > 0) ? tr("ux.needAmount") : !acc ? tr("ux.needAccount") : tr("ux.needTo"));
+      return;
+    }
+    setReason("");
     const snapshot = { ...settings.rates };
     if (type === "transfer") {
       onSave({
@@ -199,7 +212,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
               onChange={(e) => setQuick(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); applyParse(quick); } }}
               placeholder={tr("sheets.addTx.quickPh")}
-              className="ui flex-1 rounded-xl px-3.5 py-3 text-[15px] outline-none"
+              className="ui flex-1 rounded-xl px-3.5 py-3 text-[0.9375rem] outline-none"
               style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.text }}
               aria-label={tr("sheets.addTx.quickAria")}
             />
@@ -220,23 +233,23 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
             </button>
           </div>
           {parsedHint && (
-            <p className="ui text-[11px] mt-1.5 flex items-center gap-1" style={{ color: T.goldDeep }} aria-live="polite">
+            <p className="ui text-[0.6875rem] mt-1.5 flex items-center gap-1" style={{ color: T.goldDeep }} aria-live="polite">
               <Sparkles size={12} aria-hidden="true" /> {parsedHint}{tr("sheets.addTx.reviewThen")}
             </p>
           )}
-          {!parsedHint && !debtDraft && (
-            <p className="ui text-[11px] mt-1.5" style={{ color: T.faint }}>
-              {tr("sheets.addTx.tip")}
+          {!parsedHint && !debtDraft && showVoiceHint && (
+            <p className="ui text-[0.75rem] mt-1.5 rounded-lg px-2.5 py-1.5" style={{ background: T.goldBg, color: T.goldDeep }}>
+              {tr("ux.voiceHint")}
             </p>
           )}
           {debtDraft && (
             <div className="rounded-xl px-3.5 py-3 mt-2 flex items-center gap-3" style={{ background: T.goldBg || T.paper, border: `1px solid ${T.gold}` }} aria-live="polite">
               <HandCoins size={18} style={{ color: T.goldDeep }} aria-hidden="true" />
-              <div className="ui text-[12px] flex-1 min-w-0" style={{ color: T.text }}>
+              <div className="ui text-[0.75rem] flex-1 min-w-0" style={{ color: T.text }}>
                 {tr("sheets.addTx.soundsLoan")}{debtDraft.direction === "lent" ? tr("sheets.addTx.youLent") : tr("sheets.addTx.youBorrowed")}
                 {debtDraft.person ? ` ${debtDraft.person}` : ""}{debtDraft.amount != null ? ` · ${debtDraft.amount} ${debtDraft.currency || ""}`.trimEnd() : ""}
               </div>
-              <button onClick={() => onDebtDraft?.(debtDraft)} className="tap ui text-[12px] font-semibold rounded-lg px-3 py-2 shrink-0" style={{ background: T.gold, color: T.ink }}>
+              <button onClick={() => onDebtDraft?.(debtDraft)} className="tap ui text-[0.75rem] font-semibold rounded-lg px-3 py-2 shrink-0" style={{ background: T.gold, color: T.ink }}>
                 {tr("sheets.addTx.openLoanForm")}
               </button>
             </div>
@@ -260,18 +273,18 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
         </div>
 
         <div className="text-center mb-2" aria-live="polite">
-          <span className="mono text-[44px] leading-none" style={{ color: +amount > 0 ? T.text : T.faint }}>{amount || "0"}</span>
+          <span className="mono text-[2.75rem] leading-none" style={{ color: +amount > 0 ? T.text : T.faint }}>{amount || "0"}</span>
           <span className="ui text-base ms-2" style={{ color: T.faint }}>{cur}</span>
         </div>
         <div className="flex justify-center gap-1.5 mb-3">
           {CURRENCIES.map((c) => (
-            <button key={c} onClick={() => setCur(c)} aria-pressed={cur === c} className="tap mono rounded-full px-3.5 py-2 text-[12px]" style={cur === c ? { background: T.ink, color: "#fff" } : { background: T.paper, color: T.sub, border: `1px solid ${T.line}` }}>
+            <button key={c} onClick={() => setCur(c)} aria-pressed={cur === c} className="tap mono rounded-full px-3.5 py-2 text-[0.75rem]" style={cur === c ? { background: T.ink, color: "#fff" } : { background: T.paper, color: T.sub, border: `1px solid ${T.line}` }}>
               {c}
             </button>
           ))}
         </div>
         {acc && cur !== acc.currency && +amount > 0 && (
-          <p className="ui text-[11px] text-center mb-2" style={{ color: T.faint }}>
+          <p className="ui text-[0.6875rem] text-center mb-2" style={{ color: T.faint }}>
             {tr("sheets.addTx.approxFrom", { amt: fmtMoney(convert(+amount, cur, acc.currency, settings.rates), acc.currency), name: acc.name })}
           </p>
         )}
@@ -285,7 +298,7 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
                 return (
                   <button key={c.n} onClick={() => setCat(c.n)} aria-pressed={on} className="tap rounded-xl px-1 py-2.5 flex flex-col items-center gap-1" style={on ? { background: `${c.c}1A`, border: `1.5px solid ${c.c}` } : { background: T.paper, border: `1px solid ${T.line}` }}>
                     <c.I size={17} style={{ color: c.c }} aria-hidden="true" />
-                    <span className="ui text-[11px] leading-tight text-center" style={{ color: on ? T.text : T.sub }}>{catLabel(c.n).split(" ")[0]}</span>
+                    <span className="ui text-[0.6875rem] leading-tight text-center" style={{ color: on ? T.text : T.sub }}>{catLabel(c.n)}</span>
                   </button>
                 );
               })}
@@ -326,12 +339,13 @@ export function AddTxSheet({ open, onClose, accounts, settings, onSave, goAccoun
         </button>
         {more && (
           <div className="grid grid-cols-2 gap-3">
-            <Field label={tr("sheets.addTx.date")}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} style={inputStyle} /></Field>
-            <Field label={tr("sheets.addTx.note")}><input value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr("sheets.addTx.notePh")} className={inputCls} style={inputStyle} /></Field>
+            <Field label={tr("sheets.addTx.date")}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} style={inputStyle()} /></Field>
+            <Field label={tr("sheets.addTx.note")}><input value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr("sheets.addTx.notePh")} className={inputCls} style={inputStyle()} /></Field>
           </div>
         )}
 
-        <button onClick={save} disabled={!ok} className="tap ui w-full rounded-2xl py-4 text-[15px] font-semibold" style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}>
+        <SaveReason text={reason} />
+        <button onClick={save} aria-disabled={!ok} className="tap ui w-full rounded-2xl py-4 text-[0.9375rem] font-semibold" style={{ background: T.ink, color: "#fff", opacity: ok ? 1 : 0.7 }}>
           {tr("sheets.addTx.save", { type: tr(`sheets.addTx.${type}`) })}
         </button>
       </div>
@@ -369,11 +383,11 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
               <span className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: accountStripe(a, 135), color: "#fff" }} aria-hidden="true"><Ico size={17} /></span>
               <div className="flex-1 min-w-0">
                 <div className="ui text-sm" style={{ color: T.text }}>{a.name}{a.archived ? tr("sheets.accounts.hidden") : ""}</div>
-                <div className="ui text-[11px]" style={{ color: T.faint }}>{tr(`accountTypes.${a.type}`)} · {a.currency}</div>
+                <div className="ui text-[0.6875rem]" style={{ color: T.faint }}>{tr(`accountTypes.${a.type}`)} · {a.currency}</div>
               </div>
               <Money n={a.type === "credit" && bal < 0 ? -bal : bal} cur={a.currency} hide={hide} className="text-sm" />
-              <button onClick={() => { setAdjustFor(isAdj ? null : a.id); setActual(""); }} className="tap ui text-[11px] px-2 py-1.5 rounded-lg" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
-                {tr("sheets.accounts.adjust")}
+              <button onClick={() => { setAdjustFor(isAdj ? null : a.id); setActual(""); }} className="tap ui text-[0.75rem] px-2.5 min-h-[40px] rounded-lg whitespace-nowrap" style={{ border: `1px solid ${T.lineStrong}`, color: T.goldDeep }}>
+                {tr("ux.reconcile")}
               </button>
               <button onClick={() => onEdit(a)} className="tap p-2" style={{ color: T.sub }} aria-label={tr("sheets.accounts.edit", { name: a.name })}><Pencil size={15} /></button>
               <button onClick={() => onArchive(a)} className="tap p-2" style={{ color: T.faint }} aria-label={a.archived ? tr("sheets.accounts.show", { name: a.name }) : tr("sheets.accounts.hide", { name: a.name })}>
@@ -382,27 +396,24 @@ export function AccountsSheet({ open, onClose, accounts, balances, hide, onNew, 
             </div>
             {isAdj && (
               <div className="pb-3" style={{ paddingInlineStart: 52 }}>
-                <p className="ui text-[11px] mb-1.5" style={{ color: T.faint }}>
-                  {a.type === "credit" ? tr("sheets.accounts.adjustOwed") : tr("sheets.accounts.adjustBal")}
-                </p>
-                <div className="flex gap-2">
-                  <input type="number" inputMode="decimal" value={actual} onChange={(e) => setActual(e.target.value)} placeholder={a.currency} className="mono flex-1 rounded-lg px-3 py-2 text-sm outline-none" style={inputStyle} aria-label={tr("sheets.accounts.actualAria", { name: a.name })} />
-                  <button
-                    onClick={() => {
-                      const v = +actual;
-                      if (!Number.isFinite(v)) return;
-                      const target = a.type === "credit" ? -Math.abs(v) : v;
-                      const diff = target - bal;
-                      if (Math.abs(diff) < 0.005) { setAdjustFor(null); return; }
-                      onAdjust(a, diff);
-                      setAdjustFor(null);
-                    }}
-                    className="tap ui text-xs font-medium rounded-lg px-3"
-                    style={{ background: T.ink, color: "#fff" }}
-                  >
-                    {tr("sheets.accounts.reconcile")}
-                  </button>
-                </div>
+                {(() => {
+                  const v = actual === "" ? null : +actual;
+                  const target = v == null || !Number.isFinite(v) ? null : (a.type === "credit" ? -Math.abs(v) : v);
+                  const diff = target == null ? null : target - bal;
+                  const label = diff == null ? tr("sheets.accounts.reconcile") : Math.abs(diff) < 0.005 ? tr("ux.noDiff") : tr("ux.recordDiff", { diff: `${diff > 0 ? "+" : "−"}${fmtMoney(Math.abs(diff), a.currency)}` });
+                  return (
+                    <div className="flex gap-2">
+                      <input type="number" inputMode="decimal" value={actual} onChange={(e) => setActual(e.target.value)} placeholder={tr("ux.bankBalancePh")} className="mono pl-input flex-1 rounded-lg px-3 text-sm outline-none" style={inputStyle()} aria-label={tr("sheets.accounts.actualAria", { name: a.name })} autoFocus />
+                      <button
+                        onClick={() => { if (diff == null) return; if (Math.abs(diff) < 0.005) { setAdjustFor(null); return; } onAdjust(a, diff); setAdjustFor(null); }}
+                        className="tap ui text-xs font-medium rounded-lg px-3 min-h-[44px] whitespace-nowrap"
+                        style={{ background: diff == null ? T.line : T.ink, color: diff == null ? T.sub : "#fff" }}
+                      >
+                        {label}
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -424,45 +435,46 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
     );
   }, [initial]);
   useOpenTransition(open, init);
+  const [reason, setReason] = useState("");
   if (!open || !f) return null;
   const ok = f.name.trim().length > 0;
   const isCredit = f.type === "credit";
   return (
     <Sheet open onClose={onClose} title={initial ? tr("sheets.accountForm.edit") : tr("sheets.accountForm.new")}>
-      <Field label={tr("sheets.accountForm.name")}><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={tr("sheets.accountForm.namePh")} className={inputCls} style={inputStyle} /></Field>
+      <Field label={tr("sheets.accountForm.name")}><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={tr("sheets.accountForm.namePh")} className={inputCls} style={inputStyle()} /></Field>
       <Field label={tr("sheets.accountForm.type")}><ChipRow value={f.type} onChange={(v) => setF({ ...f, type: v })} options={ACCOUNT_TYPE_DEFS.map((d) => ({ value: d.id, label: tr(`accountTypes.${d.id}`) }))} /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={tr("sheets.accountForm.currency")}>
-          <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle}>
+          <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle()}>
             {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
           </select>
         </Field>
         <Field label={isCredit ? tr("sheets.accountForm.startOwed") : tr("sheets.accountForm.startBal")}>
-          <input type="number" inputMode="decimal" value={f.openingDisplay} onChange={(e) => setF({ ...f, openingDisplay: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle} />
+          <input type="number" inputMode="decimal" value={f.openingDisplay} onChange={(e) => setF({ ...f, openingDisplay: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle()} />
         </Field>
       </div>
       {initial && (
-        <p className="ui text-[11px] -mt-1 mb-3" style={{ color: T.faint }}>
+        <p className="ui text-[0.6875rem] -mt-1 mb-3" style={{ color: T.faint }}>
           {tr("sheets.accountForm.startNoteA", { what: isCredit ? tr("sheets.accountForm.owedWord") : tr("sheets.accountForm.balWord") })}<b className="mono">{fmtMoney(Math.abs(currentBalance ?? 0), f.currency)}</b>{tr("sheets.accountForm.startNoteB")}
         </p>
       )}
       {isCredit && (
         <>
           <Field label={tr("sheets.accountForm.creditLimit")}>
-            <input type="number" inputMode="decimal" value={f.creditLimit} onChange={(e) => setF({ ...f, creditLimit: e.target.value })} placeholder="e.g. 50000" className={`${inputCls} mono`} style={inputStyle} />
+            <input type="number" inputMode="decimal" value={f.creditLimit} onChange={(e) => setF({ ...f, creditLimit: e.target.value })} placeholder="e.g. 50000" className={`${inputCls} mono`} style={inputStyle()} />
           </Field>
           <Field label={tr("sheets.accountForm.network")}>
             <ChipRow value={f.network || ""} onChange={(v) => setF({ ...f, network: v })} options={[{ value: "visa", label: "Visa" }, { value: "mastercard", label: "Mastercard" }, { value: "", label: tr("sheets.accountForm.other") }]} />
           </Field>
           <Field label={tr("sheets.accountForm.bank")}>
-            <input value={f.bank || ""} onChange={(e) => setF({ ...f, bank: e.target.value })} placeholder={tr("sheets.accountForm.bankPh")} className={inputCls} style={inputStyle} />
+            <input value={f.bank || ""} onChange={(e) => setF({ ...f, bank: e.target.value })} placeholder={tr("sheets.accountForm.bankPh")} className={inputCls} style={inputStyle()} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={tr("sheets.accountForm.dueDay")}>
-              <input type="number" inputMode="numeric" min="1" max="31" value={f.dueDay || ""} onChange={(e) => setF({ ...f, dueDay: e.target.value })} placeholder="e.g. 5" className={`${inputCls} mono`} style={inputStyle} />
+              <input type="number" inputMode="numeric" min="1" max="31" value={f.dueDay || ""} onChange={(e) => setF({ ...f, dueDay: e.target.value })} placeholder="e.g. 5" className={`${inputCls} mono`} style={inputStyle()} />
             </Field>
             <Field label={tr("sheets.accountForm.minPayment")}>
-              <input type="number" inputMode="decimal" value={f.minPayment || ""} onChange={(e) => setF({ ...f, minPayment: e.target.value })} placeholder="e.g. 350" className={`${inputCls} mono`} style={inputStyle} />
+              <input type="number" inputMode="decimal" value={f.minPayment || ""} onChange={(e) => setF({ ...f, minPayment: e.target.value })} placeholder="e.g. 350" className={`${inputCls} mono`} style={inputStyle()} />
             </Field>
           </div>
         </>
@@ -477,7 +489,7 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
             />
           </Field>
           {f.custodial && (
-            <p className="ui text-[11px] -mt-1 mb-3" style={{ color: T.faint }}>
+            <p className="ui text-[0.6875rem] -mt-1 mb-3" style={{ color: T.faint }}>
               {tr("sheets.accountForm.trustHint")}
             </p>
           )}
@@ -490,7 +502,7 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
           placeholder={tr("sheets.accountForm.last4Ph")}
           inputMode="numeric"
           className={`${inputCls} mono`}
-          style={inputStyle}
+          style={inputStyle()}
           aria-label={tr("sheets.accountForm.last4Aria")}
         />
       </Field>
@@ -515,9 +527,10 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
           ))}
         </div>
       </Field>
+      <SaveReason text={reason} />
       <button
         onClick={() => {
-          if (!ok) return;
+          if (!ok) { setReason(tr("ux.needName")); return; }
           const openVal = Math.abs(+f.openingDisplay || 0);
           /* Sign convention: credit debt stored negative (schema.js). */
           const openingBalance = isCredit ? -openVal : +f.openingDisplay || 0;
@@ -525,9 +538,9 @@ export function AccountFormSheet({ open, onClose, initial, onSave, currentBalanc
           const cardDigits = (f.cardDigitsText || "").split(/[\s,]+/).filter((d) => /^\d{4}$/.test(d));
           onSave({ ...rest, openingBalance, creditLimit: +f.creditLimit || 0, cardDigits, bank: (f.bank || "").trim(), network: f.network || "", dueDay: +f.dueDay || 0, minPayment: +f.minPayment || 0 });
         }}
-        disabled={!ok}
-        className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
-        style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}
+        aria-disabled={!ok}
+        className="tap ui w-full rounded-2xl py-3.5 text-[0.9375rem] font-semibold mt-2"
+        style={{ background: T.ink, color: "#fff", opacity: ok ? 1 : 0.7 }}
       >
         {tr("sheets.accountForm.save")}
       </button>
@@ -552,16 +565,16 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
     <Sheet open onClose={onClose} title={tr("sheets.cards.title")} tall>
       <div className="flex gap-2 mb-4">
         <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.paper }}>
-          <div className="ui text-[11px] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.limitLeftRoom")}</div>
-          <div className="mono text-[17px]" style={{ color: T.sub }}>{hide ? "•••••" : `${Math.round(totAvail).toLocaleString("en-US")} ${base}`}</div>
+          <div className="ui text-[0.6875rem] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.limitLeftRoom")}</div>
+          <div className="mono text-[1.0625rem]" style={{ color: T.sub }}>{hide ? "•••••" : `${Math.round(totAvail).toLocaleString("en-US")} ${base}`}</div>
         </div>
         <div className="flex-1 rounded-xl px-3.5 py-3" style={{ background: T.roseBg }}>
-          <div className="ui text-[11px] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.totalOwed")}</div>
-          <div className="mono text-[17px]" style={{ color: totOwed > 0.005 ? T.rose : T.green }}>{hide ? "•••••" : `${totOwed > 0.005 ? "−" : ""}${Math.round(totOwed).toLocaleString("en-US")} ${base}`}</div>
+          <div className="ui text-[0.6875rem] mb-1" style={{ color: T.faint }}>{tr("sheets.cards.totalOwed")}</div>
+          <div className="mono text-[1.0625rem]" style={{ color: totOwed > 0.005 ? T.rose : T.green }}>{hide ? "•••••" : `${totOwed > 0.005 ? "−" : ""}${Math.round(totOwed).toLocaleString("en-US")} ${base}`}</div>
         </div>
       </div>
 
-      <p className="ui text-[11px] mb-4" style={{ color: T.faint }}>
+      <p className="ui text-[0.6875rem] mb-4" style={{ color: T.faint }}>
         {tr("sheets.cards.note")}
       </p>
 
@@ -576,25 +589,25 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
             <div className="flex items-center gap-3 mb-3">
               <CardChip account={a} width={44} />
               <div className="min-w-0 flex-1">
-                <div className="ui text-[15px] font-semibold truncate" style={{ color: T.text }}>{a.name}</div>
-                <div className="mono text-[11px]" style={{ color: T.faint }}>
+                <div className="ui text-[0.9375rem] font-semibold truncate" style={{ color: T.text }}>{a.name}</div>
+                <div className="mono text-[0.6875rem]" style={{ color: T.faint }}>
                   {a.cardDigits?.length ? `•••• ${a.cardDigits[0]}` : ""}{a.cardDigits?.length && (bank || a.bank) ? " · " : ""}{a.bank || bank?.label || ""}
                 </div>
               </div>
               {a.dueDay > 0 && (
-                <span className="ui text-[11px] font-semibold rounded-full px-2.5 py-1 shrink-0" style={{ background: owed > 0 ? T.amberBg : T.greenBg, color: owed > 0 ? T.amber : T.green }}>
+                <span className="ui text-[0.6875rem] font-semibold rounded-full px-2.5 py-1 shrink-0" style={{ background: owed > 0 ? T.amberBg : T.greenBg, color: owed > 0 ? T.amber : T.green }}>
                   {owed > 0 ? tr("sheets.cards.payBy", { date: humanDay(nextDueISO(a.dueDay)) }) : tr("sheets.cards.nothingOwed")}
                 </span>
               )}
             </div>
             <div className="flex gap-2.5 mb-3">
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
-                <div className="ui text-[11px] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.limitLeft")}</div>
-                <div className="mono text-[17px]" style={{ color: T.sub }}>{avail != null ? fmtMoney(avail, a.currency, hide) : "—"}</div>
+                <div className="ui text-[0.6875rem] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.limitLeft")}</div>
+                <div className="mono text-[1.0625rem]" style={{ color: T.sub }}>{avail != null ? fmtMoney(avail, a.currency, hide) : "—"}</div>
               </div>
               <div className="flex-1 rounded-xl px-3 py-2.5" style={{ background: T.paper }}>
-                <div className="ui text-[11px] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.owed")}</div>
-                <div className="mono text-[17px]" style={{ color: owed > 0 ? T.rose : T.green }}>{hide ? "•••••" : owed > 0 ? `−${fmtMoney(owed, a.currency, false)}` : "0"}</div>
+                <div className="ui text-[0.6875rem] mb-0.5" style={{ color: T.faint }}>{tr("sheets.cards.owed")}</div>
+                <div className="mono text-[1.0625rem]" style={{ color: owed > 0 ? T.rose : T.green }}>{hide ? "•••••" : owed > 0 ? `−${fmtMoney(owed, a.currency, false)}` : "0"}</div>
               </div>
             </div>
             {a.creditLimit > 0 && (
@@ -602,7 +615,7 @@ export function CardsSheet({ open, onClose, cards, balances, hide, base, rates }
                 <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: T.line }}>
                   <div className="h-full rounded-full" style={{ width: `${usedPct}%`, background: a.color, transition: "width .4s ease" }} />
                 </div>
-                <div className="flex justify-between ui text-[11px]" style={{ color: T.sub }}>
+                <div className="flex justify-between ui text-[0.6875rem]" style={{ color: T.sub }}>
                   <span>{tr("sheets.cards.used")} <b className="mono">{fmtMoney(owed, a.currency, hide)}</b> {tr("sheets.cards.ofWord")} <b className="mono">{fmtMoney(a.creditLimit, a.currency, hide)}</b></span>
                   {a.minPayment > 0 && owed > 0 && <span>{tr("sheets.cards.minPayment")} <b className="mono">{fmtMoney(a.minPayment, a.currency, hide)}</b></span>}
                 </div>
@@ -635,21 +648,22 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave, initial }) 
     );
   }, [accounts, initial]);
   useOpenTransition(open, init);
+  const [reason, setReason] = useState("");
   if (!open || !f) return null;
   const sub = kind === "subscription";
   const ok = f.name.trim() && +f.amount > 0 && (sub || +f.monthsTotal > 0);
   return (
     <Sheet open onClose={onClose} title={initial ? (sub ? tr("sheets.recurr.editSub") : tr("sheets.recurr.editInst")) : (sub ? tr("sheets.recurr.newSub") : tr("sheets.recurr.newInst"))}>
-      <Field label={tr("sheets.recurr.name")}><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={sub ? tr("sheets.recurr.subPh") : tr("sheets.recurr.instPh")} className={inputCls} style={inputStyle} /></Field>
+      <Field label={tr("sheets.recurr.name")}><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={sub ? tr("sheets.recurr.subPh") : tr("sheets.recurr.instPh")} className={inputCls} style={inputStyle()} /></Field>
       <Field label={tr("sheets.recurr.whose")}>
         <ChipRow value={f.owner} onChange={(v) => setF({ ...f, owner: v })} options={OWNERS.map((o) => ({ value: o.id, label: ownerLabel(o.id) }))} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={sub ? tr("sheets.recurr.amountCycle") : tr("sheets.recurr.monthlyAmount")}>
-          <input type="number" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle} />
+          <input type="number" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle()} />
         </Field>
         <Field label={tr("sheets.recurr.currency")}>
-          <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
+          <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle()}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
         </Field>
       </div>
       {sub ? (
@@ -658,23 +672,24 @@ export function RecurrSheet({ open, onClose, kind, accounts, onSave, initial }) 
         </Field>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          <Field label={tr("sheets.recurr.totalMonths")}><input type="number" inputMode="numeric" value={f.monthsTotal} onChange={(e) => setF({ ...f, monthsTotal: e.target.value })} placeholder="12" className={`${inputCls} mono`} style={inputStyle} /></Field>
-          <Field label={tr("sheets.recurr.alreadyPaid")}><input type="number" inputMode="numeric" value={f.monthsPaid} onChange={(e) => setF({ ...f, monthsPaid: e.target.value })} className={`${inputCls} mono`} style={inputStyle} /></Field>
+          <Field label={tr("sheets.recurr.totalMonths")}><input type="number" inputMode="numeric" value={f.monthsTotal} onChange={(e) => setF({ ...f, monthsTotal: e.target.value })} placeholder="12" className={`${inputCls} mono`} style={inputStyle()} /></Field>
+          <Field label={tr("sheets.recurr.alreadyPaid")}><input type="number" inputMode="numeric" value={f.monthsPaid} onChange={(e) => setF({ ...f, monthsPaid: e.target.value })} className={`${inputCls} mono`} style={inputStyle()} /></Field>
         </div>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <Field label={sub ? tr("sheets.recurr.nextRenewal") : tr("sheets.recurr.nextPayment")}><input type="date" value={f.nextDue} onChange={(e) => setF({ ...f, nextDue: e.target.value })} className={inputCls} style={inputStyle} /></Field>
+        <Field label={sub ? tr("sheets.recurr.nextRenewal") : tr("sheets.recurr.nextPayment")}><input type="date" value={f.nextDue} onChange={(e) => setF({ ...f, nextDue: e.target.value })} className={inputCls} style={inputStyle()} /></Field>
         <Field label={tr("sheets.recurr.payFrom")}>
-          <select value={f.accountId || ""} onChange={(e) => setF({ ...f, accountId: e.target.value })} className={inputCls} style={inputStyle}>
+          <select value={f.accountId || ""} onChange={(e) => setF({ ...f, accountId: e.target.value })} className={inputCls} style={inputStyle()}>
             {accounts.map((a) => <option key={a.id} value={a.id}>{`${a.name} · ${tagOf(tr, a.type)}`}</option>)}
           </select>
         </Field>
       </div>
+      <SaveReason text={reason} />
       <button
-        onClick={() => ok && onSave({ id: initial?.id || uid(), kind, name: f.name.trim(), amount: +f.amount, currency: f.currency, cycle: sub ? f.cycle : "monthly", nextDue: f.nextDue, accountId: f.accountId, owner: f.owner || "me", paused: initial?.paused || false, toCancel: initial?.toCancel || false, ...(sub ? {} : { monthsTotal: +f.monthsTotal, monthsPaid: +f.monthsPaid || 0 }) })}
-        disabled={!ok}
-        className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
-        style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}
+        onClick={() => { if (!ok) { setReason(!f.name.trim() ? tr("ux.needName") : !(+f.amount > 0) ? tr("ux.needAmount") : tr("ux.needMonths")); return; } onSave({ id: initial?.id || uid(), kind, name: f.name.trim(), amount: +f.amount, currency: f.currency, cycle: sub ? f.cycle : "monthly", nextDue: f.nextDue, accountId: f.accountId, owner: f.owner || "me", paused: initial?.paused || false, toCancel: initial?.toCancel || false, ...(sub ? {} : { monthsTotal: +f.monthsTotal, monthsPaid: +f.monthsPaid || 0 }) }); }}
+        aria-disabled={!ok}
+        className="tap ui w-full rounded-2xl py-3.5 text-[0.9375rem] font-semibold mt-2"
+        style={{ background: T.ink, color: "#fff", opacity: ok ? 1 : 0.7 }}
       >
         {sub ? tr("sheets.recurr.saveSub") : tr("sheets.recurr.saveInst")}
       </button>
@@ -702,9 +717,9 @@ export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
   return (
     <Sheet open onClose={onClose} title={tr("sheets.payPlan.title")}>
       <div className="rounded-2xl px-4 py-3 mb-4" style={{ background: T.paper, border: `1px solid ${T.line}` }}>
-        <div className="ui text-[12px]" style={{ color: T.sub }}>{plan.name}{ms.label ? ` · ${ms.label}` : ""}</div>
-        <div className="mono text-[26px] leading-tight mt-0.5" style={{ color: T.text }}>{fmtMoney(ms.amount, plan.currency)}</div>
-        <div className="ui text-[11px] mt-0.5" style={{ color: T.faint }}>{tr("sheets.payPlan.due", { date: humanDay(ms.due) })}</div>
+        <div className="ui text-[0.75rem]" style={{ color: T.sub }}>{plan.name}{ms.label ? ` · ${ms.label}` : ""}</div>
+        <div className="mono text-[1.625rem] leading-tight mt-0.5" style={{ color: T.text }}>{fmtMoney(ms.amount, plan.currency)}</div>
+        <div className="ui text-[0.6875rem] mt-0.5" style={{ color: T.faint }}>{tr("sheets.payPlan.due", { date: humanDay(ms.due) })}</div>
       </div>
       <Field label={tr("sheets.payPlan.payFrom")}>
         <div className="flex flex-col gap-2">
@@ -718,21 +733,21 @@ export function PayPlanSheet({ open, onClose, target, accounts, onConfirm }) {
                 style={{ background: on ? T.ink : T.surface, color: on ? "#fff" : T.text, border: `1px solid ${on ? T.ink : T.line}` }}
                 aria-pressed={on}
               >
-                <span className="ui text-[14px]">{a.name}</span>
-                <span className="ui text-[11px]" style={{ color: on ? "rgba(255,255,255,0.7)" : T.faint }}>{tagOf(tr, a.type)} · {a.currency}</span>
+                <span className="ui text-[0.875rem]">{a.name}</span>
+                <span className="ui text-[0.6875rem]" style={{ color: on ? "rgba(255,255,255,0.7)" : T.faint }}>{tagOf(tr, a.type)} · {a.currency}</span>
               </button>
             );
           })}
         </div>
       </Field>
-      <label className="flex items-center gap-2 mb-4 ui text-[12px]" style={{ color: T.sub }}>
+      <label className="flex items-center gap-2 mb-4 ui text-[0.75rem]" style={{ color: T.sub }}>
         <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
         {tr("sheets.payPlan.remember", { name: plan.name })}
       </label>
       <button
         onClick={() => ok && onConfirm(plan.id, ms.id, acct.id, remember)}
         disabled={!ok}
-        className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold"
+        className="tap ui w-full rounded-2xl py-3.5 text-[0.9375rem] font-semibold"
         style={{ background: ok ? T.gold : T.line, color: ok ? T.ink : T.faint }}
       >
         {tr("sheets.payPlan.confirm", { name: acct?.name || "…" })}
@@ -751,27 +766,29 @@ export function TripSheet({ open, onClose, onSave, initial }) {
       : { name: "", currency: "AED", startDate: todayISO(), endDate: "", open: true });
   }, [initial]);
   useOpenTransition(open, init);
+  const [reason, setReason] = useState("");
   if (!open || !f) return null;
   const ok = f.name.trim().length > 0;
   return (
     <Sheet open onClose={onClose} title={initial ? tr("sheets.trip.edit") : tr("sheets.trip.new")}>
-      <Field label={tr("sheets.trip.name")}><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={tr("sheets.trip.namePh")} className={inputCls} style={inputStyle} /></Field>
+      <Field label={tr("sheets.trip.name")}><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={tr("sheets.trip.namePh")} className={inputCls} style={inputStyle()} /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={tr("sheets.trip.currency")}>
-          <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
+          <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle()}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
         </Field>
-        <Field label={tr("sheets.trip.start")}><input type="date" value={f.startDate} onChange={(e) => setF({ ...f, startDate: e.target.value })} className={inputCls} style={inputStyle} /></Field>
+        <Field label={tr("sheets.trip.start")}><input type="date" value={f.startDate} onChange={(e) => setF({ ...f, startDate: e.target.value })} className={inputCls} style={inputStyle()} /></Field>
       </div>
       <Field label={tr("sheets.trip.status")}>
         <ChipRow value={f.open ? "open" : "closed"} onChange={(v) => setF({ ...f, open: v === "open" })} options={[{ value: "open", label: tr("sheets.trip.open") }, { value: "closed", label: tr("sheets.trip.closed") }]} />
       </Field>
-      {!f.open && <Field label={tr("sheets.trip.end")}><input type="date" value={f.endDate} onChange={(e) => setF({ ...f, endDate: e.target.value })} className={inputCls} style={inputStyle} /></Field>}
-      <p className="ui text-[11px] -mt-1 mb-3" style={{ color: T.faint }}>{tr("sheets.trip.hint")}</p>
+      {!f.open && <Field label={tr("sheets.trip.end")}><input type="date" value={f.endDate} onChange={(e) => setF({ ...f, endDate: e.target.value })} className={inputCls} style={inputStyle()} /></Field>}
+      <p className="ui text-[0.6875rem] -mt-1 mb-3" style={{ color: T.faint }}>{tr("sheets.trip.hint")}</p>
+      <SaveReason text={reason} />
       <button
-        onClick={() => ok && onSave({ id: initial?.id || uid(), name: f.name.trim(), currency: f.currency, startDate: f.startDate, endDate: f.open ? null : (f.endDate || todayISO()), open: f.open, settledDebtId: initial?.settledDebtId || null })}
-        disabled={!ok}
-        className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
-        style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}
+        onClick={() => { if (!ok) { setReason(tr("ux.needName")); return; } onSave({ id: initial?.id || uid(), name: f.name.trim(), currency: f.currency, startDate: f.startDate, endDate: f.open ? null : (f.endDate || todayISO()), open: f.open, settledDebtId: initial?.settledDebtId || null }); }}
+        aria-disabled={!ok}
+        className="tap ui w-full rounded-2xl py-3.5 text-[0.9375rem] font-semibold mt-2"
+        style={{ background: T.ink, color: "#fff", opacity: ok ? 1 : 0.7 }}
       >
         {tr("sheets.trip.save")}
       </button>
@@ -795,26 +812,28 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
     });
   }, [initial]);
   useOpenTransition(open, init);
+  const [reason, setReason] = useState("");
   if (!open || !f) return null;
   const ok = f.person.trim() && +f.amount > 0;
   return (
     <Sheet open onClose={onClose} title={tr("sheets.debt.title")}>
-      <Field label={tr("sheets.debt.person")}><input value={f.person} onChange={(e) => setF({ ...f, person: e.target.value })} placeholder={tr("sheets.debt.personPh")} className={inputCls} style={inputStyle} /></Field>
+      <Field label={tr("sheets.debt.person")}><input value={f.person} onChange={(e) => setF({ ...f, person: e.target.value })} placeholder={tr("sheets.debt.personPh")} className={inputCls} style={inputStyle()} /></Field>
       <Field label={tr("sheets.debt.direction")}>
         <ChipRow value={f.direction} onChange={(v) => setF({ ...f, direction: v })} options={[{ value: "lent", label: tr("sheets.debt.lent") }, { value: "borrowed", label: tr("sheets.debt.borrowed") }, { value: "given", label: tr("sheets.debt.given") }]} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label={tr("sheets.debt.amount")}><input type="number" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle} /></Field>
+        <Field label={tr("sheets.debt.amount")}><input type="number" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" className={`${inputCls} mono`} style={inputStyle()} /></Field>
         <Field label={tr("sheets.debt.currency")}>
-          <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
+          <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })} className={inputCls} style={inputStyle()}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
         </Field>
       </div>
-      <Field label={tr("sheets.debt.note")}><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder={tr("sheets.debt.notePh")} className={inputCls} style={inputStyle} /></Field>
+      <Field label={tr("sheets.debt.note")}><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder={tr("sheets.debt.notePh")} className={inputCls} style={inputStyle()} /></Field>
+      <SaveReason text={reason} />
       <button
-        onClick={() => ok && onSave({ id: uid(), person: f.person.trim(), direction: f.direction === "borrowed" ? "borrowed" : "lent", noReturn: f.direction === "given", amount: +f.amount, currency: f.currency, repaid: 0, note: f.note.trim(), date: f.date })}
-        disabled={!ok}
-        className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2"
-        style={{ background: ok ? T.ink : T.line, color: ok ? "#fff" : T.faint }}
+        onClick={() => { if (!ok) { setReason(!f.person.trim() ? tr("ux.needPerson") : tr("ux.needAmount")); return; } onSave({ id: uid(), person: f.person.trim(), direction: f.direction === "borrowed" ? "borrowed" : "lent", noReturn: f.direction === "given", amount: +f.amount, currency: f.currency, repaid: 0, note: f.note.trim(), date: f.date }); }}
+        aria-disabled={!ok}
+        className="tap ui w-full rounded-2xl py-3.5 text-[0.9375rem] font-semibold mt-2"
+        style={{ background: T.ink, color: "#fff", opacity: ok ? 1 : 0.7 }}
       >
         {tr("sheets.debt.save")}
       </button>
@@ -824,7 +843,7 @@ export function DebtSheet({ open, onClose, onSave, initial }) {
 
 /* ── Edit a logged transaction (batch 9): fix the note, or move it to the
    right account. Amount/category stay put — delete + re-add for those. ── */
-export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] }) {
+export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [], onDelete }) {
   const tr = useT();
   const [note, setNote] = useState("");
   const [accId, setAccId] = useState(null);
@@ -855,7 +874,7 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] })
       {/* The header category is DIRECTLY editable — tap it, pick, done.
           (The chip row below stays in sync as a visual alternative.) */}
       <div className="rounded-xl px-3.5 py-3 mb-4 flex items-center justify-between" style={{ background: T.paper }}>
-        <div className="ui text-[13px] flex items-center gap-1.5 min-w-0" style={{ color: T.text }}>
+        <div className="ui text-[0.8125rem] flex items-center gap-1.5 min-w-0" style={{ color: T.text }}>
           {movable ? (
             <>
               {(() => {
@@ -865,7 +884,7 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] })
               <select
                 value={cat || tx.category}
                 onChange={(e) => setCat(e.target.value)}
-                className="ui text-[13px] font-semibold bg-transparent outline-none"
+                className="ui text-[0.8125rem] font-semibold bg-transparent outline-none"
                 style={{ color: T.text, WebkitAppearance: "none", appearance: "none", border: "none", padding: 0 }}
                 aria-label={tr("sheets.editTx.catAria")}
               >
@@ -876,12 +895,12 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] })
           ) : (
             <span>{isTr ? tr("sheets.editTx.transfer") : tr("sheets.editTx.adjustment")}</span>
           )}
-          <span className="ui text-[11px] shrink-0" style={{ color: T.faint }}>{tx.date}</span>
+          <span className="ui text-[0.6875rem] shrink-0" style={{ color: T.faint }}>{tx.date}</span>
         </div>
-        <Money n={isTr ? tx.sourceAmount : tx.amount} cur={isTr ? tx.sourceCurrency : tx.currency} hide={false} className="text-[15px]" />
+        <Money n={isTr ? tx.sourceAmount : tx.amount} cur={isTr ? tx.sourceCurrency : tx.currency} hide={false} className="text-[0.9375rem]" />
       </div>
       <Field label={tr("sheets.editTx.note")}>
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr("sheets.editTx.notePh")} className={inputCls} style={inputStyle} />
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr("sheets.editTx.notePh")} className={inputCls} style={inputStyle()} />
       </Field>
       {movable && (
         <Field label={tr("sheets.editTx.category")}>
@@ -914,13 +933,18 @@ export function EditTxSheet({ open, onClose, tx, accounts, onSave, trips = [] })
         </Field>
       )}
       {!movable && (
-        <p className="ui text-[11px] mb-3" style={{ color: T.faint }}>
+        <p className="ui text-[0.6875rem] mb-3" style={{ color: T.faint }}>
           {isTr ? tr("sheets.editTx.trNote") : tr("sheets.editTx.adjNote")}
         </p>
       )}
-      <button onClick={save} className="tap ui w-full rounded-2xl py-3.5 text-[15px] font-semibold mt-2" style={{ background: T.ink, color: "#fff" }}>
+      <button onClick={save} className="tap ui w-full rounded-2xl py-3.5 text-[0.9375rem] font-semibold mt-2" style={{ background: T.ink, color: "#fff" }}>
         {tr("sheets.editTx.save")}
       </button>
+      {onDelete && (
+        <button onClick={() => onDelete(tx)} className="tap ui w-full rounded-2xl min-h-[44px] text-[0.8125rem] mt-3 flex items-center justify-center gap-1.5" style={{ background: T.roseBg, color: T.rose }}>
+          <Trash2 size={14} aria-hidden="true" />{tr("ux.deleteTx")}
+        </button>
+      )}
     </Sheet>
   );
 }
@@ -958,7 +982,7 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
       </button>
       {manual && (
         <div className="rounded-xl px-3.5 py-3 mb-2" style={{ background: T.paper, border: `1px solid ${T.gold}` }}>
-          <p className="ui text-[12px] mb-2" style={{ color: T.sub }}>
+          <p className="ui text-[0.75rem] mb-2" style={{ color: T.sub }}>
             iOS منع القراءة التلقائية — <b>دوس مطوّلًا جوه الصندوق واختار Paste</b> وهتتستورد لوحدها:
           </p>
           <textarea
@@ -967,18 +991,18 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
             onPaste={(e) => { const t = e.clipboardData?.getData("text"); if (t) { e.preventDefault(); importManual(t); } }}
             rows={3}
             placeholder="الصق رسالة البنك هنا…"
-            className="ui w-full rounded-lg px-3 py-2.5 text-[13px] outline-none"
+            className="ui w-full rounded-lg px-3 py-2.5 text-[0.8125rem] outline-none"
             style={{ background: "#fff", border: `1px solid ${T.line}`, color: T.text }}
             aria-label="Paste bank SMS text manually"
           />
           {manualTxt.trim() && (
-            <button onClick={() => importManual()} className="tap ui w-full rounded-lg py-2.5 text-[13px] font-medium mt-2" style={{ background: T.ink, color: "#fff" }}>
+            <button onClick={() => importManual()} className="tap ui w-full rounded-lg py-2.5 text-[0.8125rem] font-medium mt-2" style={{ background: T.ink, color: "#fff" }}>
               استورد اللي فوق ✓
             </button>
           )}
         </div>
       )}
-      <p className="ui text-[11px] mb-4" style={{ color: T.faint }}>
+      <p className="ui text-[0.6875rem] mb-4" style={{ color: T.faint }}>
         {tr("sheets.inbox.note")}
       </p>
 
@@ -998,16 +1022,16 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="ui text-sm truncate" style={{ color: T.text }}>{p.merchant || (p.direction === "income" ? tr("sheets.inbox.deposit") : tr("sheets.inbox.withdrawal"))}</div>
-                    <div className="ui text-[11px]" style={{ color: T.faint }}>{humanDay(p.date)}{p.category ? ` · ${catLabel(p.category)}` : ""}{p.cardLast4 ? ` · ****${p.cardLast4}` : ""}</div>
+                    <div className="ui text-[0.6875rem]" style={{ color: T.faint }}>{humanDay(p.date)}{p.category ? ` · ${catLabel(p.category)}` : ""}{p.cardLast4 ? ` · ****${p.cardLast4}` : ""}</div>
                   </div>
                   <Money n={p.amount} cur={p.currency} color={p.direction === "income" ? T.green : T.text} className="text-base" />
                 </div>
                 {matches[p.id] && !unlinked[p.id] && (
                   <div className="flex items-center gap-2 mt-2 rounded-lg px-2.5 py-2" style={{ background: T.goldBg || "#B08D5718", border: `1px solid ${T.gold}` }}>
-                    <span className="ui text-[11px] flex-1" style={{ color: T.goldDeep }}>
+                    <span className="ui text-[0.6875rem] flex-1" style={{ color: T.goldDeep }}>
                       🔁 ده اشتراك <b>{matches[p.id].name}</b> — هيتعلم عليه مدفوع{matches[p.id].byName ? "" : " (تقريب بالقيمة والميعاد)"}
                     </span>
-                    <button onClick={() => setUnlinked({ ...unlinked, [p.id]: true })} className="tap ui text-[11px] shrink-0 opacity-60" style={{ color: T.sub }} aria-label={`Don't link to ${matches[p.id].name}`}>
+                    <button onClick={() => setUnlinked({ ...unlinked, [p.id]: true })} className="tap ui text-[0.6875rem] shrink-0 opacity-60" style={{ color: T.sub }} aria-label={`Don't link to ${matches[p.id].name}`}>
                       ✕ مش هو
                     </button>
                   </div>
@@ -1016,7 +1040,7 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
                   <select
                     value={accFor(p)}
                     onChange={(e) => setSel({ ...sel, [p.id]: e.target.value })}
-                    className="ui flex-1 rounded-lg px-2.5 py-2 text-[13px] outline-none"
+                    className="ui flex-1 rounded-lg px-2.5 py-2 text-[0.8125rem] outline-none"
                     style={{ background: matched && !sel[p.id] ? T.greenBg : T.paper, border: `1px solid ${matched && !sel[p.id] ? T.green : T.line}`, color: T.text }}
                     aria-label={tr("sheets.inbox.sourceAria")}
                   >
@@ -1038,8 +1062,8 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
                   </button>
                 </div>
                 <details className="mt-2">
-                  <summary className="ui text-[11px] cursor-pointer" style={{ color: T.faint }}>{tr("sheets.inbox.original")}</summary>
-                  <p className="ui text-[11px] mt-1" style={{ color: T.sub }} dir="auto">{p.rawText}</p>
+                  <summary className="ui text-[0.6875rem] cursor-pointer" style={{ color: T.faint }}>{tr("sheets.inbox.original")}</summary>
+                  <p className="ui text-[0.6875rem] mt-1" style={{ color: T.sub }} dir="auto">{p.rawText}</p>
                 </details>
               </div>
             );
@@ -1052,9 +1076,12 @@ export function InboxSheet({ open, onClose, pending, accounts, matches = {}, onP
 
 /* ── Settings: draft-validated rates, backup/restore, typed reset ── */
 export function SettingsSheet({
-  open, onClose, settings, counts, onBase, onPref, onSaveRates, onFetchRates, onExportCsv, onExportBackup, onImportBackup, onResetRequest, backendName,
+  open, onClose, settings, counts, onBase, onPref, onSaveRates, onFetchRates, onExportCsv, onExportBackup, onImportBackup, onResetRequest, backendName, onSetPin, onRemovePin, onAddBiometric,
 }) {
   const tr = useT();
+  const [bio, setBio] = useState(null);
+  const [bioMsg, setBioMsg] = useState("");
+  useEffect(() => { if (open) biometricsAvailable().then(setBio); }, [open]);
   const [drafts, setDrafts] = useState({});
   const [err, setErr] = useState("");
   const [fx, setFx] = useState("");
@@ -1091,12 +1118,13 @@ export function SettingsSheet({
       <div className="rounded-2xl px-4 pt-4 pb-1 mb-3" style={{ background: T.surface, boxShadow: T.shadow1 }}>
       <Field label={tr("sheets.settings.base")}>
         <ChipRow value={settings.base} onChange={onBase} options={CURRENCIES.map((c) => ({ value: c, label: c }))} />
+        <p className="ui text-[0.6875rem] mt-2" style={{ color: T.faint }}>{tr("ux.baseNote", { cur: settings.base })}</p>
       </Field>
 
       <Field label={tr("sheets.settings.rates")}>
         <div className="flex items-center gap-2.5 rounded-xl px-3.5 py-3 mb-3" style={{ background: T.greenBg }}>
           <span className="h-2 w-2 rounded-full shrink-0" style={{ background: T.green }} aria-hidden="true" />
-          <span className="ui text-[12px] flex-1" style={{ color: T.text }}>
+          <span className="ui text-[0.75rem] flex-1" style={{ color: T.text }}>
             {tr("sheets.settings.autoRefresh")}{settings.ratesUpdatedAt ? tr("sheets.settings.lastUpdated", { date: settings.ratesUpdatedAt }) : ""}
           </span>
           <button
@@ -1107,14 +1135,14 @@ export function SettingsSheet({
                 .then((r) => { setDrafts(Object.fromEntries(CURRENCIES.map((c) => [c, String(r[c])]))); setFx("ok"); })
                 .catch(() => setFx("err"));
             }}
-            className="tap ui text-[12px] font-semibold rounded-lg px-3 py-1.5 shrink-0"
+            className="tap ui text-[0.75rem] font-semibold rounded-lg px-3 py-1.5 shrink-0"
             style={{ background: T.ink, color: "#fff", opacity: fx === "loading" ? 0.6 : 1 }}
           >
             {fx === "loading" ? tr("sheets.settings.updating") : tr("sheets.settings.updateNow")}
           </button>
         </div>
-        {fx === "ok" && <p role="status" className="ui text-[11px] mb-2" style={{ color: T.green }}>{tr("sheets.settings.updated")}</p>}
-        {fx === "err" && <p role="alert" className="ui text-[11px] mb-2" style={{ color: T.rose }}>{tr("sheets.settings.fetchErr")}</p>}
+        {fx === "ok" && <p role="status" className="ui text-[0.6875rem] mb-2" style={{ color: T.green }}>{tr("sheets.settings.updated")}</p>}
+        {fx === "err" && <p role="alert" className="ui text-[0.6875rem] mb-2" style={{ color: T.rose }}>{tr("sheets.settings.fetchErr")}</p>}
         {CURRENCIES.map((c) => (
           <div key={c} className="flex items-center gap-3 mb-2">
             <span className="mono text-sm w-10" style={{ color: T.text }}>{c}</span>
@@ -1123,19 +1151,40 @@ export function SettingsSheet({
               value={drafts[c] ?? ""}
               onChange={(e) => setDrafts({ ...drafts, [c]: e.target.value })}
               className="mono flex-1 rounded-xl px-3 py-2 text-sm outline-none"
-              style={{ ...inputStyle, opacity: c === "USD" ? 0.55 : 1 }}
+              style={{ ...inputStyle(), opacity: c === "USD" ? 0.55 : 1 }}
               aria-label={tr("sheets.settings.rateAria", { c })}
             />
           </div>
         ))}
-        {err && <p role="alert" className="ui text-[12px] mb-2" style={{ color: T.rose }}>{err}</p>}
+        {err && <p role="alert" className="ui text-[0.75rem] mb-2" style={{ color: T.rose }}>{err}</p>}
+        {CURRENCIES.some((c) => c !== "USD" && String(settings.rates[c]) !== drafts[c]) && (
+          <p className="ui text-[0.75rem] mb-2 rounded-lg px-3 py-2" style={{ background: T.amberBg, color: T.amber }}>{tr("ux.ratesNote")}</p>
+        )}
         <div className="flex gap-2 items-center">
           <button onClick={saveRates} className="tap ui text-sm font-medium rounded-xl px-4 py-2.5" style={{ background: T.ink, color: "#fff" }}>{tr("sheets.settings.saveRates")}</button>
           <button onClick={() => { setDrafts(Object.fromEntries(CURRENCIES.map((c) => [c, String(DEFAULT_RATES[c])]))); setErr(""); }} className="tap ui text-sm rounded-xl px-4 py-2.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>{tr("sheets.settings.resetDefaults")}</button>
         </div>
-        <p className="ui text-[11px] mt-2" style={{ color: T.faint }}>
+        <p className="ui text-[0.6875rem] mt-2" style={{ color: T.faint }}>
           {tr("sheets.settings.manualNote")}
         </p>
+      </Field>
+      </div>
+
+      <div className="rounded-2xl px-4 pt-4 pb-1 mb-3" style={{ background: T.surface, boxShadow: T.shadow1 }}>
+      <Field label={tr("ux.lock")}>
+        <ChipRow value={settings.lock?.pinHash ? "pin" : "off"} onChange={(v) => (v === "pin" ? onSetPin?.() : onRemovePin?.())} options={[{ value: "off", label: tr("ux.lockOff") }, { value: "pin", label: tr("ux.lockPin") }]} />
+        {settings.lock?.pinHash && (
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {settings.lock.credId ? (
+              <span className="ui text-[0.75rem] flex items-center gap-1.5" style={{ color: T.green }}><Fingerprint size={14} aria-hidden="true" />{tr("ux.faceIdAdded")}</span>
+            ) : bio ? (
+              <button onClick={async () => { const ok = await onAddBiometric?.(); setBioMsg(ok ? tr("ux.faceIdAdded") : tr("ux.faceIdUnavailable")); }} className="tap ui text-[0.75rem] rounded-lg px-3 min-h-[40px] flex items-center gap-1.5" style={{ background: T.goldBg, color: T.goldDeep }}><Fingerprint size={14} aria-hidden="true" />{tr("ux.faceIdAdd")}</button>
+            ) : (
+              <span className="ui text-[0.75rem]" style={{ color: T.faint }}>{tr("ux.faceIdUnavailable")}</span>
+            )}
+            {bioMsg && <span className="ui text-[0.75rem]" style={{ color: T.sub }}>{bioMsg}</span>}
+          </div>
+        )}
       </Field>
       </div>
 
@@ -1147,7 +1196,7 @@ export function SettingsSheet({
           <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" aria-hidden="true" onChange={(e) => { const file = e.target.files?.[0]; if (file) onImportBackup(file); e.target.value = ""; }} />
           <button onClick={onExportCsv} className="tap ui text-sm rounded-xl px-4 py-2.5 flex items-center gap-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}><Download size={15} aria-hidden="true" />{tr("sheets.settings.csv")}</button>
         </div>
-        <p className="ui text-[11px] mt-2" style={{ color: T.faint }}>{tr("sheets.settings.backupNote")}</p>
+        <p className="ui text-[0.6875rem] mt-2" style={{ color: T.faint }}>{tr("sheets.settings.backupNote")}</p>
       </Field>
       </div>
 
@@ -1165,10 +1214,154 @@ export function SettingsSheet({
         </button>
       </div>
 
-      <p className="ui text-[11px] flex items-start gap-1.5 mt-1" style={{ color: T.faint }}>
+      <p className="ui text-[0.6875rem] flex items-start gap-1.5 mt-1" style={{ color: T.faint }}>
         <Sparkles size={13} className="shrink-0 mt-0.5" style={{ color: T.gold }} aria-hidden="true" />
         {tr("sheets.settings.privacy")}
       </p>
+    </Sheet>
+  );
+}
+
+
+/* ── Restore from file: summary first, then two named choices. Replace asks
+   once more, inline — never a native dialog. ── */
+export function ImportSheet({ open, onClose, target, current, onApply }) {
+  const tr = useT();
+  const [confirmReplace, setConfirmReplace] = useState(false);
+  useEffect(() => { if (open) setConfirmReplace(false); }, [open]);
+  if (!open || !target) return null;
+  if (target.error)
+    return (
+      <Sheet open onClose={onClose} title={tr("ux.importTitle")}>
+        <div className="flex items-start gap-3 rounded-xl px-4 py-3" style={{ background: T.roseBg, color: T.rose }}>
+          <AlertTriangle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="ui text-[0.8125rem]">{tr("ux.importBad")}<br /><span className="mono text-[0.6875rem]">{target.name}</span></span>
+        </div>
+      </Sheet>
+    );
+  const { summary } = target.res;
+  return (
+    <Sheet open onClose={onClose} title={tr("ux.importTitle")}>
+      <div className="rounded-2xl px-4 py-3 mb-4" style={{ background: T.paper }}>
+        <div className="mono text-[0.75rem] truncate" style={{ color: T.text }}>{target.name}</div>
+        <div className="ui text-[0.75rem] mt-0.5" style={{ color: T.sub }}>
+          {target.exportedAt ? `${tr("ux.exported", { date: String(target.exportedAt).slice(0, 10) })} · ` : ""}
+          {tr("ux.importSummary", { a: summary.accounts, tx: summary.transactions, r: summary.recurring, d: summary.debts })}{summary.plans ? tr("ux.importPlans", { p: summary.plans }) : ""}
+        </div>
+        <div className="ui text-[0.6875rem] mt-1" style={{ color: T.faint }}>{tr("ux.importSummary", { a: current.accounts.length, tx: current.transactions.length, r: current.recurrs.length, d: current.debts.length })} ← {tr("sheets.settings.yourData")}</div>
+      </div>
+      {!confirmReplace ? (
+        <div className="flex flex-col gap-2">
+          <button onClick={() => onApply("add")} className="tap ui w-full rounded-2xl min-h-[52px] text-[0.9375rem] font-semibold" style={{ background: T.goldBg, color: T.goldDeep }}>{tr("ux.importAdd")}</button>
+          <button onClick={() => setConfirmReplace(true)} className="tap ui w-full rounded-2xl min-h-[52px] text-[0.9375rem]" style={{ border: `1px solid ${T.lineStrong}`, color: T.text }}>{tr("ux.importReplace")}</button>
+          <p className="ui text-[0.6875rem] text-center mt-1" style={{ color: T.faint }}>{tr("ux.importKeep")}</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <p className="ui text-[0.8125rem] rounded-xl px-4 py-3" style={{ background: T.amberBg, color: T.amber }}>{tr("ux.importReplaceWarn")}</p>
+          <button onClick={() => onApply("replace")} className="tap ui w-full rounded-2xl min-h-[52px] text-[0.9375rem] font-semibold" style={{ background: T.rose, color: "#fff" }}>{tr("ux.importReplaceConfirm")}</button>
+          <button onClick={() => setConfirmReplace(false)} className="tap ui w-full rounded-2xl min-h-[44px] text-[0.875rem]" style={{ color: T.sub }}>{tr("actions.cancel")}</button>
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
+/* ── One account: balance, recent activity here, match the bank, edit. ── */
+export function AccountSheet({ open, onClose, account, balance, transactions, hide, accName, onAdjust, onEdit, onAllActivity }) {
+  const tr = useT();
+  const [actual, setActual] = useState("");
+  useEffect(() => { if (open) setActual(""); }, [open]);
+  if (!open || !account) return null;
+  const a = account;
+  const isCredit = a.type === "credit";
+  const recent = transactions.filter((x) => x.accountId === a.id || x.sourceAccountId === a.id || x.destinationAccountId === a.id).sort((x, y) => y.date.localeCompare(x.date)).slice(0, 8);
+  const v = actual === "" ? null : +actual;
+  const target = v == null || !Number.isFinite(v) ? null : (isCredit ? -Math.abs(v) : v);
+  const diff = target == null ? null : target - balance;
+  return (
+    <Sheet open onClose={onClose} title={a.name} tall>
+      <div className="rounded-2xl px-4 py-4 mb-4" style={{ background: T.paper }}>
+        <div className="ui text-[0.6875rem] uppercase tracking-wider" style={{ color: T.sub }}>{tr(`accountTypes.${a.type}`)} · {a.currency}</div>
+        <div className="mono text-[1.875rem] leading-tight mt-1" style={{ color: isCredit && balance < 0 ? T.rose : T.text }}>{hide ? "•••••" : `${balance < 0 ? "−" : ""}${fmtMoney(Math.abs(balance), a.currency, false)}`}</div>
+        <div className="flex gap-2 mt-3">
+          <button onClick={() => onEdit(a)} className="tap ui text-[0.75rem] rounded-lg px-3 min-h-[40px] flex items-center gap-1.5" style={{ border: `1px solid ${T.lineStrong}`, color: T.sub }}><Pencil size={13} aria-hidden="true" />{tr("ux.edit")}</button>
+          <button onClick={() => onAllActivity(a)} className="tap ui text-[0.75rem] rounded-lg px-3 min-h-[40px] flex items-center gap-1" style={{ border: `1px solid ${T.lineStrong}`, color: T.sub }}>{tr("ux.allActivity")}<ChevronRight size={13} aria-hidden="true" /></button>
+        </div>
+      </div>
+      <Field label={tr("ux.reconcile")}>
+        <div className="flex gap-2">
+          <input type="number" inputMode="decimal" value={actual} onChange={(e) => setActual(e.target.value)} placeholder={tr("ux.bankBalancePh")} className={`${inputCls} mono`} style={inputStyle()} aria-label={tr("sheets.accounts.actualAria", { name: a.name })} />
+          <button
+            onClick={() => { if (diff == null || Math.abs(diff) < 0.005) return; onAdjust(a, diff); setActual(""); }}
+            className="tap ui text-xs font-medium rounded-xl px-3 min-h-[48px] whitespace-nowrap"
+            style={{ background: diff == null || Math.abs(diff) < 0.005 ? T.line : T.ink, color: diff == null || Math.abs(diff) < 0.005 ? T.sub : "#fff" }}
+          >
+            {diff == null ? tr("sheets.accounts.reconcile") : Math.abs(diff) < 0.005 ? tr("ux.noDiff") : tr("ux.recordDiff", { diff: `${diff > 0 ? "+" : "−"}${fmtMoney(Math.abs(diff), a.currency)}` })}
+          </button>
+        </div>
+      </Field>
+      <Section title={tr("ux.recentHere")}>
+        {recent.length === 0 ? (
+          <div className="ui text-[0.8125rem] px-0.5" style={{ color: T.sub }}>—</div>
+        ) : (
+          <CardBox>{recent.map((x, i) => <TxRow key={x.id} t={x} i={i} hide={hide} accName={accName} compact />)}</CardBox>
+        )}
+      </Section>
+    </Sheet>
+  );
+}
+
+/* ── App lock: the whole app waits behind a keypad (and biometrics). ── */
+export function LockScreen({ onPin, onBio }) {
+  const tr = useT();
+  const [pin, setPin] = useState("");
+  const [wrong, setWrong] = useState(false);
+  useEffect(() => { if (onBio) onBio(); }, [onBio]);
+  useEffect(() => {
+    if (pin.length === 4) onPin(pin).then((ok) => { if (!ok) { setWrong(true); setPin(""); } });
+  }, [pin, onPin]);
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: T.paper }}>
+      <div className="w-full max-w-xs text-center">
+        <div className="mx-auto h-14 w-14 rounded-full flex items-center justify-center mb-4" style={{ background: T.ink, color: "#fff" }}><Lock size={22} aria-hidden="true" /></div>
+        <div className="disp text-lg mb-1" style={{ color: T.text }}>Pocket Ledger</div>
+        <div className="ui text-[0.8125rem] mb-5" style={{ color: wrong ? T.rose : T.sub }} role="status">{wrong ? tr("ux.wrongPin") : tr("ux.locked")}</div>
+        <div className="flex justify-center gap-3 mb-6" aria-hidden="true">
+          {[0, 1, 2, 3].map((i) => <span key={i} className="h-3 w-3 rounded-full" style={{ background: i < pin.length ? T.goldDeep : T.line }} />)}
+        </div>
+        <Numpad value={pin} onChange={(v) => { if (/^\d{0,4}$/.test(v)) { setWrong(false); setPin(v); } }} />
+        {onBio && (
+          <button onClick={onBio} className="tap ui mt-5 text-[0.8125rem] flex items-center gap-1.5 mx-auto min-h-[44px]" style={{ color: T.goldDeep }}><Fingerprint size={16} aria-hidden="true" />{tr("ux.faceId")}</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Choose a PIN (twice). ── */
+export function PinSheet({ open, onClose, onSet }) {
+  const tr = useT();
+  const [first, setFirst] = useState("");
+  const [pin, setPin] = useState("");
+  const [err, setErr] = useState("");
+  useEffect(() => { if (open) { setFirst(""); setPin(""); setErr(""); } }, [open]);
+  useEffect(() => {
+    if (pin.length !== 4) return;
+    if (!first) { setFirst(pin); setPin(""); return; }
+    if (pin === first) { onSet(pin); } else { setErr(tr("ux.pinMismatch")); setFirst(""); setPin(""); }
+  }, [pin, first, onSet, tr]);
+  if (!open) return null;
+  return (
+    <Sheet open onClose={onClose} title={tr("ux.lock")}>
+      <div className="text-center mb-4">
+        <div className="ui text-[0.9375rem]" style={{ color: T.text }}>{first ? tr("ux.confirmPin") : tr("ux.setPin")}</div>
+        {err && <div className="ui text-[0.75rem] mt-1" style={{ color: T.rose }} role="alert">{err}</div>}
+        <div className="flex justify-center gap-3 mt-4" aria-hidden="true">
+          {[0, 1, 2, 3].map((i) => <span key={i} className="h-3 w-3 rounded-full" style={{ background: i < pin.length ? T.goldDeep : T.line }} />)}
+        </div>
+      </div>
+      <Numpad value={pin} onChange={(v) => { if (/^\d{0,4}$/.test(v)) setPin(v); }} />
     </Sheet>
   );
 }

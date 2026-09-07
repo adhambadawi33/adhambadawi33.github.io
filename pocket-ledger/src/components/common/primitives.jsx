@@ -19,7 +19,16 @@ export function Sheet({ open, onClose, title, children, tall, overlayClass = "",
     if (!open) return;
     opener.current = document.activeElement;
     panel.current?.focus();
-    const onKey = (e) => e.key === "Escape" && onClose();
+    const onKey = (e) => {
+      if (e.key === "Escape") return onClose();
+      /* Keep Tab inside the dialog (WAI-ARIA dialog pattern). */
+      if (e.key !== "Tab" || !panel.current) return;
+      const focusables = panel.current.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (!focusables.length) return;
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener("keydown", onKey);
     /* Lock the page behind the sheet — otherwise touch-scrolling the sheet
        (or the dimmed edge) scrolls the app in the background on iOS. */
@@ -65,7 +74,7 @@ export function Sheet({ open, onClose, title, children, tall, overlayClass = "",
 
 export const Field = ({ label, children }) => (
   <div className="mb-3.5">
-    <label className="ui text-[11px] uppercase tracking-wider block mb-1.5" style={{ color: T.faint }}>{label}</label>
+    <label className="ui text-[0.6875rem] uppercase tracking-wider block mb-1.5" style={{ color: T.faint }}>{label}</label>
     {children}
   </div>
 );
@@ -100,7 +109,7 @@ export const Bar = ({ pct, color, h = 6 }) => (
 export const Section = ({ title, right, children }) => (
   <div className="mb-6">
     <div className="flex items-center justify-between mb-2.5 px-0.5">
-      <h3 className="ui text-[13px] font-semibold tracking-wide" style={{ color: T.sub }}>{title}</h3>
+      <h2 className="ui text-[0.8125rem] font-semibold tracking-wide m-0" style={{ color: T.sub }}>{title}</h2>
       {right}
     </div>
     {children}
@@ -119,7 +128,7 @@ export const GhostBtn = ({ onClick, children, className = "", ariaLabel, ariaExp
 export const PaidBtn = ({ onClick, label }) => {
   const t = useT();
   return (
-    <button onClick={onClick} className="tap ui text-[11px] font-medium rounded-lg px-3 min-h-[44px]" style={{ background: T.ink, color: "#fff" }}>
+    <button onClick={onClick} className="tap ui text-[0.6875rem] font-medium rounded-lg px-3 min-h-[44px]" style={{ background: T.ink, color: "#fff" }}>
       {label || t("actions.paid")}
     </button>
   );
@@ -199,9 +208,9 @@ export function UndoToast({ toast, onUndo }) {
     <div className="fixed left-1/2 -translate-x-1/2 z-[70] w-[92%] max-w-md" style={{ bottom: "calc(88px + env(safe-area-inset-bottom))" }} role="status" aria-live="polite">
       <div className="pop flex items-center gap-3 rounded-2xl px-4 py-3.5" style={{ background: T.ink, color: "#fff", boxShadow: T.shadow1 }}>
         <span className="ui text-sm flex-1">{toast.label}</span>
-        <button onClick={onUndo} className="tap ui text-sm font-bold rounded-xl px-3.5 py-2 flex items-center gap-1.5 shrink-0" style={{ background: T.gold, color: T.ink }}>
+        {toast.restore !== null && <button onClick={onUndo} className="tap ui text-sm font-bold rounded-xl px-3.5 py-2 flex items-center gap-1.5 shrink-0" style={{ background: T.gold, color: T.ink }}>
           <RotateCcw size={15} /> {t("prim.undo")}
-        </button>
+        </button>}
       </div>
     </div>
   );
@@ -211,7 +220,7 @@ export function UndoToast({ toast, onUndo }) {
 export function SaveErrorBanner({ show, message }) {
   if (!show) return null;
   return (
-    <div role="alert" className="ui flex items-center gap-2 px-4 py-2.5 text-[13px]" style={{ background: T.roseBg, color: T.rose }}>
+    <div role="alert" className="ui flex items-center gap-2 px-4 py-2.5 text-[0.8125rem]" style={{ background: T.roseBg, color: T.rose }}>
       <AlertTriangle size={15} className="shrink-0" />
       <span>{message}</span>
     </div>
@@ -231,7 +240,7 @@ export function TypedConfirm({ open, word, onCancel, onConfirm }) {
         <p className="ui text-sm mb-3" style={{ color: T.sub }}>
           {t("prim.eraseBody")}<b>{word}</b>{t("prim.eraseToConfirm")}
         </p>
-        <input value={val} onChange={(e) => setVal(e.target.value)} className={inputCls} style={inputStyle} aria-label={t("prim.eraseAria", { word })} autoFocus />
+        <input value={val} onChange={(e) => setVal(e.target.value)} className={inputCls} style={inputStyle()} aria-label={t("prim.eraseAria", { word })} autoFocus />
         <div className="flex gap-2 mt-4">
           <button onClick={onCancel} className="tap ui flex-1 rounded-xl py-2.5 text-sm" style={{ border: `1px solid ${T.line}`, color: T.sub }}>{t("actions.cancel")}</button>
           <button
@@ -270,7 +279,7 @@ export class ErrorBoundary extends React.Component {
           </div>
           <details className="mt-4 text-start">
             <summary className="text-xs cursor-pointer" style={{ color: T.faint }}>{t("prim.tech")}</summary>
-            <pre className="text-[11px] mt-2 overflow-auto max-h-32" style={{ color: T.sub }}>{String(this.state.error?.stack || this.state.error)}</pre>
+            <pre className="text-[0.6875rem] mt-2 overflow-auto max-h-32" style={{ color: T.sub }}>{String(this.state.error?.stack || this.state.error)}</pre>
           </details>
         </div>
       </div>
