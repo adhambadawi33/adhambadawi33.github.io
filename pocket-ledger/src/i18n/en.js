@@ -109,6 +109,19 @@ export default {
       backup: "Backup & restore", exportJson: "Export JSON backup", restore: "Restore from file", csv: "CSV", backupNote: "Backup files contain your private financial data — store them somewhere safe.",
       yourData: "Your data", counts: "{tx} transactions · {a} accounts · {r} recurring · {d} loans · storage: {s}", reset: "Reset all data", privacy: "Data is stored privately on this device (or your Claude account inside Claude) and never sent to any external service.",
     },
-    report: { title: "Monthly report" }, voice: { title: "Say it" },
+    report: {
+      title: "Monthly report", prev: "Previous month", next: "Next month", print: "Print report", txCount: "{n} transactions · in {cur}", txOne: "1 transaction · in {cur}",
+      in: "In", out: "Out", net: "Net", same: "Same spending as {month}.", more: "{amt} more than {month} ({prev}).", less: "{amt} less than {month} ({prev}).",
+      nothing: "Nothing logged in {month}.", whereItWent: "Where it went", over: "over", of: "of", whoFor: "Who it was for", paidFrom: "Paid from", subs: "Subscriptions", day: "day {d}", dueDay: "due day {d}", biggest: "Biggest expenses",
+      note: "Amounts use each entry's own exchange rate — this report never changes when today's rates do.",
+    },
+    voice: {
+      title: "Say it", detected: "Heard it in what you said ✓", unsure: "Not sure — check it", seq: "Keep logging", saved: "Logged ✓ {what}", listening: "Listening… say your sentence", stopAria: "Listening — tap to stop", startAria: "Start listening",
+      typeIt: "Type it", typeInstead: "Type it instead", isDebt: "This is a loan — ", youLent: "you lent", youBorrowed: "you borrowed", openDebt: "Open the loan form, prefilled →", sayAgain: "Say it again",
+      noAmount: "No amount heard — tap “Say it again” or “Type it”", what: "On what?", whose: "Whose?", pickAccount: "pick an account", defaultTag: " (default)", today: "today", currency: "Currency", from: "From where?", date: "Date",
+      willLog: "Will log ≈ {amt} on {name}", saveSeq: "Log it and keep going 🎙️", save: "Done, log it ✓",
+      errUnclear: "Didn't catch a clear sentence — tap the mic and try again, or type it.", errUnsupported: "This browser doesn't support dictation — type it instead.", errNothing: "Heard nothing — tap the mic and try again.", errDenied: "Allow the microphone in browser settings and try again.", errStopped: "Audio stopped — tap the mic and try again.", errStart: "Couldn't start the mic — try again.",
+      examples: ["“Paid 350 EGP Carrefour from CIB”", "“Petrol 200 EGP yesterday”", "“Lent Ahmed 500”", "“Got the salary, 80k”", "“Lunch 120 for Abeer two days ago”"],
+    },
   },
 };

@@ -1,3 +1,4 @@
+import { uiLang } from "../../i18n/index.js";
 import { convertWithSnapshot } from "./currency.js";
 import { monthKeyOf, thisMonthKey } from "../dates/localDate.js";
 
@@ -11,9 +12,12 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+const MONTHS_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 export const monthLabel = (key) => {
   const m = /^(\d{4})-(\d{2})$/.exec(key || "");
-  return m ? `${MONTHS[+m[2] - 1]} ${+m[1]}` : key || "";
+  if (!m) return key || "";
+  const names = uiLang() === "ar" ? MONTHS_AR : MONTHS;
+  return `${names[+m[2] - 1]} ${+m[1]}`;
 };
 
 export const prevMonthKey = (key) => {

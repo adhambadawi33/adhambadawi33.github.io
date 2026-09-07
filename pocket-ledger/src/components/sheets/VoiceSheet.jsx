@@ -1,4 +1,4 @@
-import { useT } from "../../i18n/index.js";
+import { useT, catLabel, ownerLabel } from "../../i18n/index.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Mic, Keyboard, HandCoins, RotateCcw, Repeat, ChevronDown } from "lucide-react";
 import { T, EXP_CATS, INC_CATS, OWNERS, fmtMoney } from "../../styles/tokens.js";
@@ -45,7 +45,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
     const p = parseVoice(text, accounts, settings);
     if (!p) {
       setPhase("idle");
-      setErr("مسمعتش جملة واضحة — دوس المايك وجرّب تاني، أو اكتبها.");
+      setErr(tr("sheets.voice.errUnclear"));
       return;
     }
     if (p.type === "debt") {
@@ -81,7 +81,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setPhase("idle");
-      setErr("المتصفح ده مش بيدعم الإملاء — اكتبها بدل كده.");
+      setErr(tr("sheets.voice.errUnsupported"));
       return;
     }
     try { recRef.current?.stop(); } catch { /* noop */ }
@@ -105,15 +105,15 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
     rec.onend = () => {
       if (!gotRef.current) {
         setPhase("idle");
-        setErr("مسمعتش حاجة — دوس المايك وجرّب تاني.");
+        setErr(tr("sheets.voice.errNothing"));
       }
     };
     rec.onerror = (e) => {
       gotRef.current = true;
       setPhase("idle");
       setErr(e.error === "not-allowed" || e.error === "service-not-allowed"
-        ? "اسمح للمايكروفون من إعدادات المتصفح وجرّب تاني."
-        : "الصوت وقف — دوس المايك وجرّب تاني.");
+        ? tr("sheets.voice.errDenied")
+        : tr("sheets.voice.errStopped"));
     };
     recRef.current = rec;
     setHeard("");
@@ -121,7 +121,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
     setF(null);
     setDebt(null);
     setPhase("listening");
-    try { rec.start(); } catch { setPhase("idle"); setErr("مقدرتش أشغّل المايك — جرّب تاني."); }
+    try { rec.start(); } catch { setPhase("idle"); setErr(tr("sheets.voice.errStart")); }
   };
 
   useEffect(() => {
@@ -163,14 +163,14 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
       { keepOpen: seq, voice: true }
     );
     if (seq) {
-      setLastSaved(`${(+f.amount).toLocaleString("en-US")} ${f.currency} · ${f.category}`);
+      setLastSaved(`${(+f.amount).toLocaleString("en-US")} ${f.currency} · ${catLabel(f.category)}`);
       listen();
     }
   };
 
   const Det = ({ on }) => on
-    ? <span className="ui text-[11px] font-semibold" style={{ color: T.goldDeep }}>فهمتها من كلامك ✓</span>
-    : <span className="ui text-[11px]" style={{ color: T.faint }}>مش متأكد — راجعها</span>;
+    ? <span className="ui text-[11px] font-semibold" style={{ color: T.goldDeep }}>{tr("sheets.voice.detected")}</span>
+    : <span className="ui text-[11px]" style={{ color: T.faint }}>{tr("sheets.voice.unsure")}</span>;
 
   const SeqToggle = () => (
     <button
@@ -179,7 +179,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
       className="tap ui text-[11px] flex items-center gap-1.5 rounded-full px-3 py-1.5"
       style={seq ? { background: T.greenBg, color: T.green, border: `1.5px solid ${T.green}` } : { background: T.paper, color: T.faint, border: `1px solid ${T.line}` }}
     >
-      <Repeat size={12} aria-hidden="true" /> تسجيل متتابع{seq ? " ✓" : ""}
+      <Repeat size={12} aria-hidden="true" /> {tr("sheets.voice.seq")}{seq ? " ✓" : ""}
     </button>
   );
 
@@ -189,7 +189,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
         <div className="flex flex-col items-center pt-6 pb-6">
           {lastSaved && (
             <p className="fade-in ui text-[12px] mb-4 rounded-full px-3.5 py-1.5" style={{ background: T.greenBg, color: T.green }}>
-              اتسجلت ✓ {lastSaved}
+              {tr("sheets.voice.saved", { what: lastSaved })}
             </p>
           )}
           <div className={`flex items-center gap-[5px] h-10 mb-5 ${hot ? "wave-hot" : ""}`} aria-hidden="true">
@@ -201,24 +201,24 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
             onClick={() => { try { recRef.current?.stop(); } catch { /* noop */ } }}
             className="tap pulse-mic h-28 w-28 rounded-full flex items-center justify-center"
             style={{ background: T.rose, color: "#fff", border: `3px solid ${hot ? T.gold : "transparent"}` }}
-            aria-label="Listening — tap to stop"
+            aria-label={tr("sheets.voice.stopAria")}
           >
             <Mic size={46} />
           </button>
-          <p className="ui text-[15px] mt-5" style={{ color: T.text }}>سامعك… قول جملتك</p>
+          <p className="ui text-[15px] mt-5" style={{ color: T.text }}>{tr("sheets.voice.listening")}</p>
           {heard ? (
             <p className="fade-in ui text-[19px] leading-relaxed mt-3 text-center px-5 min-h-[56px]" style={{ color: T.text }} aria-live="polite">
               {heard}
             </p>
           ) : (
             <p key={exIdx} className="fade-in ui text-[13px] mt-3 text-center px-6 min-h-[56px]" style={{ color: T.faint }}>
-              {EXAMPLES[exIdx % EXAMPLES.length]}
+              {(() => { const ex = tr("sheets.voice.examples"); const list = Array.isArray(ex) ? ex : EXAMPLES; return list[exIdx % list.length]; })()}
             </p>
           )}
           <div className="flex items-center gap-2 mt-4">
             <SeqToggle />
             <button onClick={() => onTypeInstead(heard)} className="tap ui text-[11px] flex items-center gap-1.5 rounded-full px-3 py-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
-              <Keyboard size={12} aria-hidden="true" /> اكتبها
+              <Keyboard size={12} aria-hidden="true" /> {tr("sheets.voice.typeIt")}
             </button>
           </div>
         </div>
@@ -226,12 +226,12 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
 
       {phase === "idle" && (
         <div className="flex flex-col items-center pt-10 pb-6">
-          <button onClick={listen} className="tap h-28 w-28 rounded-full flex items-center justify-center" style={{ background: T.ink, color: "#fff" }} aria-label="Start listening">
+          <button onClick={listen} className="tap h-28 w-28 rounded-full flex items-center justify-center" style={{ background: T.ink, color: "#fff" }} aria-label={tr("sheets.voice.startAria")}>
             <Mic size={46} />
           </button>
           <p className="ui text-[13px] mt-5 text-center px-6" style={{ color: T.sub }}>{err}</p>
           <button onClick={() => onTypeInstead(heard)} className="tap ui text-[12px] mt-5 flex items-center gap-1.5 rounded-xl px-4 py-2.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
-            <Keyboard size={14} aria-hidden="true" /> اكتبها بدل كده
+            <Keyboard size={14} aria-hidden="true" /> {tr("sheets.voice.typeInstead")}
           </button>
         </div>
       )}
@@ -241,20 +241,20 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
           <div className="rounded-2xl px-4 py-4 flex items-center gap-3" style={{ background: T.paper, border: `1px solid ${T.gold}` }}>
             <HandCoins size={22} style={{ color: T.goldDeep }} aria-hidden="true" />
             <div className="ui text-[15px] flex-1 min-w-0" style={{ color: T.text }}>
-              ده دين — {debt.direction === "lent" ? "انت سلّفت" : "انت استلفت"}
+              {tr("sheets.voice.isDebt")}{debt.direction === "lent" ? tr("sheets.voice.youLent") : tr("sheets.voice.youBorrowed")}
               {debt.person ? ` ${debt.person}` : ""}{debt.amount != null ? ` · ${debt.amount} ${debt.currency || ""}`.trimEnd() : ""}
             </div>
           </div>
           <p className="ui text-[11px] mt-2 px-1" style={{ color: T.faint }}>«{heard}»</p>
           <button onClick={() => onDebtDraft(debt)} className="tap ui w-full rounded-2xl py-4 text-[15px] font-semibold mt-4" style={{ background: T.gold, color: T.ink }}>
-            افتح نموذج الدين متعبّي ←
+            {tr("sheets.voice.openDebt")}
           </button>
           <div className="flex gap-2 mt-3">
             <button onClick={listen} className="tap ui flex-1 text-[12px] rounded-xl py-3 flex items-center justify-center gap-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
-              <RotateCcw size={13} aria-hidden="true" /> قول تاني
+              <RotateCcw size={13} aria-hidden="true" /> {tr("sheets.voice.sayAgain")}
             </button>
             <button onClick={() => onTypeInstead(heard)} className="tap ui flex-1 text-[12px] rounded-xl py-3 flex items-center justify-center gap-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
-              <Keyboard size={13} aria-hidden="true" /> اكتبها
+              <Keyboard size={13} aria-hidden="true" /> {tr("sheets.voice.typeIt")}
             </button>
           </div>
         </div>
@@ -269,7 +269,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
             <span className="ui text-base ml-2" style={{ color: T.faint }}>{f.currency}</span>
           </div>
           {!(+f.amount > 0) && (
-            <p className="ui text-[12px] text-center mb-2" style={{ color: T.rose }}>مفيش مبلغ — دوس «قول تاني» أو «اكتبها»</p>
+            <p className="ui text-[12px] text-center mb-2" style={{ color: T.rose }}>{tr("sheets.voice.noAmount")}</p>
           )}
           <p className="ui text-[11px] text-center mb-1" style={{ color: T.faint }}>«{heard}»</p>
           {f.date && f.date !== today ? (
@@ -279,7 +279,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
           )}
 
           <div className="flex items-center justify-between mb-1.5 px-0.5">
-            <span className="ui text-[11px] uppercase tracking-wider" style={{ color: T.faint }}>على إيه؟</span>
+            <span className="ui text-[11px] uppercase tracking-wider" style={{ color: T.faint }}>{tr("sheets.voice.what")}</span>
             <Det on={f.det.category} />
           </div>
           <div className="overflow-x-auto no-scroll -mx-5 px-5 mb-3.5">
@@ -288,7 +288,7 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
                 const on = f.category === c.n;
                 return (
                   <button key={c.n} onClick={() => setF({ ...f, category: c.n })} aria-pressed={on} className="tap ui rounded-xl px-3.5 py-2.5 text-sm flex items-center gap-1.5 whitespace-nowrap" style={on ? { background: `${c.c}1A`, border: `1.5px solid ${c.c}`, color: T.text } : { background: T.paper, color: T.sub, border: `1px solid ${T.line}` }}>
-                    <c.I size={14} style={{ color: c.c }} aria-hidden="true" />{c.n}
+                    <c.I size={14} style={{ color: c.c }} aria-hidden="true" />{catLabel(c.n)}
                   </button>
                 );
               })}
@@ -296,23 +296,23 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
           </div>
 
           <div className="flex items-center justify-between mb-1.5 px-0.5">
-            <span className="ui text-[11px] uppercase tracking-wider" style={{ color: T.faint }}>بتاع مين؟</span>
+            <span className="ui text-[11px] uppercase tracking-wider" style={{ color: T.faint }}>{tr("sheets.voice.whose")}</span>
             <Det on={f.det.owner} />
           </div>
           <div className="mb-3.5">
-            <ChipRow value={f.owner} onChange={(v) => setF({ ...f, owner: v })} options={OWNERS.map((o) => ({ value: o.id, label: o.label }))} />
+            <ChipRow value={f.owner} onChange={(v) => setF({ ...f, owner: v })} options={OWNERS.map((o) => ({ value: o.id, label: ownerLabel(o.id) }))} />
           </div>
 
           {/* Rarely-changed details fold into one line: currency · account · date */}
           <button onClick={() => setMore(!more)} className="tap w-full rounded-xl px-3.5 py-3 mb-3 flex items-center justify-between gap-2" style={{ background: T.paper, border: `1px solid ${T.line}` }} aria-expanded={more}>
             <span className="ui text-[12px] truncate" style={{ color: T.sub }}>
-              {f.currency}{f.det.currency ? " ✓" : ""} · {acc ? acc.name : "اختار حساب"}{acc ? (f.det.account ? " ✓" : " (افتراضي)") : ""} · {f.date === today ? "النهارده" : humanDay(f.date)}{f.det.date ? " ✓" : ""}
+              {f.currency}{f.det.currency ? " ✓" : ""} · {acc ? acc.name : tr("sheets.voice.pickAccount")}{acc ? (f.det.account ? " ✓" : tr("sheets.voice.defaultTag")) : ""} · {f.date === today ? tr("sheets.voice.today") : humanDay(f.date)}{f.det.date ? " ✓" : ""}
             </span>
             <ChevronDown size={14} className="shrink-0" style={{ color: T.faint, transform: more ? "rotate(180deg)" : "none", transition: "transform .15s" }} aria-hidden="true" />
           </button>
           {more && (
             <div className="fade-in">
-              <Field label="العملة">
+              <Field label={tr("sheets.voice.currency")}>
                 <div className="flex gap-1.5 flex-wrap">
                   {CURRENCIES.map((c) => (
                     <button key={c} onClick={() => setF({ ...f, currency: c })} aria-pressed={f.currency === c} className="tap mono rounded-full px-3.5 py-2 text-[12px]" style={f.currency === c ? { background: T.ink, color: "#fff" } : { background: T.paper, color: T.sub, border: `1px solid ${T.line}` }}>
@@ -321,20 +321,20 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
                   ))}
                 </div>
               </Field>
-              <Field label="من فين؟">
+              <Field label={tr("sheets.voice.from")}>
                 <ChipRow
                   value={f.accountId}
                   onChange={(v) => { const na = accounts.find((a) => a.id === v); setF({ ...f, accountId: v, currency: na ? na.currency : f.currency, det: { ...f.det, account: true } }); }}
-                  options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${typeTag(a.type)}` }))}
+                  options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${tr(`typeTag.${typeTag(a.type)}`)}` }))}
                 />
               </Field>
-              <Field label="التاريخ">
+              <Field label={tr("sheets.voice.date")}>
                 <input
                   type="date"
                   value={f.date || today}
                   onChange={(e) => setF({ ...f, date: e.target.value, det: { ...f.det, date: true } })}
-                  className="ui w-full rounded-xl px-3.5 py-3 text-[15px] outline-none"
-                  style={{ background: T.paper, border: `1px solid ${T.line}`, color: T.text }}
+                  className="ui pl-input w-full rounded-xl px-3.5 text-[15px] outline-none"
+                  style={{ background: T.surface, border: `1px solid ${T.lineStrong}`, color: T.text }}
                 />
               </Field>
             </div>
@@ -342,19 +342,19 @@ export default function VoiceSheet({ open, onClose, accounts, settings, onSave, 
 
           {acc && f.currency !== acc.currency && +f.amount > 0 && (
             <p className="ui text-[11px] text-center mb-2" style={{ color: T.faint }}>
-              هيتسجل ≈ {fmtMoney(+f.amount, f.currency, false)} على {acc.name}
+              {tr("sheets.voice.willLog", { amt: fmtMoney(+f.amount, f.currency, false), name: acc.name })}
             </p>
           )}
 
           <button onClick={save} disabled={!ok} className="tap ui w-full rounded-2xl py-4 text-[17px] font-semibold mt-1" style={{ background: ok ? T.gold : T.line, color: ok ? T.ink : T.faint }}>
-            {seq ? "سجّلها وكمّل 🎙️" : "تمام، سجّلها ✓"}
+            {seq ? tr("sheets.voice.saveSeq") : tr("sheets.voice.save")}
           </button>
           <div className="flex items-center gap-2 mt-3">
             <button onClick={listen} className="tap ui flex-1 text-[12px] rounded-xl py-3 flex items-center justify-center gap-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
-              <RotateCcw size={13} aria-hidden="true" /> قول تاني
+              <RotateCcw size={13} aria-hidden="true" /> {tr("sheets.voice.sayAgain")}
             </button>
             <button onClick={() => onTypeInstead(heard)} className="tap ui flex-1 text-[12px] rounded-xl py-3 flex items-center justify-center gap-1.5" style={{ border: `1px solid ${T.line}`, color: T.sub }}>
-              <Keyboard size={13} aria-hidden="true" /> اكتبها
+              <Keyboard size={13} aria-hidden="true" /> {tr("sheets.voice.typeIt")}
             </button>
             <SeqToggle />
           </div>

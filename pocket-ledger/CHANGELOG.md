@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.1 — Report and voice sheets in Arabic (2026-09-07)
+
+- Monthly report (month names, in/out/net, sections, notes) and the voice sheet (all prompts, errors, examples) now follow the language setting; category and owner names localized there too.
+
 ## 3.0.0 — "Quiet ledger" design system (2026-09-07)
 
 Approved proposal implemented in full (stages S1–S5).
