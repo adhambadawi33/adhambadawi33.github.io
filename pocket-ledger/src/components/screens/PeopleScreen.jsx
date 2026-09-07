@@ -4,7 +4,7 @@ import { hintSeen, dismissHint } from "../../lib/hints.js";
 import { Sheet } from "../common/primitives.jsx";
 import { TxRow } from "../common/rows.jsx";
 import { T } from "../../styles/tokens.js";
-import { Section, CardBox, EmptyHint, Money, GhostBtn } from "../common/primitives.jsx";
+import { Section, CardBox, EmptyHint, Money, GhostBtn, SortToggle } from "../common/primitives.jsx";
 import { DebtCard, GivenRow } from "../common/rows.jsx";
 import { convert } from "../../lib/finance/currency.js";
 import { fmtMoney } from "../../styles/tokens.js";
@@ -22,8 +22,12 @@ export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe,
   /* Settled loans stay in the file for memory, but out of the way. */
   const allLoans = debts.filter((x) => !x.noReturn);
   const loans = allLoans.filter((x) => x.amount - x.repaid > 0.005);
-  const lent = loans.filter((x) => x.direction === "lent");
-  const borrowed = loans.filter((x) => x.direction === "borrowed");
+  const [loanSort, setLoanSort] = useState("amount");
+  const [givenSort, setGivenSort] = useState("date");
+  const left = (x) => convert(x.amount - x.repaid, x.currency, base, rates);
+  const sortLoans = (arr) => (loanSort === "amount" ? [...arr].sort((a, b) => left(b) - left(a)) : [...arr].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)));
+  const lent = sortLoans(loans.filter((x) => x.direction === "lent"));
+  const borrowed = sortLoans(loans.filter((x) => x.direction === "borrowed"));
   const settled = allLoans.filter((x) => x.amount - x.repaid <= 0.005);
   /* Offsetting pairs: an open lent + an open borrowed with the same remaining
      amount and currency (e.g. money passing through for the company) cancel
@@ -43,7 +47,7 @@ export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe,
     .filter((x) => x.noReturn && !isGift(x))
     .map((x) => ({ id: `help:${x.id}`, source: "debt", kind: "help", who: x.person, what: x.note, amount: x.amount, currency: x.currency, date: x.date, ref: x }));
   const gifts = collectGifts(debts, transactions).map((g) => ({ ...g, kind: "gift" }));
-  const given = [...help, ...gifts].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const given = [...help, ...gifts].sort((a, b) => (givenSort === "amount" ? convert(b.amount, b.currency, base, rates) - convert(a.amount, a.currency, base, rates) : (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)));
   const givenTotal = given.reduce((s, x) => s + convert(x.amount, x.currency, base, rates), 0);
   return (
     <>
@@ -63,7 +67,7 @@ export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe,
         </Section>
       )}
       {(loans.length > 0 || settled.length > 0) && (
-      <Section title={t("people.owedToYou")} right={<GhostBtn onClick={onAddDebt}>{t("actions.add")} <span aria-hidden="true">›</span></GhostBtn>}>
+      <Section title={t("people.owedToYou")} right={<span className="flex items-center gap-2"><SortToggle value={loanSort} onChange={setLoanSort} /><GhostBtn onClick={onAddDebt}>{t("actions.add")} <span aria-hidden="true">›</span></GhostBtn></span>}>
         {lent.length === 0 ? (
           <div className="ui text-[0.8125rem] px-0.5 py-3" style={{ color: T.sub }}>{t("people.allSquare")}</div>
         ) : (
@@ -105,6 +109,7 @@ export default function PeopleScreen({ debts, transactions = [], owedToMe, iOwe,
               <button onClick={() => { dismissHint("giftHelp"); setTagHintHidden(true); }} className="tap ui text-[0.75rem] shrink-0 min-h-[28px]" style={{ color: T.goldDeep }}>✕</button>
             </div>
           )}
+          {givenOpen && <SortToggle value={givenSort} onChange={setGivenSort} className="mb-2" />}
           {givenOpen ? (
             <CardBox>
               {given.map((g, i) => <GivenRow key={g.id} g={g} hide={hide} onDel={onDelDebt} base={base} rates={rates} first={i === 0} />)}

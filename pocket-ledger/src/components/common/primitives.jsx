@@ -134,6 +134,15 @@ export const PaidBtn = ({ onClick, label }) => {
   );
 };
 
+/* Two-way sort switch used on every list of amounts: by date, or highest first. */
+export function SortToggle({ value, onChange, className = "" }) {
+  const t = useT();
+  const opt = (v, label) => (
+    <button key={v} onClick={() => onChange(v)} aria-pressed={value === v} className="tap ui text-[0.75rem] rounded-full px-3 min-h-[36px]" style={value === v ? { background: T.ink, color: "#fff" } : { color: T.sub, border: `1px solid ${T.lineStrong}` }}>{label}</button>
+  );
+  return <div className={`flex items-center gap-1.5 ${className}`} role="group">{opt("date", t("ux.sortDate"))}{opt("amount", t("ux.sortAmount"))}</div>;
+}
+
 export const CardBox = ({ children, className = "", style = {}, flat = false }) => (
   <div className={`rounded-2xl ${className}`} style={flat ? { background: T.surface, border: `1px solid ${T.line}`, ...style } : { background: T.surface, boxShadow: T.shadow1, ...style }}>
     {children}

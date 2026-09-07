@@ -15,6 +15,7 @@ export default {
     "Salary": "مرتب", "Business": "شغل", "Investments": "استثمارات", "Other income": "دخل آخر", "Adjustment": "تسوية", "Transfer": "تحويل",
   },
   ux: {
+    sortDate: "بالتاريخ", sortAmount: "الأعلى أولًا",
     offline: "أوفلاين · الأسعار من {date}", offlineNoDate: "أوفلاين · بآخر أسعار محفوظة",
     inbox: "رسائل البنك", inboxN: "رسائل البنك · {n}",
     needAmount: "اكتب المبلغ الأول", needAccount: "اختار حساب الأول", needName: "اكتب اسم الأول", needPerson: "مع مين؟", needMonths: "كام شهر بالكل؟", needTo: "اختار حساب تاني للتحويل",

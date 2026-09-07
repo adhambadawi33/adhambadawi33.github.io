@@ -11,6 +11,7 @@ export default {
   typeTag: { card: "card", debit: "debit", cash: "cash", bank: "bank" },
   cats: {},
   ux: {
+    sortDate: "By date", sortAmount: "Highest first",
     offline: "Offline · rates from {date}", offlineNoDate: "Offline · using saved rates",
     inbox: "Bank SMS", inboxN: "Bank SMS · {n}",
     needAmount: "Enter the amount first", needAccount: "Pick an account first", needName: "Give it a name first", needPerson: "Who is it with?", needMonths: "How many months in total?", needTo: "Pick a different destination account",

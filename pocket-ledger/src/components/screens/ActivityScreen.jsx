@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Search, Download, Receipt, Sparkles, FileText, SlidersHorizontal } from "lucide-react";
 import { T, fmtMoney } from "../../styles/tokens.js";
-import { CardBox, EmptyHint, ChipRow } from "../common/primitives.jsx";
+import { CardBox, EmptyHint, ChipRow, SortToggle } from "../common/primitives.jsx";
+import { convertWithSnapshot } from "../../lib/finance/currency.js";
 import { TxRow } from "../common/rows.jsx";
 import { humanDay } from "../../lib/dates/ui.js";
 import { useT, catLabel, ownerLabel } from "../../i18n/index.js";
@@ -35,6 +36,8 @@ function InsightCard({ insight, base, hide }) {
 }
 
 export default function ActivityScreen({ txByDay, filter, setFilter, accounts, hide, accName, onDelTx, onEditTx, onExport, onOpenReport, insight, base }) {
+  const [sort, setSort] = useState("date");
+  const byAmount = sort === "amount" ? txByDay.flatMap(([, rows]) => rows).sort((a, b) => { const v = (x) => { const amt = x.type === "transfer" ? x.sourceAmount : x.amount; const cur = x.type === "transfer" ? x.sourceCurrency : x.currency; return Math.abs(convertWithSnapshot(amt, cur, base, x.snapshot)); }; return v(b) - v(a); }) : null;
   const t = useT();
   const activeCount = ["accountId", "month", "owner", "category"].filter((k) => (filter[k] || "all") !== "all").length;
   const active = activeCount > 0;
@@ -76,8 +79,15 @@ export default function ActivityScreen({ txByDay, filter, setFilter, accounts, h
           <div className="overflow-x-auto no-scroll -mx-4 px-4"><div className="w-max"><ChipRow value={filter.category || "all"} onChange={set("category")} options={[{ value: "all", label: t("ux.anyCat") }, ...[...EXP_CATS, ...INC_CATS].filter((c) => c.n !== "Adjustment").map((c) => ({ value: c.n, label: catLabel(c.n) }))]} /></div></div>
         </div>
       )}
+      {txByDay.length > 0 && <SortToggle value={sort} onChange={setSort} className="mb-3" />}
       {txByDay.length === 0 ? (
         <EmptyHint icon={<Receipt size={26} />} text={t("activity.empty")} />
+      ) : byAmount ? (
+        <CardBox>
+          {byAmount.map((t, i) => (
+            <TxRow key={t.id} t={t} i={i} hide={hide} accName={accName} onDel={onDelTx} onEdit={onEditTx} compact />
+          ))}
+        </CardBox>
       ) : (
         txByDay.map(([day, rows]) => (
           <div key={day} className="mb-4">

@@ -4,7 +4,7 @@ import { T, EXP_CATS, OWNERS, inputStyle, curLabel } from "../../styles/tokens.j
 import { convert } from "../../lib/finance/currency.js";
 import { planStats } from "../../lib/finance/plans.js";
 import { tripStats } from "../../lib/finance/trips.js";
-import { Section, CardBox, Bar, Money, ChipRow, GhostBtn, PaidBtn, EmptyHint, useLeaving } from "../common/primitives.jsx";
+import { Section, CardBox, Bar, Money, ChipRow, GhostBtn, PaidBtn, EmptyHint, useLeaving, SortToggle } from "../common/primitives.jsx";
 import { RecurrList, OwnerPill } from "../common/rows.jsx";
 import { SubLogo } from "../common/brand.jsx";
 import { fmtMoney } from "../../styles/tokens.js";
@@ -167,7 +167,9 @@ function PlanCard({ p, hide, accName, dueTone, onPayNext, onDel }) {
 function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onClose, onDel, onSettle }) {
   const tr = useT();
   const [open, setOpen] = useState(false);
+  const [sort, setSort] = useState("date");
   const s = tripStats(trip, transactions, rates);
+  const items = sort === "amount" ? [...s.items].sort((a, b) => convert(b.amount, b.currency, trip.currency, rates) - convert(a.amount, a.currency, trip.currency, rates)) : s.items;
   const approx = (n) => (trip.currency === base ? null : `≈ ${fmtMoney(Math.round(convert(n, trip.currency, base, rates)), base, hide)}`);
   return (
     <CardBox className="px-4 py-3.5 mb-3">
@@ -218,7 +220,8 @@ function TripCard({ trip, transactions, base, rates, hide, accName, onEdit, onCl
       </button>
       {open && s.items.length > 0 && (
         <div className="mt-2 rounded-xl px-3.5 py-1" style={{ background: T.paper }}>
-          {s.items.map((t) => (
+          <SortToggle value={sort} onChange={setSort} className="py-2" />
+          {items.map((t) => (
             <div key={t.id} className="flex items-center gap-2 py-1.5" style={{ borderBottom: `1px solid ${T.line}22` }}>
               <span className="ui text-[0.6875rem] shrink-0 rounded px-1" style={{ background: t.tripKind === "work" ? "#B08D5722" : "#4E7A9B22", color: t.tripKind === "work" ? T.goldDeep : "#4E7A9B" }}>{t.tripKind === "work" ? tr("planned.workTag") : tr("planned.me")}</span>
               <span className="ui text-[0.6875rem] flex-1 truncate" style={{ color: T.text }}>{t.note || catLabel(t.category)}<span style={{ color: T.faint }}> · {accName(t.accountId)}</span></span>
@@ -261,6 +264,7 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
   const [openGroup, setOpenGroup] = useState(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [leaving, leave] = useLeaving();
+  const [nextSort, setNextSort] = useState("date");
   const toggle = (id) => setOpenGroup(openGroup === id ? null : id);
   const flagged = recurrs.filter((r) => r.kind === "subscription" && r.toCancel && !r.paused);
   const active = recurrs.filter((r) => !r.toCancel);
@@ -281,7 +285,8 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
   const filteredSubs = active.filter((r) => r.kind !== "subscription" || (bySubAcc(r) && bySubOwner(r)));
 
   /* The one number: everything leaving in the next 30 days (overdue counts). */
-  const soon = upcoming.filter((r) => r.d <= 30 && !r.toCancel);
+  const soonRaw = upcoming.filter((r) => r.d <= 30 && !r.toCancel);
+  const soon = nextSort === "amount" ? [...soonRaw].sort((a, b) => convert(b.amount, b.currency, base, rates) - convert(a.amount, a.currency, base, rates)) : soonRaw;
   const soonTotal = soon.reduce((s, r) => s + convert(r.amount, r.currency, base, rates), 0);
   const biggest = soon.length ? soon.reduce((a, b) => (convert(b.amount, b.currency, base, rates) > convert(a.amount, a.currency, base, rates) ? b : a)) : null;
   const f = (n) => (hide ? "•••••" : Math.round(n).toLocaleString("en-US"));
@@ -361,7 +366,7 @@ export default function PlannedScreen({ recurrs, plans = [], trips = [], transac
         const later = soon.filter((r) => r.d > 7);
         return (
           <>
-            <Section title={split ? t("planned.thisWeek") : t("planned.nextUp")}>
+            <Section title={split ? t("planned.thisWeek") : t("planned.nextUp")} right={soon.length > 1 ? <SortToggle value={nextSort} onChange={setNextSort} /> : null}>
               {soon.length === 0 ? (
                 <EmptyHint icon={<CalendarClock size={24} />} text={t("planned.emptyNext")} />
               ) : renderRows(split ? week : soon)}
